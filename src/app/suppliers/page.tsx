@@ -1,0 +1,98 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getProfileHeaderInfo } from "@/lib/avatars";
+import { AppShell } from "@/components/AppShell";
+import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
+import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
+import { CardEmptyState } from "@/components/dashboard/DashboardCard";
+import { PartyListItem } from "@/components/parties/PartyListItem";
+import { PlusIcon } from "@/components/icons";
+import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
+import { getSuppliers } from "@/lib/dashboard/customers";
+
+export default async function SuppliersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ space?: string; archived?: string }>;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+
+  if (!user) redirect("/welcome");
+
+  const profileHeader = await getProfileHeaderInfo(supabase, user.id);
+
+  const spaces = await getUserSpacesBasic(supabase);
+  if (spaces.length === 0) redirect("/onboarding/space-type");
+
+  const params = await searchParams;
+  const activeSpace = resolveActiveSpace(spaces, params.space);
+
+  if (activeSpace.type !== "business") {
+    const business = spaces.find((s) => s.type === "business");
+    redirect(business ? `/suppliers?space=${business.id}` : "/home");
+  }
+
+  const showArchived = params.archived === "1";
+  let suppliers: Awaited<ReturnType<typeof getSuppliers>>;
+  let loadError = false;
+  try {
+    suppliers = await getSuppliers(supabase, activeSpace.id, { archived: showArchived });
+  } catch {
+    loadError = true;
+    suppliers = [];
+  }
+
+  const businessSpaces = spaces.filter((s) => s.type === "business");
+
+  return (
+    <AppShell
+      title="Tedarikçiler"
+      headerEnd={
+        <div className="flex items-center gap-2">
+          {businessSpaces.length > 1 ? (
+            <SpaceSwitcher options={businessSpaces.map((s) => ({ id: s.id, type: s.type, name: s.name }))} activeId={activeSpace.id} />
+          ) : null}
+          <ProfileMenu displayName={profileHeader.displayName} email={user.email ?? null} avatarUrl={profileHeader.avatarUrl} />
+        </div>
+      }
+    >
+      <div className="flex items-center gap-2 pt-2">
+        <div className="flex gap-1 rounded-full bg-surface-muted p-1">
+          <Link
+            href={`/suppliers?space=${activeSpace.id}`}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${!showArchived ? "bg-accent text-text-on-accent" : "text-text-secondary"}`}
+          >
+            Aktif
+          </Link>
+          <Link
+            href={`/suppliers?space=${activeSpace.id}&archived=1`}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${showArchived ? "bg-accent text-text-on-accent" : "text-text-secondary"}`}
+          >
+            Arşivlenmiş
+          </Link>
+        </div>
+        <Link
+          href={`/suppliers/new?space=${activeSpace.id}`}
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent text-text-on-accent"
+          aria-label="Yeni tedarikçi ekle"
+        >
+          <PlusIcon size={18} />
+        </Link>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2.5 pb-4">
+        {loadError ? (
+          <p className="py-6 text-center text-sm text-danger">Tedarikçiler yüklenemedi.</p>
+        ) : suppliers.length === 0 ? (
+          <CardEmptyState message={showArchived ? "Arşivlenmiş tedarikçi yok." : "Henüz tedarikçi eklenmedi."} hint={showArchived ? undefined : "Sağ üstteki + ile ekleyebilirsin."} />
+        ) : (
+          suppliers.map((s) => <PartyListItem key={s.id} party={s} href={`/suppliers/${s.id}?space=${activeSpace.id}`} type="supplier" />)
+        )}
+      </div>
+    </AppShell>
+  );
+}
