@@ -2,10 +2,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
+import { BuySubscriptionCard } from "@/components/settings/BuySubscriptionCard";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getHomePlanInfo, getBusinessPlanInfo } from "@/lib/dashboard/plans";
 
-export default async function PlanPage({ searchParams }: { searchParams: Promise<{ space?: string }> }) {
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ space?: string; shopier_result?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,6 +25,8 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   if (params.space && params.space !== activeSpace.id) {
     redirect(`/settings/plan?space=${activeSpace.id}`);
   }
+
+  const shopierResult = params.shopier_result;
 
   const { data: spaceRow } = await supabase.from("spaces").select("owner_user_id").eq("id", activeSpace.id).maybeSingle();
   const ownerUserId = spaceRow?.owner_user_id ?? user.id;
@@ -46,6 +53,20 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
       }
     >
       <div className="flex flex-col gap-4 pt-3 pb-4">
+        {shopierResult === "success" ? (
+          <div className="rounded-2xl bg-accent-soft p-3.5 text-sm font-semibold text-accent">
+            Ödemen alındı, İşletme aboneliğin aktif! 🎉
+          </div>
+        ) : shopierResult === "pending" ? (
+          <div className="rounded-2xl bg-warning-soft p-3.5 text-sm font-semibold text-warning">
+            Ödeme alındı, aboneliğin kısa süre içinde aktifleşecek.
+          </div>
+        ) : shopierResult === "error" ? (
+          <div className="rounded-2xl bg-danger-soft p-3.5 text-sm font-semibold text-danger">
+            Ödeme tamamlanamadı. Lütfen tekrar dene.
+          </div>
+        ) : null}
+
         <div className="rounded-2xl border border-border bg-surface p-4">
           <p className="text-xs text-text-muted">Aktif alan</p>
           <p className="text-sm font-semibold text-text-primary">{activeSpace.name}</p>
@@ -152,17 +173,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
               </div>
             </div>
 
-            {!businessInfo.hasActiveSubscription ? (
-              <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
-                <p className="text-sm font-semibold text-text-primary">İşletme aboneliği</p>
-                <p className="mt-1 text-xs text-text-muted">
-                  Sınırsız hesap, işlem, borç/alacak, müşteri ve tedarikçi kaydı. Satın alma henüz açık değil.
-                </p>
-                <span className="mt-2 inline-block rounded-full bg-surface-muted px-2.5 py-1 text-[10px] font-bold text-text-muted">
-                  Yakında
-                </span>
-              </div>
-            ) : null}
+            {!businessInfo.hasActiveSubscription ? <BuySubscriptionCard spaceId={activeSpace.id} /> : null}
           </>
         ) : (
           <p className="text-sm text-danger">Plan bilgisi yüklenemedi.</p>
