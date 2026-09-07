@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createSimpleTransaction, createDebtV2 } from "@/lib/api/financial-rpc";
@@ -42,12 +42,18 @@ export function PurchaseForm({
   accounts,
   categories,
   suppliers,
+  variant = "page",
+  onSuccess,
+  onDirtyChange,
 }: {
   bookId: string;
   homeHref: string;
   accounts: AccountOption[];
   categories: CategoryOption[];
   suppliers: PartyRow[];
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
   const submittingRef = useRef(false);
@@ -67,6 +73,10 @@ export function PurchaseForm({
   const isCredit = method === "credit";
   const isDirty = amount !== "" || description !== "" || note !== "";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   const suggestedType = METHOD_TO_ACCOUNT_TYPE[method];
   const filteredAccounts = suggestedType ? accounts.filter((a) => a.type === suggestedType) : accounts;
@@ -137,17 +147,12 @@ export function PurchaseForm({
       }
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
-  return (
-    <AppShell
-      variant="subpage"
-      title="Alış ekle"
-      backFallbackHref={homeHref}
-      backGuard={() => confirmLeaveIfDirty(isDirty)}
-    >
+  const formBody = (
+    <>
       <form id="purchase-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -201,11 +206,24 @@ export function PurchaseForm({
         ) : null}
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="purchase-form" loading={submitting}>
           Alışı kaydet
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell
+      variant="subpage"
+      title="Alış ekle"
+      backFallbackHref={homeHref}
+      backGuard={() => confirmLeaveIfDirty(isDirty)}
+    >
+      {formBody}
     </AppShell>
   );
 }

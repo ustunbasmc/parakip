@@ -42,7 +42,6 @@ export function BudgetDetailView({ budget, canManage, backHref }: { budget: Budg
       setError(rpcError.message || "İptal edilemedi.");
       return;
     }
-    router.refresh();
     router.push(backHref);
   }
 

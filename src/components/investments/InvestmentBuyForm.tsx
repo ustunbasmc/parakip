@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createInvestmentBuy, type AssetType } from "@/lib/api/financial-rpc";
@@ -36,10 +36,16 @@ export function InvestmentBuyForm({
   portfolioId,
   homeHref,
   accounts,
+  variant = "page",
+  onSuccess,
+  onDirtyChange,
 }: {
   portfolioId: string;
   homeHref: string;
   accounts: AccountOption[];
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
   const submittingRef = useRef(false);
@@ -57,6 +63,10 @@ export function InvestmentBuyForm({
 
   const isDirty = symbol !== "" || quantity !== "" || price !== "";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const qtyNum = Number(quantity.replace(",", "."));
@@ -107,12 +117,12 @@ export function InvestmentBuyForm({
       return;
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
-  return (
-    <AppShell variant="subpage" title="Yatırım alışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+  const formBody = (
+    <>
       <form id="invest-buy-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -137,11 +147,19 @@ export function InvestmentBuyForm({
         <TextField label="Not (isteğe bağlı)" value={note} onChange={(e) => setNote(e.target.value)} />
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="invest-buy-form" loading={submitting}>
           Alışı kaydet
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell variant="subpage" title="Yatırım alışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+      {formBody}
     </AppShell>
   );
 }

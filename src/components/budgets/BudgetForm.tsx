@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createBudget } from "@/lib/api/financial-rpc";
@@ -18,12 +18,21 @@ function currentMonthIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+interface Props {
+  bookId: string;
+  homeHref: string;
+  categories: CategoryOption[];
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
 /**
  * "Toplam" ve "Kategori bazlı" bütçeler BAĞIMSIZ, örtüşen ölçümlerdir
  * (bkz. migration 0022) — bu formda ikisi arasında basit bir seçim
  * sunulur, kullanıcıya bu ayrımın anlamı kısaca açıklanır.
  */
-export function BudgetForm({ bookId, homeHref, categories }: { bookId: string; homeHref: string; categories: CategoryOption[] }) {
+export function BudgetForm({ bookId, homeHref, categories, variant = "page", onSuccess, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -36,6 +45,10 @@ export function BudgetForm({ bookId, homeHref, categories }: { bookId: string; h
 
   const isDirty = amount !== "";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,12 +82,12 @@ export function BudgetForm({ bookId, homeHref, categories }: { bookId: string; h
       return;
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
-  return (
-    <AppShell variant="subpage" title="Yeni bütçe" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+  const formBody = (
+    <>
       <form id="budget-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -114,11 +127,19 @@ export function BudgetForm({ bookId, homeHref, categories }: { bookId: string; h
         <AmountInput label="Aylık bütçe tutarı" value={amount} onChange={setAmount} allowNegative={false} autoFocus />
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="budget-form" loading={submitting}>
           Bütçeyi oluştur
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell variant="subpage" title="Yeni bütçe" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+      {formBody}
     </AppShell>
   );
 }

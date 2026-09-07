@@ -9,7 +9,7 @@ import { AccountCard } from "@/components/accounts/AccountCard";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { accountTypeLabel } from "@/lib/format/accountType";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
-import { PlusIcon } from "@/components/icons";
+import { NewAccountButton } from "@/components/accounts/NewAccountButton";
 import { getAccountsWithBalance, getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
@@ -100,13 +100,7 @@ export default async function AccountsPage({
             ])}
             filename={`hesaplar-${activeSpace.id}.csv`}
           />
-          <Link
-            href={`/accounts/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-text-on-accent"
-            aria-label="Yeni hesap ekle"
-          >
-            <PlusIcon size={18} />
-          </Link>
+          <NewAccountButton bookId={activeSpace.bookId} spaceParam={activeSpace.id} />
         </div>
       </div>
 

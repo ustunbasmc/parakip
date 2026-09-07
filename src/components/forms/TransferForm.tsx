@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createTransfer } from "@/lib/api/financial-rpc";
@@ -20,6 +20,9 @@ interface Props {
   bookId: string;
   homeHref: string;
   spaces: SpaceWithAccounts[];
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 interface FlatAccount {
@@ -59,7 +62,7 @@ function friendlyRpcError(message: string | undefined): string {
  * işlem DÜRÜSTÇE ENGELLENİR — bu, mevcut fonksiyonu değiştirmeden
  * (talimat gereği) doğru davranan tek seçenektir.
  */
-export function TransferForm({ bookId, homeHref, spaces }: Props) {
+export function TransferForm({ bookId, homeHref, spaces, variant = "page", onSuccess, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -94,6 +97,10 @@ export function TransferForm({ bookId, homeHref, spaces }: Props) {
 
   const isDirty = amount !== "" || note !== "" || date !== todayIso();
   useUnsavedChangesGuard(isDirty && !success);
+  useEffect(() => {
+    onDirtyChange?.(isDirty && !success);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, success]);
 
   const source = flatAccounts.find((a) => a.accountId === sourceId);
   const dest = flatAccounts.find((a) => a.accountId === destId);
@@ -168,24 +175,25 @@ export function TransferForm({ bookId, homeHref, spaces }: Props) {
 
     setSuccess(true);
     router.refresh();
-    setTimeout(() => router.push(homeHref), 900);
+    if (variant === "modal") {
+      setTimeout(() => onSuccess?.(), 900);
+    } else {
+      setTimeout(() => router.push(homeHref), 900);
+    }
   }
 
   if (success && summary) {
+    const body = <FormSuccessState message={`${summary.amountLabel} · ${summary.fromLabel} → ${summary.toLabel}`} />;
+    if (variant === "modal") return body;
     return (
       <AppShell variant="subpage" title="Transfer yap" backFallbackHref={homeHref}>
-        <FormSuccessState message={`${summary.amountLabel} · ${summary.fromLabel} → ${summary.toLabel}`} />
+        {body}
       </AppShell>
     );
   }
 
-  return (
-    <AppShell
-      variant="subpage"
-      title="Transfer yap"
-      backFallbackHref={homeHref}
-      backGuard={() => confirmLeaveIfDirty(isDirty)}
-    >
+  const formBody = (
+    <>
       <form id="transfer-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -242,11 +250,24 @@ export function TransferForm({ bookId, homeHref, spaces }: Props) {
         ) : null}
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="transfer-form" loading={submitting} disabled={currencyMismatch || sameAccount}>
           Transfer yap
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell
+      variant="subpage"
+      title="Transfer yap"
+      backFallbackHref={homeHref}
+      backGuard={() => confirmLeaveIfDirty(isDirty)}
+    >
+      {formBody}
     </AppShell>
   );
 }

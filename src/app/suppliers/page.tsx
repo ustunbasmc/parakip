@@ -7,7 +7,7 @@ import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
 import { PartyListItem } from "@/components/parties/PartyListItem";
-import { PlusIcon } from "@/components/icons";
+import { NewPartyButton } from "@/components/parties/NewPartyButton";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getSuppliers } from "@/lib/dashboard/customers";
 
@@ -75,13 +75,7 @@ export default async function SuppliersPage({
             Arşivlenmiş
           </Link>
         </div>
-        <Link
-          href={`/suppliers/new?space=${activeSpace.id}`}
-          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent text-text-on-accent"
-          aria-label="Yeni tedarikçi ekle"
-        >
-          <PlusIcon size={18} />
-        </Link>
+        <NewPartyButton type="supplier" spaceId={activeSpace.id} spaceParam={activeSpace.id} />
       </div>
 
       <div className="mt-3 flex flex-col gap-2.5 pb-4">

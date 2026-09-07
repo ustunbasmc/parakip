@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createSimpleTransaction, createDebtPayment } from "@/lib/api/financial-rpc";
@@ -24,6 +24,7 @@ interface Props {
   remainingCents: number;
   accounts: AccountOption[];
   onDone: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /**
@@ -36,7 +37,7 @@ interface Props {
  * doğrular (bkz. migration 0018). "Harici/manuel" seçilirse hiçbir hesap
  * hareketi oluşturulmaz, yalnızca borç kaydı düşer.
  */
-export function AddPaymentForm({ debtId, bookId, direction, remainingCents, accounts, onDone }: Props) {
+export function AddPaymentForm({ debtId, bookId, direction, remainingCents, accounts, onDone, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -47,6 +48,12 @@ export function AddPaymentForm({ debtId, bookId, direction, remainingCents, acco
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDirty = amount !== "";
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -126,7 +133,7 @@ export function AddPaymentForm({ debtId, bookId, direction, remainingCents, acco
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-muted p-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {error ? <ErrorBanner message={error} /> : null}
 
       {accounts.length > 0 ? (

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -8,7 +7,7 @@ import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
 import { HoldingListItem } from "@/components/investments/HoldingListItem";
 import { PortfolioSummaryCard } from "@/components/investments/PortfolioSummaryCard";
-import { PlusIcon, ArrowDownRightIcon } from "@/components/icons";
+import { InvestmentActionButtons } from "@/components/investments/InvestmentActionButtons";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getProfileHeaderInfo } from "@/lib/avatars";
@@ -70,22 +69,7 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
           <>
             <PortfolioSummaryCard totals={totals} currency={primaryCurrency} />
 
-            <div className="flex gap-2">
-              <Link
-                href={`/investments/buy?book_id=${activeSpace.bookId}&space=${activeSpace.id}`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-accent py-3 text-sm font-bold text-text-on-accent"
-              >
-                <PlusIcon size={16} />
-                Alış yap
-              </Link>
-              <Link
-                href={`/investments/sell?book_id=${activeSpace.bookId}&space=${activeSpace.id}`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface py-3 text-sm font-bold text-text-primary"
-              >
-                <ArrowDownRightIcon size={16} />
-                Satış yap
-              </Link>
-            </div>
+            <InvestmentActionButtons bookId={activeSpace.bookId} spaceParam={activeSpace.id} holdings={holdings} />
 
             {holdings.length === 0 ? (
               <CardEmptyState message="Henüz yatırımın yok." hint="İlk alışını yukarıdaki butondan yapabilirsin." />

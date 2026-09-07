@@ -84,7 +84,6 @@ export function AccountDetailView({
     }
 
     setModalOpen(false);
-    router.refresh();
     router.push(accountsHref);
   }
 

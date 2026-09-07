@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NewBudgetButton } from "@/components/budgets/NewBudgetButton";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -7,7 +7,7 @@ import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
 import { BudgetListItem } from "@/components/budgets/BudgetListItem";
-import { PlusIcon } from "@/components/icons";
+
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getProfileHeaderInfo } from "@/lib/avatars";
@@ -65,13 +65,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
       <div className="flex flex-col gap-4 pt-2 pb-4">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-text-secondary">{monthLabel}</p>
-          <Link
-            href={`/budgets/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-text-on-accent"
-            aria-label="Yeni bütçe ekle"
-          >
-            <PlusIcon size={18} />
-          </Link>
+          <NewBudgetButton bookId={activeSpace.bookId} spaceParam={activeSpace.id} />
         </div>
 
         {loadError ? (

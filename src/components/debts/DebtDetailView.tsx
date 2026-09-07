@@ -7,6 +7,7 @@ import { cancelDebt, cancelDebtPayment } from "@/lib/api/financial-rpc";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { formatDueDateLabel } from "@/lib/format/date";
 import { AppShell } from "@/components/AppShell";
+import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -37,6 +38,7 @@ interface Props {
 export function DebtDetailView({ debt, accounts, canManage, backHref }: Props) {
   const router = useRouter();
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [addPaymentDirty, setAddPaymentDirty] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [paymentToCancel, setPaymentToCancel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,23 @@ export function DebtDetailView({ debt, accounts, canManage, backHref }: Props) {
       setError(rpcError.message || "Ödeme iptal edilemedi.");
       return;
     }
+    router.refresh();
+  }
+
+  function confirmCloseAddPayment() {
+    if (addPaymentDirty) return window.confirm("Kaydedilmemiş değişiklikler var. Kapatmak istediğine emin misin?");
+    return true;
+  }
+
+  function handleCloseAddPayment() {
+    if (!confirmCloseAddPayment()) return;
+    setShowAddPayment(false);
+    setAddPaymentDirty(false);
+  }
+
+  function handleAddPaymentSuccess() {
+    setShowAddPayment(false);
+    setAddPaymentDirty(false);
     router.refresh();
   }
 
@@ -113,23 +132,10 @@ export function DebtDetailView({ debt, accounts, canManage, backHref }: Props) {
         </div>
 
         {!isSettled ? (
-          <div>
-            {showAddPayment ? (
-              <AddPaymentForm
-                debtId={debt.id}
-                bookId={debt.bookId}
-                direction={debt.direction}
-                remainingCents={debt.remainingCents}
-                accounts={accounts}
-                onDone={() => setShowAddPayment(false)}
-              />
-            ) : (
-              <Button variant="secondary" onClick={() => setShowAddPayment(true)} fullWidth={false}>
-                <PlusIcon size={16} />
-                Ödeme ekle
-              </Button>
-            )}
-          </div>
+          <Button variant="secondary" onClick={() => setShowAddPayment(true)} fullWidth={false}>
+            <PlusIcon size={16} />
+            Ödeme ekle
+          </Button>
         ) : null}
 
         <section>
@@ -179,6 +185,23 @@ export function DebtDetailView({ debt, accounts, canManage, backHref }: Props) {
           <p>Borç/alacak ve ödeme kayıtları hiçbir zaman fiziksel olarak silinmez — yalnızca iptal edilebilir.</p>
         </div>
       </div>
+
+      <Modal
+        open={showAddPayment}
+        title={debt.direction === "payable" ? "Ödeme ekle" : "Tahsilat ekle"}
+        onClose={handleCloseAddPayment}
+        confirmClose={confirmCloseAddPayment}
+      >
+        <AddPaymentForm
+          debtId={debt.id}
+          bookId={debt.bookId}
+          direction={debt.direction}
+          remainingCents={debt.remainingCents}
+          accounts={accounts}
+          onDone={handleAddPaymentSuccess}
+          onDirtyChange={setAddPaymentDirty}
+        />
+      </Modal>
 
       <ConfirmModal
         open={cancelModalOpen}

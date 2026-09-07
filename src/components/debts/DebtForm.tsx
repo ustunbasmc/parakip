@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createDebt } from "@/lib/api/financial-rpc";
@@ -19,7 +19,15 @@ const DIRECTION_OPTIONS = [
   { value: "receivable", label: "Alacak (tahsil edeceğim)" },
 ];
 
-export function DebtForm({ bookId, homeHref }: { bookId: string; homeHref: string }) {
+interface Props {
+  bookId: string;
+  homeHref: string;
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+export function DebtForm({ bookId, homeHref, variant = "page", onSuccess, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -34,6 +42,10 @@ export function DebtForm({ bookId, homeHref }: { bookId: string; homeHref: strin
 
   const isDirty = counterpartyName !== "" || amount !== "" || dueDate !== "" || note !== "";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,17 +85,12 @@ export function DebtForm({ bookId, homeHref }: { bookId: string; homeHref: strin
       return;
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
-  return (
-    <AppShell
-      variant="subpage"
-      title="Yeni borç/alacak"
-      backFallbackHref={homeHref}
-      backGuard={() => confirmLeaveIfDirty(isDirty)}
-    >
+  const formBody = (
+    <>
       <form id="debt-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -120,11 +127,24 @@ export function DebtForm({ bookId, homeHref }: { bookId: string; homeHref: strin
         />
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="debt-form" loading={submitting}>
           Kaydet
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell
+      variant="subpage"
+      title="Yeni borç/alacak"
+      backFallbackHref={homeHref}
+      backGuard={() => confirmLeaveIfDirty(isDirty)}
+    >
+      {formBody}
     </AppShell>
   );
 }

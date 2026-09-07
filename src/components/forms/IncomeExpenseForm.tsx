@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createSimpleTransaction } from "@/lib/api/financial-rpc";
@@ -24,6 +24,16 @@ interface Props {
   /** İşletme "Masraf ekle" akışından geliyorsa 'expense' — güvenilir sistem
    * sınıflandırması için transactions.metadata'ya yazılır (bkz. business.ts). */
   businessKind?: "expense";
+  /** "page" (varsayılan): kendi AppShell'i + geri tuşu + router.push ile
+   * yönlendirme. "modal": Modal.tsx İÇİNDE render edilir — AppShell
+   * SARMALAYICI YOKTUR, başarı sonrası sayfa değiştirmek yerine
+   * onSuccess() çağrılır (Modal'ı kapatmak ve listeyi yenilemek çağıran
+   * tarafın sorumluluğundadır). Aynı form mantığı, aynı RPC — kod
+   * tekrarı YOK, yalnızca DIŞ ÇERÇEVE değişir. */
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  /** Modal modunda, kapanmadan önce "kaydedilmemiş veri var mı" kontrolü için. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function todayIso() {
@@ -53,7 +63,17 @@ function friendlyRpcError(message: string | undefined): string {
  * (muhtemel bir yazım hatasını yakalamak için) — bkz. AmountInput'un
  * invalidMinusUsage davranışı.
  */
-export function IncomeExpenseForm({ kind, bookId, homeHref, accounts, categories, businessKind }: Props) {
+export function IncomeExpenseForm({
+  kind,
+  bookId,
+  homeHref,
+  accounts,
+  categories,
+  businessKind,
+  variant = "page",
+  onSuccess,
+  onDirtyChange,
+}: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -69,6 +89,10 @@ export function IncomeExpenseForm({ kind, bookId, homeHref, accounts, categories
 
   const isDirty = amount !== "" || note !== "" || categoryId !== "" || date !== todayIso();
   useUnsavedChangesGuard(isDirty && !success);
+  useEffect(() => {
+    onDirtyChange?.(isDirty && !success);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, success]);
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const cents = amountInputToCents(amount);
@@ -131,24 +155,25 @@ export function IncomeExpenseForm({ kind, bookId, homeHref, accounts, categories
 
     setSuccess(true);
     router.refresh(); // dashboard verisini yenile
-    setTimeout(() => router.push(homeHref), 900);
+    if (variant === "modal") {
+      setTimeout(() => onSuccess?.(), 900);
+    } else {
+      setTimeout(() => router.push(homeHref), 900);
+    }
   }
 
   if (success && summary) {
+    const successBody = <FormSuccessState message={`${summary.amountLabel} · ${summary.accountName}`} />;
+    if (variant === "modal") return successBody;
     return (
       <AppShell variant="subpage" title={title} backFallbackHref={homeHref}>
-        <FormSuccessState message={`${summary.amountLabel} · ${summary.accountName}`} />
+        {successBody}
       </AppShell>
     );
   }
 
-  return (
-    <AppShell
-      variant="subpage"
-      title={title}
-      backFallbackHref={homeHref}
-      backGuard={() => confirmLeaveIfDirty(isDirty)}
-    >
+  const formBody = (
+    <>
       <form
         id="income-expense-form"
         onSubmit={handleSubmit}
@@ -213,11 +238,24 @@ export function IncomeExpenseForm({ kind, bookId, homeHref, accounts, categories
         ) : null}
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="income-expense-form" loading={submitting} disabled={accounts.length === 0}>
           Kaydet
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell
+      variant="subpage"
+      title={title}
+      backFallbackHref={homeHref}
+      backGuard={() => confirmLeaveIfDirty(isDirty)}
+    >
+      {formBody}
     </AppShell>
   );
 }

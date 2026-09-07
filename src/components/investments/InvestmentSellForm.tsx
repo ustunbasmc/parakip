@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createInvestmentSell } from "@/lib/api/financial-rpc";
@@ -20,17 +20,25 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+interface Props {
+  portfolioId: string;
+  homeHref: string;
+  holdings: HoldingRow[];
+  accounts: AccountOption[];
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
 export function InvestmentSellForm({
   portfolioId,
   homeHref,
   holdings,
   accounts,
-}: {
-  portfolioId: string;
-  homeHref: string;
-  holdings: HoldingRow[];
-  accounts: AccountOption[];
-}) {
+  variant = "page",
+  onSuccess,
+  onDirtyChange,
+}: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -46,6 +54,10 @@ export function InvestmentSellForm({
 
   const isDirty = quantity !== "" || price !== "";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   const selectedHolding = holdings.find((h) => `${h.assetSymbol}:${h.assetType}` === holdingKey);
   const qtyNum = Number(quantity.replace(",", "."));
@@ -98,20 +110,22 @@ export function InvestmentSellForm({
       return;
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
   if (holdings.length === 0) {
+    const empty = <p className="pt-6 text-center text-sm text-text-muted">Satılacak bir varlığın yok.</p>;
+    if (variant === "modal") return empty;
     return (
       <AppShell variant="subpage" title="Yatırım satışı" backFallbackHref={homeHref}>
-        <p className="pt-6 text-center text-sm text-text-muted">Satılacak bir varlığın yok.</p>
+        {empty}
       </AppShell>
     );
   }
 
-  return (
-    <AppShell variant="subpage" title="Yatırım satışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+  const formBody = (
+    <>
       <form id="invest-sell-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -144,11 +158,19 @@ export function InvestmentSellForm({
         <TextField label="Not (isteğe bağlı)" value={note} onChange={(e) => setNote(e.target.value)} />
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="invest-sell-form" loading={submitting}>
           Satışı kaydet
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell variant="subpage" title="Yatırım satışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+      {formBody}
     </AppShell>
   );
 }

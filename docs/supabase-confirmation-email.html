@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Parakip — E-posta Doğrulama</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f7fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Koyu tema kullanan e-posta istemcileri icin: bu tablo yapisi hem
+       acik hem koyu arka planlarda okunabilir kalacak sekilde yeterince
+       yuksek kontrastli renkler kullanir (Gmail/Outlook koyu modda
+       arka plani otomatik degistirebilir, bu yuzden #ffffff yerine
+       acik gri #f7fafc + koyu metin #0a1120 tercih edildi). -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7fafc; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e5e9f0;">
+
+          <!-- Marka basligi -->
+          <tr>
+            <td style="padding:36px 32px 8px 32px; text-align:center;">
+              <div style="display:inline-block; width:48px; height:48px; border-radius:14px; background-color:#0d9488; line-height:48px; font-size:22px; font-weight:700; color:#ffffff; font-family: -apple-system, sans-serif;">P</div>
+              <h1 style="margin:16px 0 4px 0; font-size:20px; font-weight:800; color:#0a1120;">Parakip</h1>
+              <p style="margin:0; font-size:13px; color:#71809c;">Paran kontrolünde.</p>
+            </td>
+          </tr>
+
+          <!-- Ana icerik -->
+          <tr>
+            <td style="padding:24px 32px 8px 32px; text-align:center;">
+              <h2 style="margin:0 0 12px 0; font-size:18px; font-weight:700; color:#0a1120;">
+                E-posta adresini doğrula
+              </h2>
+              <p style="margin:0 0 28px 0; font-size:14px; line-height:22px; color:#3f4a5e;">
+                Parakip hesabını oluşturduğun için teşekkürler. Hesabını etkinleştirmek ve
+                finansını yönetmeye başlamak için aşağıdaki butona tıkla.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Buyuk, belirgin buton -->
+          <tr>
+            <td style="padding:0 32px 28px 32px; text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block; background-color:#0d9488; color:#ffffff; text-decoration:none; font-size:15px; font-weight:700; padding:14px 36px; border-radius:14px; font-family: -apple-system, sans-serif;">
+                E-posta adresimi doğrula
+              </a>
+            </td>
+          </tr>
+
+          <!-- Buton calismazsa alternatif metin linki -->
+          <tr>
+            <td style="padding:0 32px 28px 32px; text-align:center;">
+              <p style="margin:0 0 6px 0; font-size:12px; color:#71809c;">
+                Buton çalışmıyorsa, aşağıdaki bağlantıyı tarayıcına kopyalayabilirsin:
+              </p>
+              <p style="margin:0; font-size:12px; word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color:#0d9488; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Guvenlik notu -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <div style="background-color:#f1f5f9; border-radius:12px; padding:14px 16px;">
+                <p style="margin:0; font-size:12px; line-height:18px; color:#3f4a5e;">
+                  🔒 Bu hesabı siz oluşturmadıysanız bu e-postayı yok sayabilirsiniz — herhangi bir
+                  işlem yapmanıza gerek yoktur.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Alt bilgi -->
+          <tr>
+            <td style="padding:20px 32px 32px 32px; border-top:1px solid #e5e9f0; text-align:center;">
+              <p style="margin:0 0 8px 0; font-size:12px; color:#71809c;">
+                Sorularınız için: <a href="#" style="color:#71809c;">Destek</a>
+              </p>
+              <p style="margin:0; font-size:11px; color:#a6b4cc;">
+                <a href="#" style="color:#a6b4cc; text-decoration:underline;">Gizlilik Politikası</a>
+                &nbsp;·&nbsp;
+                <a href="#" style="color:#a6b4cc; text-decoration:underline;">Kullanım Koşulları</a>
+              </p>
+              <p style="margin:12px 0 0 0; font-size:11px; color:#a6b4cc;">© Parakip</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

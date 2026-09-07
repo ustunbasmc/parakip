@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { amountInputToCents } from "@/lib/format/amount";
@@ -23,7 +23,15 @@ const CURRENCY_OPTIONS = [
 /** Yalnızca bu türde negatif açılış bakiyesi anlamlıdır (bkz. migration 0041 CHECK kısıtı). */
 const DEBT_LIKE_TYPES = new Set(["credit_card"]);
 
-export function AccountForm({ bookId, homeHref }: { bookId: string; homeHref: string }) {
+interface Props {
+  bookId: string;
+  homeHref: string;
+  variant?: "page" | "modal";
+  onSuccess?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+export function AccountForm({ bookId, homeHref, variant = "page", onSuccess, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -38,6 +46,10 @@ export function AccountForm({ bookId, homeHref }: { bookId: string; homeHref: st
 
   const isDirty = name !== "" || openingBalance !== "" || note !== "" || type !== "bank" || currency !== "TRY";
   useUnsavedChangesGuard(isDirty);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   const allowNegative = DEBT_LIKE_TYPES.has(type);
 
@@ -85,9 +97,6 @@ export function AccountForm({ bookId, homeHref }: { bookId: string; homeHref: st
       } else if (insertError.message.toLowerCase().includes("accounts_negative_opening_balance")) {
         setError("Negatif açılış bakiyesi yalnızca kredi kartı gibi borç niteliğindeki hesaplarda girilebilir.");
       } else if (insertError.message) {
-        // enforce_account_limit() gibi trigger'ların Türkçe mesajı zaten
-        // kullanıcıya doğrudan gösterilecek nitelikte — genel bir mesajla
-        // BOĞULMAZ (ör. "5 hesap limitine ulaştınız..." burada görünür).
         setError(insertError.message);
       } else {
         setError("Hesap oluşturulamadı. Lütfen tekrar dene.");
@@ -95,17 +104,12 @@ export function AccountForm({ bookId, homeHref }: { bookId: string; homeHref: st
       return;
     }
 
-    router.refresh();
-    router.push(homeHref);
+    if (variant === "modal") onSuccess?.();
+    else router.push(homeHref);
   }
 
-  return (
-    <AppShell
-      variant="subpage"
-      title="Yeni hesap"
-      backFallbackHref={homeHref}
-      backGuard={() => confirmLeaveIfDirty(isDirty)}
-    >
+  const formBody = (
+    <>
       <form id="account-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -152,11 +156,24 @@ export function AccountForm({ bookId, homeHref }: { bookId: string; homeHref: st
         />
       </form>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+      <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="account-form" loading={submitting}>
           Hesabı oluştur
         </Button>
       </div>
+    </>
+  );
+
+  if (variant === "modal") return formBody;
+
+  return (
+    <AppShell
+      variant="subpage"
+      title="Yeni hesap"
+      backFallbackHref={homeHref}
+      backGuard={() => confirmLeaveIfDirty(isDirty)}
+    >
+      {formBody}
     </AppShell>
   );
 }

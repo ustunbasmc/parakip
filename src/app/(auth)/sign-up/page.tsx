@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
+import { normalizeTurkishPhone } from "@/lib/format/phone";
 import { ScreenShell } from "@/components/ScreenShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
@@ -13,8 +14,12 @@ import { Logo } from "@/components/Logo";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +29,23 @@ export default function SignUpPage() {
     e.preventDefault();
     setError(null);
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Ad ve soyad boş olamaz.");
+      return;
+    }
+
+    const normalizedPhone = normalizeTurkishPhone(phone);
+    if (!normalizedPhone) {
+      setError("Geçerli bir cep telefonu numarası gir (ör. 0532 123 45 67).");
+      return;
+    }
+
     if (password.length < 6) {
       setError("Şifre en az 6 karakter olmalıdır.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError("Şifreler birbiriyle uyuşmuyor.");
       return;
     }
 
@@ -36,6 +56,15 @@ export default function SignUpPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // NOT: telefon Supabase Auth'un KENDİ `phone` alanına DEĞİL, yalnızca
+        // metadata'ya yazılır — bu, 0056'daki handle_new_user() trigger'ı
+        // tarafından profiles tablosuna aktarılır. Auth'un phone alanını
+        // kullanmak SMS doğrulamasını TETİKLERDİ, bu turda İSTENMİYOR.
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: normalizedPhone,
+        },
       },
     });
     setLoading(false);
@@ -101,13 +130,29 @@ export default function SignUpPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Hesap oluştur</h1>
           <p className="mt-1 text-text-secondary">
-            E-postanla kaydol, hemen kullanmaya başla.
+            Bilgilerini gir, hemen kullanmaya başla.
           </p>
         </div>
 
         {error ? <ErrorBanner message={error} /> : null}
 
         <form id="sign-up-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <TextField
+              label="Ad"
+              autoComplete="given-name"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+            <TextField
+              label="Soyad"
+              autoComplete="family-name"
+              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
           <TextField
             label="E-posta"
             type="email"
@@ -118,6 +163,17 @@ export default function SignUpPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
+            label="Cep telefonu"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            required
+            placeholder="0532 123 45 67"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            hint="Telefon numaranız şu an doğrulama amacıyla kullanılmıyor — yalnızca profilinizde saklanır."
+          />
+          <TextField
             label="Şifre"
             type="password"
             autoComplete="new-password"
@@ -125,6 +181,14 @@ export default function SignUpPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             hint="En az 6 karakter"
+          />
+          <TextField
+            label="Şifre (tekrar)"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
           />
         </form>
 

@@ -89,7 +89,6 @@ export function RecurringRuleForm({ bookId, homeHref }: { bookId: string; homeHr
       return;
     }
 
-    router.refresh();
     router.push(homeHref);
   }
 

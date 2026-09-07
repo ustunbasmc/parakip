@@ -10,7 +10,7 @@ import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
 import { DebtListItem } from "@/components/debts/DebtListItem";
 import { CashFlowSummaryCard } from "@/components/debts/CashFlowSummaryCard";
-import { PlusIcon } from "@/components/icons";
+import { NewDebtButton } from "@/components/debts/NewDebtButton";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getDebts, getCashFlowSummary, type DebtDirection } from "@/lib/dashboard/debts";
@@ -121,13 +121,7 @@ export default async function DebtsPage({
               </Link>
             ))}
           </div>
-          <Link
-            href={`/debts/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`}
-            className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-text-on-accent"
-            aria-label="Yeni borç/alacak ekle"
-          >
-            <PlusIcon size={18} />
-          </Link>
+          <NewDebtButton bookId={activeSpace.bookId} spaceParam={activeSpace.id} />
         </div>
 
         <div className="flex items-center justify-between text-xs">
