@@ -104,37 +104,38 @@ export default async function TransactionsPage({
       }
     >
       <div className="flex min-w-0 flex-col gap-4 pt-2 pb-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1">
-            <TransactionFilters accounts={accounts} categories={categories} />
-          </div>
-          <ExportCsvButton
-            headers={["Tarih", "Tutar", "Para birimi", "İşlem türü", "Hesap", "Kategori", "Açıklama", "Durum"]}
-            rows={rows.map((row) => [
-              new Date(row.occurredAt).toLocaleString("tr-TR"),
-              (row.amountCents / 100).toFixed(2).replace(".", ","),
-              row.currency,
-              row.creditDebtId
-                ? `${row.businessKind === "purchase" ? "Alış" : "Satış"} (veresiye)`
-                : row.businessKind === "sale"
-                  ? "Satış"
-                  : row.businessKind === "purchase"
-                    ? "Alış"
-                    : row.businessKind === "expense"
-                      ? "Masraf"
-                      : row.type === "income"
-                        ? "Gelir"
-                        : row.type === "expense"
-                          ? "Gider"
-                          : "Transfer",
-              row.creditDebtId ? "—" : row.accountName,
-              row.categoryName ?? "",
-              row.note ?? "",
-              row.creditDebtId ? "Tahsil edilecek" : row.status === "cancelled" ? "İptal edildi" : "Aktif",
-            ])}
-            filename={`islem-gecmisi-${activeSpace.id}.csv`}
-          />
-        </div>
+        <TransactionFilters
+          accounts={accounts}
+          categories={categories}
+          exportButton={
+            <ExportCsvButton
+              headers={["Tarih", "Tutar", "Para birimi", "İşlem türü", "Hesap", "Kategori", "Açıklama", "Durum"]}
+              rows={rows.map((row) => [
+                new Date(row.occurredAt).toLocaleString("tr-TR"),
+                (row.amountCents / 100).toFixed(2).replace(".", ","),
+                row.currency,
+                row.creditDebtId
+                  ? `${row.businessKind === "purchase" ? "Alış" : "Satış"} (veresiye)`
+                  : row.businessKind === "sale"
+                    ? "Satış"
+                    : row.businessKind === "purchase"
+                      ? "Alış"
+                      : row.businessKind === "expense"
+                        ? "Masraf"
+                        : row.type === "income"
+                          ? "Gelir"
+                          : row.type === "expense"
+                            ? "Gider"
+                            : "Transfer",
+                row.creditDebtId ? "—" : row.accountName,
+                row.categoryName ?? "",
+                row.note ?? "",
+                row.creditDebtId ? "Tahsil edilecek" : row.status === "cancelled" ? "İptal edildi" : "Aktif",
+              ])}
+              filename={`islem-gecmisi-${activeSpace.id}.csv`}
+            />
+          }
+        />
 
         {loadError ? (
           <p className="py-6 text-center text-sm text-danger">İşlemler yüklenemedi. Lütfen tekrar dene.</p>

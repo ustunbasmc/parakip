@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { SearchIcon, FilterIcon, XIcon } from "@/components/icons";
 import type { AccountOption, CategoryOption } from "@/lib/dashboard/formData";
 
-const KIND_TABS: { value: string; label: string }[] = [
+const KIND_OPTIONS = [
   { value: "all", label: "Tümü" },
   { value: "income", label: "Gelir" },
   { value: "expense", label: "Gider" },
@@ -16,6 +16,8 @@ const KIND_TABS: { value: string; label: string }[] = [
 interface Props {
   accounts: (AccountOption & { isArchived: boolean })[];
   categories: CategoryOption[];
+  /** CSV indirme butonu — aynı kompakt satıra dahil edilir (page.tsx'ten geçirilir), ayrı bir satır GEREKMEZ. */
+  exportButton?: React.ReactNode;
 }
 
 /**
@@ -23,8 +25,17 @@ interface Props {
  * filtreler korunabilsin" kuralı böylece otomatik sağlanır (Server
  * Component her zaman URL'den okur, ekstra bir client state/localStorage
  * gerekmez).
+ *
+ * TASARIM NOTU: Tür filtresi (Tümü/Gelir/Gider/Transfer/Yatırım) BİLİNÇLİ
+ * olarak yatay kaydırılabilir pill listesi DEĞİL, native `<select>`
+ * (dropdown) olarak uygulanır. Pill listesi + "Filtrele"/"İndir"
+ * butonlarının AYNI satırda bulunması, dar mobil ekranlarda TAŞMA ve
+ * yatay sayfa kaymasına yol açıyordu (birden fazla CSS düzeltmesi
+ * denendi, kalıcı çözüm YAPISAL bir değişiklikti). Native `<select>`,
+ * tarayıcı tarafından HER ZAMAN kompakt/sabit genişlikte render edilir
+ * ve overflow YARATMAZ — bu, sorunu KÖKTEN ortadan kaldırır.
  */
-export function TransactionFilters({ accounts, categories }: Props) {
+export function TransactionFilters({ accounts, categories, exportButton }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -43,6 +54,7 @@ export function TransactionFilters({ accounts, categories }: Props) {
   // filtre varsa, panel BAŞTAN açık gelir — kullanıcı neyin filtrelendiğini
   // görmeden ekranı terk etmesin diye.
   const [panelOpen, setPanelOpen] = useState(activeSecondaryCount > 0);
+  const [searchOpen, setSearchOpen] = useState(Boolean(searchParams.get("q")));
   const [searchDraft, setSearchDraft] = useState(searchParams.get("q") ?? "");
 
   function updateParam(key: string, value: string) {
@@ -67,48 +79,71 @@ export function TransactionFilters({ accounts, categories }: Props) {
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <form onSubmit={handleSearchSubmit} className="relative">
-        <SearchIcon
-          size={17}
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
-        />
-        <input
-          type="search"
-          value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
-          placeholder="Açıklamada ara"
-          className="h-12 w-full rounded-2xl border border-border bg-surface pl-11 pr-4 text-[0.9375rem] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-      </form>
+      {/* Tek, kompakt satır — hiçbir öğe overflow'a bağlı DEĞİLDİR, her
+          biri kendi doğal (sabit/minimal) genişliğinde render edilir. */}
+      <div className="flex min-w-0 items-center gap-1.5">
+        {searchOpen ? (
+          <form onSubmit={handleSearchSubmit} className="relative min-w-0 flex-1">
+            <SearchIcon
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            />
+            <input
+              type="search"
+              autoFocus
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              onBlur={() => {
+                if (!searchDraft.trim()) setSearchOpen(false);
+              }}
+              placeholder="Açıklamada ara"
+              className="h-10 w-full min-w-0 rounded-full border border-border bg-surface pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Açıklamada ara"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-text-secondary"
+          >
+            <SearchIcon size={16} />
+          </button>
+        )}
 
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5">
-          {KIND_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => updateParam("kind", tab.value === "all" ? "" : tab.value)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                kind === tab.value ? "bg-accent text-text-on-accent" : "bg-surface-muted text-text-secondary"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setPanelOpen((v) => !v)}
-          className={`flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold ${
-            activeSecondaryCount > 0 ? "border-accent text-accent" : "border-border text-text-secondary"
-          }`}
-        >
-          <FilterIcon size={15} />
-          Filtrele
-          {activeSecondaryCount > 0 ? (
-            <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-text-on-accent">
-              {activeSecondaryCount}
-            </span>
-          ) : null}
-        </button>
+        {!searchOpen ? (
+          <select
+            value={kind}
+            onChange={(e) => updateParam("kind", e.target.value === "all" ? "" : e.target.value)}
+            aria-label="İşlem türü"
+            className="h-10 min-w-0 shrink rounded-full border border-border bg-surface px-3 text-sm font-semibold text-text-primary"
+          >
+            {KIND_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
+        {!searchOpen ? (
+          <button
+            onClick={() => setPanelOpen((v) => !v)}
+            aria-label="Diğer filtreler"
+            className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+              activeSecondaryCount > 0 ? "border-accent text-accent" : "border-border text-text-secondary"
+            }`}
+          >
+            <FilterIcon size={16} />
+            {activeSecondaryCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-text-on-accent">
+                {activeSecondaryCount}
+              </span>
+            ) : null}
+          </button>
+        ) : null}
+
+        {!searchOpen && exportButton ? exportButton : null}
       </div>
 
       {panelOpen ? (
