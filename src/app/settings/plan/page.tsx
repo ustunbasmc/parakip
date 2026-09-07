@@ -3,8 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { BuySubscriptionCard } from "@/components/settings/BuySubscriptionCard";
+import { PlanComparisonTable } from "@/components/settings/PlanComparisonTable";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
-import { getHomePlanInfo, getBusinessPlanInfo } from "@/lib/dashboard/plans";
+import { getHomePlanInfo, getBusinessPlanInfo, HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
+
+function formatPriceTry(envValue: string | undefined): string {
+  const num = Number(envValue);
+  if (!envValue || Number.isNaN(num)) return "—";
+  return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 export default async function PlanPage({
   searchParams,
@@ -41,6 +48,11 @@ export default async function PlanPage({
   } catch {
     // Sessizce boş bırakılır — aşağıda hata durumu gösterilir.
   }
+
+  const homeMonthlyPrice = formatPriceTry(process.env.SHOPIER_HOME_MONTHLY_PRICE_TRY);
+  const homeYearlyPrice = formatPriceTry(process.env.SHOPIER_HOME_YEARLY_PRICE_TRY);
+  const businessMonthlyPrice = formatPriceTry(process.env.SHOPIER_BUSINESS_MONTHLY_PRICE_TRY);
+  const businessYearlyPrice = formatPriceTry(process.env.SHOPIER_BUSINESS_YEARLY_PRICE_TRY);
 
   return (
     <AppShell
@@ -116,16 +128,26 @@ export default async function PlanPage({
               </div>
 
               {!homeInfo.isPremium ? (
-                ownerUserId === user.id ? (
-                  <BuySubscriptionCard spaceId={activeSpace.id} plan="home_premium" />
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
-                    <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
-                    <p className="mt-1 text-xs text-text-muted">
-                      Sınırsız hesap ve genişletilmiş özellikler. Yalnızca bu alanın sahibi satın alabilir.
-                    </p>
-                  </div>
-                )
+                <>
+                  <PlanComparisonTable
+                    rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }]}
+                  />
+                  {ownerUserId === user.id ? (
+                    <BuySubscriptionCard
+                      spaceId={activeSpace.id}
+                      plan="home_premium"
+                      monthlyPrice={homeMonthlyPrice}
+                      yearlyPrice={homeYearlyPrice}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
+                      <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        Sınırsız hesap. Yalnızca bu alanın sahibi satın alabilir.
+                      </p>
+                    </div>
+                  )}
+                </>
               ) : null}
             </>
           ) : (
@@ -174,7 +196,23 @@ export default async function PlanPage({
               </div>
             </div>
 
-            {!businessInfo.hasActiveSubscription ? <BuySubscriptionCard spaceId={activeSpace.id} plan="business" /> : null}
+            {!businessInfo.hasActiveSubscription ? (
+              <>
+                <PlanComparisonTable
+                  rows={businessInfo.limits.map((l) => ({
+                    label: l.label,
+                    free: l.limit === null ? "Sınırsız" : `${l.limit}`,
+                    premium: "Sınırsız",
+                  }))}
+                />
+                <BuySubscriptionCard
+                  spaceId={activeSpace.id}
+                  plan="business"
+                  monthlyPrice={businessMonthlyPrice}
+                  yearlyPrice={businessYearlyPrice}
+                />
+              </>
+            ) : null}
           </>
         ) : (
           <p className="text-sm text-danger">Plan bilgisi yüklenemedi.</p>

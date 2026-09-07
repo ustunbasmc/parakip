@@ -26,7 +26,18 @@ const COPY: Record<PlanKind, { title: string; description: string }> = {
  * DÜRÜST SINIRLAMA: Shopier'da GERÇEK, otomatik yenilenen abonelik
  * YOKTUR — bu bir MANUEL YENİLEMELİ paket satın almadır.
  */
-export function BuySubscriptionCard({ spaceId, plan }: { spaceId: string; plan: PlanKind }) {
+export function BuySubscriptionCard({
+  spaceId,
+  plan,
+  monthlyPrice,
+  yearlyPrice,
+}: {
+  spaceId: string;
+  plan: PlanKind;
+  /** TL cinsinden, ör. "99,00" — sunucu tarafında env'den okunup buraya biçimlenmiş olarak geçirilir. */
+  monthlyPrice: string;
+  yearlyPrice: string;
+}) {
   const [period, setPeriod] = useState<Period>("monthly");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,8 +108,13 @@ export function BuySubscriptionCard({ spaceId, plan }: { spaceId: string; plan: 
         </button>
       </div>
 
+      <p className="mt-3 text-center text-2xl font-extrabold text-text-primary">
+        {period === "monthly" ? monthlyPrice : yearlyPrice} ₺
+        <span className="text-sm font-normal text-text-muted">{period === "monthly" ? " / ay" : " / yıl"}</span>
+      </p>
+
       <Button onClick={handleStartCheckout} loading={loading} className="mt-3">
-        Satın alma formunu aç
+        Satın almaya git
       </Button>
     </div>
   );
