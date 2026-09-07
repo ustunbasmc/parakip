@@ -81,21 +81,23 @@ export function TransactionFilters({ accounts, categories }: Props) {
         />
       </form>
 
-      <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5">
-        {KIND_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => updateParam("kind", tab.value === "all" ? "" : tab.value)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-              kind === tab.value ? "bg-accent text-text-on-accent" : "bg-surface-muted text-text-secondary"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5">
+          {KIND_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => updateParam("kind", tab.value === "all" ? "" : tab.value)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                kind === tab.value ? "bg-accent text-text-on-accent" : "bg-surface-muted text-text-secondary"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <button
           onClick={() => setPanelOpen((v) => !v)}
-          className={`ml-auto flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold ${
+          className={`flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold ${
             activeSecondaryCount > 0 ? "border-accent text-accent" : "border-border text-text-secondary"
           }`}
         >
