@@ -1,10 +1,11 @@
+import Image from "next/image";
+
 /**
- * Parakip logosu. "İki tema uyumlu varyant" kuralı, iki ayrı sabit-renkli
- * dosya yerine TEK bir SVG'nin CSS değişkenleriyle (design tokens)
- * boyanmasıyla sağlanıyor — renkleri doğrudan bileşene yazmama kuralıyla
- * tutarlı olması için. Sonuç aynı: Gece Modu'nda mark/wordmark otomatik
- * olarak koyu tema tonlarına, Gündüz Modu'nda açık tema tonlarına döner,
- * tema değişince (next-themes ile) yeniden render gerekmeden anında güncellenir.
+ * Parakip logosu — gerçek marka ikonu (public/brand/icon-192.png,
+ * kendi kare/yuvarlak köşeli koyu arka planını taşıyan tasarım) ve
+ * marka wordmark'ı. İkon zaten kendi arka planını içerdiğinden (PNG,
+ * şeffaf değil) her iki temada da aynı şekilde, doğrudan kullanılabilir
+ * — ayrı açık/koyu varyant GEREKMEZ.
  */
 export function Logo({
   className,
@@ -15,24 +16,14 @@ export function Logo({
 }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
-      <svg
-        width="34"
-        height="34"
-        viewBox="0 0 34 34"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <circle cx="17" cy="17" r="17" fill="var(--color-accent)" />
-        <path
-          d="M11 21.5V12.8c0-.44.36-.8.8-.8h4.2c2.32 0 4.2 1.7 4.2 4s-1.88 4-4.2 4h-2.2v1.5"
-          stroke="var(--color-text-on-accent)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
+      <Image
+        src="/brand/icon-192.png"
+        alt=""
+        width={34}
+        height={34}
+        className="rounded-[9px]"
+        priority
+      />
       {withWordmark ? (
         <span
           className="text-[1.35rem] font-extrabold tracking-tight"
@@ -44,3 +35,4 @@ export function Logo({
     </span>
   );
 }
+

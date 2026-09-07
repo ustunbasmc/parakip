@@ -272,7 +272,7 @@ async function BusinessDashboard({
   return (
     <>
       {summary.status === "fulfilled" ? (
-        <BusinessSummaryGrid summary={summary.value} />
+        <BusinessSummaryGrid bookId={bookId} initialSummary={summary.value} />
       ) : (
         <DashboardCard title="İşletme özeti">
           <CardError />

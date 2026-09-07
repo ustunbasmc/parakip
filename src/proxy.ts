@@ -19,12 +19,13 @@ const PUBLIC_PATHS = [
 // UYGULANMAMALIDIR — aksi halde oturumu olmayan harici bir zamanlayıcı
 // çağrısı (hiçbir tarayıcı oturumu yok) JSON yanıtı yerine bir
 // yönlendirme alır ve endpoint asla çalışmaz.
-// /robots.txt, /sitemap.xml: arama motoru tarayıcılarının HİÇBİR
-// oturumu yoktur — bu iki rota da (matcher'ın negatif look-ahead'i .txt/
-// .xml uzantılarını KAPSAMADIĞINDAN) auth-redirect kuralına GİRERDİ ve
-// tarayıcılar /welcome'a yönlendirilirdi, bu da robots.txt/sitemap.xml'in
-// HİÇ İŞLEV GÖRMEMESİNE yol açardı — bu yüzden açıkça muaf tutulur.
-const AUTH_REDIRECT_EXEMPT = ["/update-password", "/api", "/robots.txt", "/sitemap.xml"];
+// /robots.txt, /sitemap.xml, /manifest.webmanifest: arama motoru
+// tarayıcılarının ve PWA yükleme mekanizmasının HİÇBİR oturumu yoktur —
+// bu rotalar da (matcher'ın negatif look-ahead'i .txt/.xml/.webmanifest
+// uzantılarını KAPSAMADIĞINDAN) auth-redirect kuralına GİRERDİ ve
+// /welcome'a yönlendirilirdi, bu da hiç işlev görmemesine yol açardı —
+// bu yüzden açıkça muaf tutulur.
+const AUTH_REDIRECT_EXEMPT = ["/update-password", "/api", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest"];
 
 /**
  * Rota koruması: yalnızca "oturum açık mı" seviyesinde. Onboarding

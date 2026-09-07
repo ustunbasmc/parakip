@@ -12,6 +12,36 @@ import { getPeriodRange } from "@/lib/format/date";
 
 export type BusinessKind = "sale" | "purchase" | "expense";
 
+/**
+ * İşletme özet kartının seçilebilir dönemleri. Genel dashboard'un
+ * `DashboardPeriod` tipinden BİLİNÇLİ olarak AYRIDIR (o tip/bileşen bu
+ * turda HİÇ değiştirilmedi) — burada "dün" ve "geçen ay" gibi İşletme'ye
+ * özgü ek seçenekler var.
+ */
+export type BusinessPeriod = "today" | "yesterday" | "week" | "month" | "lastMonth" | "year";
+
+export const BUSINESS_PERIOD_LABELS: Record<BusinessPeriod, string> = {
+  today: "Bugün",
+  yesterday: "Dün",
+  week: "Bu hafta",
+  month: "Bu ay",
+  lastMonth: "Geçen ay",
+  year: "Bu yıl",
+};
+
+function getBusinessPeriodRange(period: BusinessPeriod, now: Date = new Date()): { start: string; end: string } {
+  if (period === "yesterday") {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return getPeriodRange("today", yesterday);
+  }
+  if (period === "lastMonth") {
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return getPeriodRange("month", lastMonth);
+  }
+  return getPeriodRange(period, now);
+}
+
 interface EntryWithTxMeta {
   amount_cents: number;
   transactions: { type: string; status: string; occurred_at: string; metadata: Record<string, unknown> } | { type: string; status: string; occurred_at: string; metadata: Record<string, unknown> }[] | null;
@@ -76,13 +106,13 @@ async function sumOpenDebtsByBusinessKindInRange(
 }
 
 export interface BusinessSummary {
-  todaySalesCents: number;
-  todayPurchasesCents: number;
-  todayExpenseCents: number;
-  monthSalesCents: number;
-  monthPurchasesCents: number;
-  monthExpenseCents: number;
+  /** Seçilen dönem — kartların üst başlığında gösterilir. */
+  period: BusinessPeriod;
+  periodSalesCents: number;
+  periodPurchasesCents: number;
+  periodExpenseCents: number;
   grossProfitCents: number;
+  /** Bekleyen tahsilat/ödeme ve kasa/banka bakiyesi DÖNEMDEN BAĞIMSIZDIR — bunlar her zaman "şu an itibarıyla" anlık durumu gösterir. */
   pendingReceivableCents: number;
   pendingPayableCents: number;
   cashBalanceCents: number;
@@ -90,35 +120,33 @@ export interface BusinessSummary {
 }
 
 /**
- * İşletme dashboard'unun tek seferde çektiği özet. "Satış"/"Alış" hem
- * peşin (income/expense entry, metadata ile) hem veresiye/vadeli (debts
+ * İşletme dashboard'unun tek seferde çektiği özet — kullanıcının
+ * SEÇTİĞİ döneme göre (bkz. BusinessPeriod). "Satış"/"Alış" hem peşin
+ * (income/expense entry, metadata ile) hem veresiye/vadeli (debts
  * tablosunda aynı metadata ile açılan borç/alacak) tarafını KAPSAR.
- * "Masraf" yalnızca gerçek gider hareketlerinden (kira, elektrik vb. —
- * genelde peşin ödenir, borç akışı YOK) hesaplanır.
+ * "Masraf" yalnızca gerçek gider hareketlerinden hesaplanır. Bekleyen
+ * tahsilat/ödeme ve kasa/banka bakiyesi dönemden BAĞIMSIZ, her zaman
+ * güncel durumu yansıtır (bir "geçen ay" görünümünde bile "şu an ne
+ * kadar param var" sorusuna dürüst cevap verir).
  */
-export async function getBusinessSummary(supabase: SupabaseClient, bookId: string): Promise<BusinessSummary> {
-  const today = getPeriodRange("today");
-  const month = getPeriodRange("month");
+export async function getBusinessSummary(
+  supabase: SupabaseClient,
+  bookId: string,
+  period: BusinessPeriod = "today"
+): Promise<BusinessSummary> {
+  const { start, end } = getBusinessPeriodRange(period);
 
   const [
-    todayCashSales, todayCreditSales,
-    todayCashPurchases, todayCreditPurchases,
-    todayExpense,
-    monthCashSales, monthCreditSales,
-    monthCashPurchases, monthCreditPurchases,
-    monthExpense,
+    cashSales, creditSales,
+    cashPurchases, creditPurchases,
+    expense,
     balances, receivables, payables,
   ] = await Promise.all([
-    sumEntriesByBusinessKind(supabase, bookId, "income", "sale", today.start, today.end),
-    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "receivable", "sale", today.start, today.end),
-    sumEntriesByBusinessKind(supabase, bookId, "expense", "purchase", today.start, today.end),
-    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "payable", "purchase", today.start, today.end),
-    sumEntriesByBusinessKind(supabase, bookId, "expense", "expense", today.start, today.end),
-    sumEntriesByBusinessKind(supabase, bookId, "income", "sale", month.start, month.end),
-    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "receivable", "sale", month.start, month.end),
-    sumEntriesByBusinessKind(supabase, bookId, "expense", "purchase", month.start, month.end),
-    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "payable", "purchase", month.start, month.end),
-    sumEntriesByBusinessKind(supabase, bookId, "expense", "expense", month.start, month.end),
+    sumEntriesByBusinessKind(supabase, bookId, "income", "sale", start, end),
+    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "receivable", "sale", start, end),
+    sumEntriesByBusinessKind(supabase, bookId, "expense", "purchase", start, end),
+    sumOpenDebtsByBusinessKindInRange(supabase, bookId, "payable", "purchase", start, end),
+    sumEntriesByBusinessKind(supabase, bookId, "expense", "expense", start, end),
     supabase.from("account_balances").select("type, currency, balance_cents").eq("book_id", bookId).eq("is_archived", false),
     supabase.from("debt_balances").select("remaining_cents").eq("book_id", bookId).eq("direction", "receivable").in("status", ["open", "partial"]),
     supabase.from("debt_balances").select("remaining_cents").eq("book_id", bookId).eq("direction", "payable").in("status", ["open", "partial"]),
@@ -135,20 +163,19 @@ export async function getBusinessSummary(supabase: SupabaseClient, bookId: strin
     .filter((a) => a.type === "bank" && a.currency === "TRY")
     .reduce((sum, a) => sum + a.balance_cents, 0);
 
-  const monthSalesCents = monthCashSales + monthCreditSales;
-  const monthPurchasesCents = monthCashPurchases + monthCreditPurchases;
+  const periodSalesCents = cashSales + creditSales;
+  const periodPurchasesCents = cashPurchases + creditPurchases;
 
   return {
-    todaySalesCents: todayCashSales + todayCreditSales,
-    todayPurchasesCents: todayCashPurchases + todayCreditPurchases,
-    todayExpenseCents: todayExpense,
-    monthSalesCents,
-    monthPurchasesCents,
-    monthExpenseCents: monthExpense,
-    grossProfitCents: monthSalesCents - monthPurchasesCents - monthExpense,
+    period,
+    periodSalesCents,
+    periodPurchasesCents,
+    periodExpenseCents: expense,
+    grossProfitCents: periodSalesCents - periodPurchasesCents - expense,
     pendingReceivableCents: (receivables.data ?? []).reduce((s, r) => s + r.remaining_cents, 0),
     pendingPayableCents: (payables.data ?? []).reduce((s, r) => s + r.remaining_cents, 0),
     cashBalanceCents,
     bankBalanceCents,
   };
 }
+
