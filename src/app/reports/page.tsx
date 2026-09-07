@@ -51,9 +51,10 @@ export default async function ReportsPage({
 
   if (!user) redirect("/welcome");
 
-  const profileHeader = await getProfileHeaderInfo(supabase, user.id);
-
-  const spaces = await getUserSpacesBasic(supabase);
+  const [profileHeader, spaces] = await Promise.all([
+    getProfileHeaderInfo(supabase, user.id),
+    getUserSpacesBasic(supabase),
+  ]);
   if (spaces.length === 0) redirect("/onboarding/space-type");
 
   const params = await searchParams;

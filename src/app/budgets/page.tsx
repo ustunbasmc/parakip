@@ -20,9 +20,10 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
   } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
   if (!user) redirect("/welcome");
 
-  const profileHeader = await getProfileHeaderInfo(supabase, user.id);
-
-  const spaces = await getUserSpacesBasic(supabase);
+  const [profileHeader, spaces] = await Promise.all([
+    getProfileHeaderInfo(supabase, user.id),
+    getUserSpacesBasic(supabase),
+  ]);
   if (spaces.length === 0) redirect("/onboarding/space-type");
 
   const params = await searchParams;

@@ -128,6 +128,13 @@ export function InvestmentBuyForm({
 
         <FormSelect label="Varlık türü" value={assetType} onChange={(e) => setAssetType(e.target.value as AssetType)} options={ASSET_TYPES} />
         <TextField label="Sembol" placeholder="Örn. THYAO, AAPL, ALTIN" value={symbol} onChange={(e) => setSymbol(e.target.value)} autoFocus />
+        {assetType === "fx" || assetType === "crypto" ? (
+          <p className="-mt-2 text-xs text-text-muted">
+            Güncel piyasa fiyatı yalnızca <strong>USD</strong>, <strong>EUR</strong> (döviz) ve{" "}
+            <strong>BTC</strong>, <strong>ETH</strong> (kripto) sembolleri için otomatik güncellenir — başka bir
+            sembol girersen yalnızca maliyet bazlı takip edilir.
+          </p>
+        ) : null}
         <TextField label="Miktar" placeholder="Örn. 10 veya 0.5" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
         <AmountInput label="Birim fiyat" value={price} onChange={setPrice} allowNegative={false} />
 

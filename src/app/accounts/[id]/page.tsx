@@ -25,26 +25,25 @@ export default async function AccountDetailPage({
   const account = await getAccountWithBalance(supabase, id);
   if (!account) notFound(); // RLS gercekten erisimi olmayan bir hesap icin de bunu dondurur
 
-  const role = await getUserRoleForBook(supabase, account.bookId);
+  // "role" ve "işlem geçmişi" sorguları BİRBİRİNE BAĞIMLI DEĞİL (ikisi
+  // de yalnızca account.bookId/account.id'ye ihtiyaç duyuyor) — sıralı
+  // çalıştırmak GEREKSİZ bir gecikme yaratıyordu, paralelleştirildi.
+  const [role, transactionHistoryResult] = await Promise.all([
+    getUserRoleForBook(supabase, account.bookId),
+    getTransactionHistory(supabase, account.bookId, {
+      accountId: account.id,
+      status: "all",
+      limit: 10,
+    }).catch(() => null),
+  ]);
   const canArchive = role === "owner" || role === "admin";
 
   // "Iptal durumu" da gorunur olmali diye status:'all' — son 10 islem,
   // aktif VE iptal edilmis, en yeniden eskiye. Bu hesaba ait olmayan/
   // baska bir deftere ait entry'ler RLS + accountId filtresiyle zaten
   // hic sorguya girmez.
-  let recentTransactions: Awaited<ReturnType<typeof getTransactionHistory>>["rows"];
-  let recentError = false;
-  try {
-    const result = await getTransactionHistory(supabase, account.bookId, {
-      accountId: account.id,
-      status: "all",
-      limit: 10,
-    });
-    recentTransactions = result.rows;
-  } catch {
-    recentError = true;
-    recentTransactions = [];
-  }
+  const recentTransactions = transactionHistoryResult?.rows ?? [];
+  const recentError = transactionHistoryResult === null;
 
   return (
     <AccountDetailView

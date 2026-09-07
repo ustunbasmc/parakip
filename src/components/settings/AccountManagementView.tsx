@@ -122,9 +122,9 @@ export function AccountManagementView({
             <div className="rounded-2xl border border-border bg-surface p-4">
               <p className="text-sm font-semibold text-text-primary">Hesabımı sil</p>
               <p className="mt-1 text-xs text-text-muted">
-                Bu, hesabını HEMEN silmez — şifre doğrulaması istenir ve bir silme TALEBİ oluşturulur. Ekibimiz,
-                işleme almadan önce e-posta ile seninle iletişime geçecek; finansal geçmişin bu süreçte
-                arşivlenir, silinmez.
+                Bu, hesabını HEMEN silmez — şifre doğrulaması istenir ve bir silme TALEBİ oluşturulur. En az 7
+                gün boyunca talebi buradan iptal edebilirsin. Süre sonunda kişisel bilgilerin (ad, telefon,
+                e-posta) kalıcı olarak temizlenir; finansal geçmişin ise ASLA silinmez, arşivlenmiş olarak kalır.
               </p>
               <Button variant="ghost" onClick={() => setStep("reauth")} fullWidth={false} className="mt-3 !text-danger">
                 Hesap silme talebi oluştur

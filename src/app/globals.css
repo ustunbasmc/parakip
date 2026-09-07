@@ -142,3 +142,11 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Tema-duyarlı marka görselleri (ör. welcome hero) — next-themes'in
+   eklediği .dark class'ına göre, JS'e bağlı olmadan (hydration
+   flicker YOK) doğru varyantı gösterir. */
+.theme-logo-light { display: block; }
+.theme-logo-dark { display: none; }
+.dark .theme-logo-light { display: none; }
+.dark .theme-logo-dark { display: block; }

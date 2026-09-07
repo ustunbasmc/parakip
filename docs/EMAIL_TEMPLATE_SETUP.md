@@ -41,6 +41,18 @@ kontrol edin.
 - Alt bilgideki "Destek", "Gizlilik Politikası" ve "Kullanım Koşulları"
   bağlantıları şu an `#` (placeholder) — gerçek sayfalar
   oluşturulduğunda bu `href` değerleri güncellenmelidir.
-- Diğer Supabase e-posta şablonları (şifre sıfırlama, e-posta
-  değişikliği vb.) bu turda **GÜNCELLENMEMİŞTİR** — yalnızca "Confirm
-  signup" ele alınmıştır.
+## Diğer Şablonlar (bu turda eklendi)
+
+Aynı yöntemle aşağıdaki iki şablon da kurulabilir:
+
+- **`docs/supabase-reset-password-email.html`** → Authentication → Email
+  Templates → **"Reset Password"**
+- **`docs/supabase-change-email.html`** → Authentication → Email
+  Templates → **"Change Email Address"**
+
+İkisi de aynı `{{ .ConfirmationURL }}` değişkenini kullanır ve "Confirm
+signup" ile aynı marka/stil dilini paylaşır.
+
+Kurulmayan şablonlar: "Invite user", "Magic Link", "Reauthentication" —
+bu üçü Parakip'te şu an aktif olarak kullanılmıyor (davetiye/magic-link/
+reauth akışları uygulamada yok), bu yüzden bu turda hazırlanmadı.
