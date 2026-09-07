@@ -4,24 +4,18 @@ import { verifyCallbackSignature, type ShopierCallbackPayload } from "@/lib/shop
 
 /**
  * Kullanıcı Shopier'ın ödeme sayfasını tamamlayıp geri döndüğünde
- * ÇAĞRILAN yol (Shopier tarayıcıyı buraya POST ile yönlendirir).
- * subscriptions tablosundaki satır BURADA oluşturulur/güncellenir.
+ * ÇAĞRILAN yol. subscriptions tablosundaki satır BURADA oluşturulur/
+ * güncellenir — hem "home_premium" (owner_user_id bazlı) hem "business"
+ * (space_id bazlı) planlar için.
  *
  * GÜVENLİK: İmza doğrulanmadan HİÇBİR ALANA (özellikle "status") asla
- * güvenilmez — sahte/tahrif edilmiş bir çağrı, doğru SHOPIER_API_SECRET
- * bilinmeden geçerli bir imza üretemez.
+ * güvenilmez.
  *
  * ÖNEMLİ SINIRLAMA: Shopier'da otomatik yenilenen abonelik YOKTUR —
  * current_period_end burada MANUEL olarak (şimdi + 30/365 gün) set
- * edilir. Süre dolduğunda has_business_subscription() (migration 0054)
- * zaten "current_period_end > now()" kontrolü yaptığından, ek bir
- * "cron ile süresi dolanları pasifleştir" işlemi GEREKMEZ — süre
- * dolduğu AN otomatik olarak pasif sayılır; kullanıcı /settings/plan'a
- * dönüp TEKRAR ödeme yapmalıdır (otomatik kart çekimi yoktur, bu
- * arayüzde açıkça belirtilir).
- *
- * subscriptions tablosuna yazmak service_role gerektirir (authenticated
- * rolüne yalnızca SELECT verilmiştir, bkz. migration 0052).
+ * edilir. Süre dolduğunda has_home_premium()/has_business_subscription()
+ * (migration 0052/0054) zaten "current_period_end > now()" kontrolü
+ * yaptığından, ek bir "cron ile pasifleştir" işlemi GEREKMEZ.
  */
 export async function POST(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -46,10 +40,11 @@ export async function POST(request: Request) {
 
   const platformOrderId = payload.platform_order_id ?? "";
   const parts = platformOrderId.split("__");
-  const spaceId = parts[0];
-  const period = parts[1] === "yearly" ? "yearly" : "monthly";
+  const plan = parts[0] === "home_premium" ? "home_premium" : parts[0] === "business" ? "business" : null;
+  const spaceId = parts[1];
+  const period = parts[2] === "yearly" ? "yearly" : "monthly";
 
-  if (!spaceId) {
+  if (!plan || !spaceId) {
     return NextResponse.redirect(`${siteUrl}/settings/plan?shopier_result=error`, 303);
   }
 
@@ -65,9 +60,7 @@ export async function POST(request: Request) {
 
   const supabase = createServiceRoleClient();
 
-  const row = {
-    plan: "business" as const,
-    space_id: spaceId,
+  const baseRow = {
     status: "active" as const,
     current_period_end: periodEnd.toISOString(),
     metadata: {
@@ -78,17 +71,40 @@ export async function POST(request: Request) {
     updated_at: now.toISOString(),
   };
 
-  const { data: existingForSpace } = await supabase
-    .from("subscriptions")
-    .select("id")
-    .eq("plan", "business")
-    .eq("space_id", spaceId)
-    .maybeSingle();
+  if (plan === "home_premium") {
+    // home_premium SAHİP bazlıdır (owner_user_id) — spaceId'den
+    // owner_user_id'yi bulup ONA göre satır yazılır (birden fazla Ev'i
+    // olan bir kullanıcı, hangi Ev'den satın alırsa alsın AYNI sahip
+    // satırını günceller — has_home_premium zaten owner_user_id'ye
+    // bakıyor, space_id'ye değil).
+    const { data: space } = await supabase.from("spaces").select("owner_user_id").eq("id", spaceId).maybeSingle();
+    if (!space?.owner_user_id) {
+      return NextResponse.redirect(`${siteUrl}/settings/plan?shopier_result=error`, 303);
+    }
 
-  if (existingForSpace) {
-    await supabase.from("subscriptions").update(row).eq("id", existingForSpace.id);
+    const row = { ...baseRow, plan: "home_premium" as const, owner_user_id: space.owner_user_id, space_id: null };
+
+    const { data: existing } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("plan", "home_premium")
+      .eq("owner_user_id", space.owner_user_id)
+      .maybeSingle();
+
+    if (existing) await supabase.from("subscriptions").update(row).eq("id", existing.id);
+    else await supabase.from("subscriptions").insert(row);
   } else {
-    await supabase.from("subscriptions").insert(row);
+    const row = { ...baseRow, plan: "business" as const, space_id: spaceId, owner_user_id: null };
+
+    const { data: existing } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("plan", "business")
+      .eq("space_id", spaceId)
+      .maybeSingle();
+
+    if (existing) await supabase.from("subscriptions").update(row).eq("id", existing.id);
+    else await supabase.from("subscriptions").insert(row);
   }
 
   return NextResponse.redirect(`${siteUrl}/settings/plan?space=${spaceId}&shopier_result=success`, 303);

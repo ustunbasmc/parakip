@@ -116,15 +116,16 @@ export default async function PlanPage({
               </div>
 
               {!homeInfo.isPremium ? (
-                <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
-                  <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
-                  <p className="mt-1 text-xs text-text-muted">
-                    Sınırsız hesap, genişletilmiş rapor ve yatırım özellikleri. Henüz satışa açık değil.
-                  </p>
-                  <span className="mt-2 inline-block rounded-full bg-surface-muted px-2.5 py-1 text-[10px] font-bold text-text-muted">
-                    Yakında
-                  </span>
-                </div>
+                ownerUserId === user.id ? (
+                  <BuySubscriptionCard spaceId={activeSpace.id} plan="home_premium" />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
+                    <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      Sınırsız hesap ve genişletilmiş özellikler. Yalnızca bu alanın sahibi satın alabilir.
+                    </p>
+                  </div>
+                )
               ) : null}
             </>
           ) : (
@@ -173,7 +174,7 @@ export default async function PlanPage({
               </div>
             </div>
 
-            {!businessInfo.hasActiveSubscription ? <BuySubscriptionCard spaceId={activeSpace.id} /> : null}
+            {!businessInfo.hasActiveSubscription ? <BuySubscriptionCard spaceId={activeSpace.id} plan="business" /> : null}
           </>
         ) : (
           <p className="text-sm text-danger">Plan bilgisi yüklenemedi.</p>

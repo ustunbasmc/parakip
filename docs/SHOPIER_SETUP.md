@@ -18,7 +18,12 @@ uygulanmıştır:
 ## Ortam Değişkenleri
 
 `.env.example` dosyasına bakın: `SHOPIER_API_KEY`, `SHOPIER_API_SECRET`,
-`SHOPIER_MONTHLY_PRICE_TRY`, `SHOPIER_YEARLY_PRICE_TRY`.
+`SHOPIER_HOME_MONTHLY_PRICE_TRY`, `SHOPIER_HOME_YEARLY_PRICE_TRY`,
+`SHOPIER_BUSINESS_MONTHLY_PRICE_TRY`, `SHOPIER_BUSINESS_YEARLY_PRICE_TRY`.
+
+Güncel fiyatlar:
+- **Ev Premium:** 99,00 TL/ay · 990,00 TL/yıl
+- **İşletme Premium:** 249,00 TL/ay · 2.490,00 TL/yıl
 
 Shopier Merchant Panel → Ayarlar → API bilgileri kısmından API Key ve
 API Secret alınır. Shopier'da AYRICA bir "ürün" tanımlamaya gerek YOKTUR
@@ -26,11 +31,14 @@ API Secret alınır. Shopier'da AYRICA bir "ürün" tanımlamaya gerek YOKTUR
 
 ## Nasıl Çalışır
 
-1. Kullanıcı `/settings/plan` → "Satın alma formunu aç" → aylık/yıllık
-   seçer.
-2. `POST /api/shopier/checkout` — oturum + yetki (owner/admin) + alan
-   tipi (business) doğrulanır, Shopier'a gönderilecek imzalı bir form
-   üretilir (`src/lib/shopier/client.ts`).
+1. Kullanıcı `/settings/plan` → Ev alanındaysa "Ev Premium satın al",
+   İşletme alanındaysa "İşletme Premium satın al" → aylık/yıllık seçer.
+   **Ev Premium yalnızca o alanın SAHİBİ tarafından satın alınabilir**
+   (Premium kontrolü sahibe göre yapıldığı için — bkz. `has_home_
+   premium`, migration 0052); diğer üyeler bu kartı görmez.
+2. `POST /api/shopier/checkout` — oturum + yetki (Ev: sahip, İşletme:
+   owner/admin) + alan tipi doğrulanır, Shopier'a gönderilecek imzalı
+   bir form üretilir (`src/lib/shopier/client.ts`).
 3. Form otomatik submit olur, kullanıcı Shopier'ın kendi ödeme sayfasına
    gider — **kart bilgisi Parakip'e hiç ulaşmaz**.
 4. Ödeme tamamlanınca Shopier, tarayıcıyı `POST /api/shopier/callback`
