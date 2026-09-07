@@ -55,12 +55,15 @@ export function PartyListItem({
     </Link>
   );
 
-  if (!type || party.isArchived) return card;
-
   return (
     <div>
       {error ? <p className="mb-1.5 px-1 text-xs text-danger">{error}</p> : null}
-      <SwipeToAction actionLabel="Arşivle" danger={false} onAction={() => setConfirmOpen(true)}>
+      <SwipeToAction
+        actionLabel="Arşivle"
+        danger={false}
+        onAction={() => setConfirmOpen(true)}
+        disabled={!type || party.isArchived}
+      >
         {card}
       </SwipeToAction>
 

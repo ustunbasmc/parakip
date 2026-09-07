@@ -38,6 +38,10 @@ export interface TransactionHistoryRow {
   transactionId: string;
   type: "income" | "expense" | "transfer";
   isInvestment: boolean;
+  /** Yalnızca isInvestment=true iken dolu — holding_transactions.id (LIFO iptali için gerekli). */
+  holdingTransactionId: string | null;
+  /** Yalnızca isInvestment=true iken anlamlı — bu holding için EN SON aktif işlem mi (LIFO kuralı, bkz. cancel_holding_transaction). */
+  isLastActiveHoldingTransaction: boolean;
   status: "active" | "cancelled";
   amountCents: number;
   currency: string;
@@ -94,16 +98,27 @@ function one<T>(value: T | T[] | null): T | null {
  * bu sorgu yalnızca "hangi işlemler yatırımdır" ETİKETLEMESİ için
  * kullanılır (rozet göstermek üzere), filtre için değil.
  */
-async function getInvestmentTransactionIds(
+/**
+ * Bu deftere ait TÜM yatırım işlemlerini (transaction_id) + hangi
+ * holding'e ait olduğunu + o holding için "EN SON aktif işlem mi"
+ * (LIFO — bkz. cancel_holding_transaction, migration 0036: DB'de
+ * `order by created_at desc` ile aynı sıralama burada da kullanılır)
+ * bilgisini döndürür. Bu, TransactionListItem'ın yatırım hareketleri
+ * için de kaydırmalı iptali (yalnızca LIFO kuralına uyanlarda) doğru
+ * şekilde etkinleştirebilmesi için gereklidir.
+ */
+async function getInvestmentTransactionMeta(
   supabase: SupabaseClient,
   bookId: string
-): Promise<Set<string>> {
+): Promise<Map<string, { holdingTransactionId: string; isLastActive: boolean }>> {
+  const result = new Map<string, { holdingTransactionId: string; isLastActive: boolean }>();
+
   const { data: portfolios, error: pErr } = await supabase
     .from("portfolios")
     .select("id")
     .eq("book_id", bookId);
   if (pErr) throw pErr;
-  if (!portfolios || portfolios.length === 0) return new Set();
+  if (!portfolios || portfolios.length === 0) return result;
 
   const { data: holdings, error: hErr } = await supabase
     .from("holdings")
@@ -113,18 +128,36 @@ async function getInvestmentTransactionIds(
       portfolios.map((p) => p.id)
     );
   if (hErr) throw hErr;
-  if (!holdings || holdings.length === 0) return new Set();
+  if (!holdings || holdings.length === 0) return result;
 
   const { data: holdingTx, error: htErr } = await supabase
     .from("holding_transactions")
-    .select("transaction_id")
+    .select("id, transaction_id, holding_id, status, created_at")
     .in(
       "holding_id",
       holdings.map((h) => h.id)
-    );
+    )
+    .order("created_at", { ascending: false });
   if (htErr) throw htErr;
 
-  return new Set((holdingTx ?? []).map((h) => h.transaction_id));
+  // Her holding_id için en yeni (created_at desc sıralı listede İLK
+  // rastlanan) AKTİF kaydı "en son aktif" say — DB'deki LIFO kontrolüyle
+  // (0036) BİREBİR aynı mantık.
+  const lastActiveByHolding = new Map<string, string>(); // holding_id -> holding_transaction_id
+  for (const row of holdingTx ?? []) {
+    if (row.status === "active" && !lastActiveByHolding.has(row.holding_id)) {
+      lastActiveByHolding.set(row.holding_id, row.id);
+    }
+  }
+
+  for (const row of holdingTx ?? []) {
+    result.set(row.transaction_id, {
+      holdingTransactionId: row.id,
+      isLastActive: row.status === "active" && lastActiveByHolding.get(row.holding_id) === row.id,
+    });
+  }
+
+  return result;
 }
 
 interface RawTransferEntry {
@@ -290,6 +323,8 @@ async function getCreditBusinessRows(
       transactionId: `debt:${d.id}`,
       type: asType,
       isInvestment: false,
+      holdingTransactionId: null,
+      isLastActiveHoldingTransaction: false,
       status: d.status === "cancelled" ? "cancelled" : "active",
       amountCents: businessKind === "sale" ? d.principal_cents : -d.principal_cents,
       currency: "TRY",
@@ -317,10 +352,10 @@ export async function getTransactionHistory(
   const limit = filters.limit ?? 30;
   const offset = filters.offset ?? 0;
 
-  let investmentIds: Set<string> | null = null;
+  let investmentMeta: Map<string, { holdingTransactionId: string; isLastActive: boolean }> | null = null;
   if (kind === "investment") {
-    investmentIds = await getInvestmentTransactionIds(supabase, bookId);
-    if (investmentIds.size === 0) return { rows: [], hasMore: false };
+    investmentMeta = await getInvestmentTransactionMeta(supabase, bookId);
+    if (investmentMeta.size === 0) return { rows: [], hasMore: false };
   }
 
   let query = supabase
@@ -334,8 +369,8 @@ export async function getTransactionHistory(
   if (categoryId) query = query.eq("category_id", categoryId);
   if (search && search.trim()) query = query.ilike("note", `%${search.trim()}%`);
 
-  if (kind === "investment" && investmentIds) {
-    query = query.in("transaction_id", Array.from(investmentIds));
+  if (kind === "investment" && investmentMeta) {
+    query = query.in("transaction_id", Array.from(investmentMeta.keys()));
   } else if (kind !== "all") {
     query = query.eq("transactions.type", kind);
   }
@@ -360,32 +395,32 @@ export async function getTransactionHistory(
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
 
   // Diğer türler (income/expense/transfer, 'all' dahil) için de yatırım
-  // rozeti gösterebilmek üzere, bu SAYFADAKİ transaction_id'lerin
-  // yatırımla ilişkili olup olmadığını kontrol et.
-  if (investmentIds === null && kind !== "transfer") {
+  // rozeti/LIFO bilgisini gösterebilmek üzere, bu SAYFADAKİ
+  // transaction_id'lerin yatırımla ilişkisini kontrol et.
+  if (investmentMeta === null && kind !== "transfer") {
     const txIds = pageRows.map((r) => one(r.transactions)?.id).filter((id): id is string => Boolean(id));
     if (txIds.length > 0) {
-      const { data: holdingTx } = await supabase
-        .from("holding_transactions")
-        .select("transaction_id")
-        .in("transaction_id", txIds);
-      investmentIds = new Set((holdingTx ?? []).map((h) => h.transaction_id));
+      const fullMeta = await getInvestmentTransactionMeta(supabase, bookId);
+      investmentMeta = new Map(Array.from(fullMeta.entries()).filter(([txId]) => txIds.includes(txId)));
     } else {
-      investmentIds = new Set();
+      investmentMeta = new Map();
     }
   }
 
-  const finalInvestmentIds = investmentIds ?? new Set<string>();
+  const finalInvestmentMeta = investmentMeta ?? new Map<string, { holdingTransactionId: string; isLastActive: boolean }>();
 
   const mappedRows: TransactionHistoryRow[] = pageRows.map((r) => {
     const tx = one(r.transactions);
     const account = one(r.accounts);
     const category = one(r.categories);
+    const invMeta = tx ? finalInvestmentMeta.get(tx.id) : undefined;
     return {
       entryId: r.id,
       transactionId: r.transaction_id,
       type: (tx?.type as "income" | "expense" | "transfer") ?? "expense",
-      isInvestment: tx ? finalInvestmentIds.has(tx.id) : false,
+      isInvestment: Boolean(invMeta),
+      holdingTransactionId: invMeta?.holdingTransactionId ?? null,
+      isLastActiveHoldingTransaction: invMeta?.isLastActive ?? false,
       status: (tx?.status as "active" | "cancelled") ?? "active",
       amountCents: r.amount_cents,
       currency: r.currency,
@@ -484,6 +519,10 @@ export async function getTransactionEntryDetail(
     transactionId: row.transaction_id,
     type: tx.type as "income" | "expense" | "transfer",
     isInvestment: Boolean(holdingTx),
+    // Bu tekil detay sayfasında (henüz) bir iptal BUTONU yok — LIFO
+    // hesaplaması burada ANLAMSIZ, tutarlı bir varsayılan değer yeterli.
+    holdingTransactionId: null,
+    isLastActiveHoldingTransaction: false,
     status: tx.status as "active" | "cancelled",
     amountCents,
     currency: row.currency,

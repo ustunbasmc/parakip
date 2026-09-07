@@ -32,7 +32,9 @@ import {
   getTotalBudgetSummary,
   getUpcomingDebts,
   getPortfolioSummary,
+  getReceivablesSummary,
 } from "@/lib/dashboard/queries";
+import { getHoldings, computePortfolioTotals } from "@/lib/dashboard/investments";
 
 
 
@@ -127,14 +129,32 @@ async function HomeDashboard({
   hasBusiness: boolean;
   period: DashboardPeriod;
 }) {
-  const [balance, flow, budget, upcoming, recent, portfolio] = await Promise.allSettled([
+  const [balance, flow, budget, upcoming, recent, portfolio, receivables, holdings] = await Promise.allSettled([
     getTotalBalanceByCurrency(supabase, bookId),
     getFlowForPeriod(supabase, bookId, period),
     getTotalBudgetSummary(supabase, bookId),
     getUpcomingDebts(supabase, bookId),
     getTransactionHistory(supabase, bookId, { limit: 5 }),
     getPortfolioSummary(supabase, bookId),
+    getReceivablesSummary(supabase, bookId),
+    getHoldings(supabase, bookId),
   ]);
+
+  // "Toplam varlık" YALNIZCA TRY cinsinden hesap/alacak/yatırımların
+  // toplamıdır — döviz cinsinden tutarlar SAHTE bir kur çevrimiyle bu
+  // toplama ASLA karıştırılmaz (bunlar zaten HeroBalanceCard'ın "amounts"
+  // listesinde AYRI satırlar olarak gösterilmeye devam eder). Yatırım
+  // değeri, güncel piyasa fiyatı VARSA güncel değeri, YOKSA maliyet
+  // bazını kullanır (computePortfolioTotals ile AYNI, kanıtlanmış mantık
+  // — /investments sayfasındaki ile TUTARLIDIR).
+  const tryBalanceCents = balance.status === "fulfilled" ? (balance.value.find((a) => a.currency === "TRY")?.cents ?? 0) : 0;
+  const receivablesCents = receivables.status === "fulfilled" ? receivables.value.totalCents : 0;
+  const holdingsList = holdings.status === "fulfilled" ? holdings.value : [];
+  const tryHoldings = holdingsList.filter((h) => h.currency === "TRY");
+  const tryPortfolioTotals = computePortfolioTotals(tryHoldings);
+  const investmentsCents = tryPortfolioTotals.totalCurrentValueCents ?? tryPortfolioTotals.totalCostBasisCents;
+  const totalAssetsCents =
+    balance.status === "fulfilled" ? tryBalanceCents + receivablesCents + investmentsCents : null;
 
   return (
     <>
@@ -143,6 +163,16 @@ async function HomeDashboard({
         amounts={balance.status === "fulfilled" ? balance.value : []}
         emptyMessage="Henüz hesap eklenmedi."
         emptyHint="İlk hesabını eklediğinde net durumun burada görünecek."
+        totalAssetsCents={totalAssetsCents}
+        breakdown={
+          totalAssetsCents !== null
+            ? [
+                { label: "Hesaplar", cents: tryBalanceCents },
+                { label: "Bekleyen alacaklar", cents: receivablesCents },
+                { label: "Yatırımlar", cents: investmentsCents },
+              ]
+            : []
+        }
       />
 
       <QuickActions bookId={bookId} spaceParam={spaceId} />

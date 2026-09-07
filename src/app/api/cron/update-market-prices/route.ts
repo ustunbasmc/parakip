@@ -17,8 +17,22 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
  * altın için ücretsiz/güvenilir, anahtarsız bir kaynak bulunamadığından
  * bu turda BAĞLANMADI — bu varlıklar için holdings hâlâ yalnızca
  * maliyet bazlı gösterilmeye devam eder (sahte fiyat ASLA üretilmez).
+ *
+ * Hem GET hem POST kabul eder: Vercel Cron Jobs bu endpoint'i GET ile
+ * çağırır ve `CRON_SECRET` adlı bir environment variable tanımlıysa
+ * `Authorization: Bearer <CRON_SECRET>` başlığını OTOMATİK ekler (bkz.
+ * Vercel'in "Protect Cron Jobs" özelliği) — elle bir şey yapılandırmaya
+ * gerek yoktur. POST, elle (curl/harici zamanlayıcı) test için kalır.
  */
+export async function GET(request: Request) {
+  return handle(request);
+}
+
 export async function POST(request: Request) {
+  return handle(request);
+}
+
+async function handle(request: Request) {
   const expected = process.env.CRON_SECRET;
   if (!expected) {
     return NextResponse.json({ error: "CRON_SECRET tanımlı değil." }, { status: 500 });

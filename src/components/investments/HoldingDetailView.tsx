@@ -125,12 +125,10 @@ export function HoldingDetailView({
                   </div>
                 );
 
-                return canCancelThis ? (
-                  <SwipeToAction key={t.id} actionLabel="İptal et" onAction={() => setCancelTarget(t.id)}>
+                return (
+                  <SwipeToAction key={t.id} actionLabel="İptal et" onAction={() => setCancelTarget(t.id)} disabled={!canCancelThis}>
                     {row}
                   </SwipeToAction>
-                ) : (
-                  <div key={t.id}>{row}</div>
                 );
               })}
             </div>

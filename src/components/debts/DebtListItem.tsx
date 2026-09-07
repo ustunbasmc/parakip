@@ -79,13 +79,9 @@ export function DebtListItem({ debt, spaceParam }: { debt: DebtRow; spaceParam: 
   return (
     <div>
       {error ? <p className="mb-1.5 px-1 text-xs text-danger">{error}</p> : null}
-      {!isSettled ? (
-        <SwipeToAction actionLabel="İptal et" onAction={() => setConfirmOpen(true)}>
-          {card}
-        </SwipeToAction>
-      ) : (
-        card
-      )}
+      <SwipeToAction actionLabel="İptal et" onAction={() => setConfirmOpen(true)} disabled={isSettled}>
+        {card}
+      </SwipeToAction>
 
       <ConfirmModal
         open={confirmOpen}

@@ -60,12 +60,10 @@ export function AccountCard({ account, spaceParam }: { account: AccountWithBalan
     </Link>
   );
 
-  if (account.isArchived) return card;
-
   return (
     <div>
       {error ? <p className="mb-1.5 px-1 text-xs text-danger">{error}</p> : null}
-      <SwipeToAction actionLabel="Arşivle" danger={false} onAction={() => setConfirmOpen(true)}>
+      <SwipeToAction actionLabel="Arşivle" danger={false} onAction={() => setConfirmOpen(true)} disabled={account.isArchived}>
         {card}
       </SwipeToAction>
 

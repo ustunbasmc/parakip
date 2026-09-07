@@ -16,17 +16,28 @@ import { useRef, useState } from "react";
  *   yatay hareket SAYFANIN kendisini KAYDIRMAZ (yalnızca bu satırın kendi
  *   transform'u değişir, body/html hiç etkilenmez).
  * - Aksiyon dokunması (buton) en az 44px yükseklikte, kolay dokunulur.
+ *
+ * `disabled`: aynı listede BAZI satırlar kaydırılabilir bazıları
+ * DEĞİLSE (ör. yatırım hareketlerinde yalnızca LIFO'da en son işlem
+ * kaldırılabilir), bu satırları SwipeToAction'IN DIŞINDA çıplak render
+ * etmek yerine `disabled` ile İÇİNDE tutmak GEREKİR — aksi halde bazı
+ * satırlarda `overflow-hidden`/`touchAction:pan-y` KORUMASI eksik kalır
+ * ve bu, listede tutarsız dokunma davranışına/yatay kaymaya yol açar.
+ * `disabled` true iken dokunma dinleyicileri hiç eklenmez ama DOM/CSS
+ * yapısı diğer satırlarla BİREBİR aynı kalır.
  */
 export function SwipeToAction({
   children,
   actionLabel,
   onAction,
   danger = true,
+  disabled = false,
 }: {
   children: React.ReactNode;
   actionLabel: string;
   onAction: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   const [dragX, setDragX] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -37,13 +48,14 @@ export function SwipeToAction({
   const THRESHOLD = 24;
 
   function handleTouchStart(e: React.TouchEvent) {
+    if (disabled) return;
     startXRef.current = e.touches[0].clientX;
     draggingRef.current = true;
     setIsDragging(true);
   }
 
   function handleTouchMove(e: React.TouchEvent) {
-    if (startXRef.current === null) return;
+    if (disabled || startXRef.current === null) return;
     const delta = e.touches[0].clientX - startXRef.current;
     // Yalnızca SOLA kaydırma (sağdaki aksiyonu açığa çıkarır) kabul edilir.
     const clamped = Math.min(0, Math.max(delta, -ACTION_WIDTH));
@@ -53,7 +65,7 @@ export function SwipeToAction({
   }
 
   function handleTouchEnd() {
-    if (!draggingRef.current) return;
+    if (disabled || !draggingRef.current) return;
     draggingRef.current = false;
     setIsDragging(false);
     startXRef.current = null;
@@ -74,18 +86,20 @@ export function SwipeToAction({
 
   return (
     <div className="relative overflow-hidden rounded-2xl md:overflow-visible" style={{ touchAction: "pan-y" }}>
-      <div
-        className={`absolute inset-y-0 right-0 flex items-center justify-center md:hidden ${danger ? "bg-danger" : "bg-warning"}`}
-        style={{ width: ACTION_WIDTH }}
-        aria-hidden={!revealed}
-      >
-        <button
-          onClick={handleActionClick}
-          className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-white"
+      {!disabled ? (
+        <div
+          className={`absolute inset-y-0 right-0 flex items-center justify-center md:hidden ${danger ? "bg-danger" : "bg-warning"}`}
+          style={{ width: ACTION_WIDTH }}
+          aria-hidden={!revealed}
         >
-          {actionLabel}
-        </button>
-      </div>
+          <button
+            onClick={handleActionClick}
+            className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-white"
+          >
+            {actionLabel}
+          </button>
+        </div>
+      ) : null}
       <div
         className="relative bg-bg transition-transform"
         style={{ transform: `translateX(${dragX}px)`, transitionDuration: isDragging ? "0ms" : "150ms" }}

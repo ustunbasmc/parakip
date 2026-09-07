@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { cancelHoldingTransaction } from "@/lib/api/financial-rpc";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { formatRelativeDate, formatDueDateLabel } from "@/lib/format/date";
 import { ArrowUpRightIcon, ArrowDownRightIcon, TransferIcon, TrendingUpIcon } from "@/components/icons";
@@ -81,17 +82,37 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
     ? `/debts/${row.creditDebtId}?space=${spaceParam}`
     : `/transactions/${row.entryId}?space=${spaceParam}`;
 
-  // Kaydırmalı iptal yalnızca GERÇEK, henüz iptal edilmemiş, yatırım
-  // BAĞLANTISI OLMAYAN (yatırım iptali LIFO kuralıyla ayrı bir akıştır,
-  // bkz. HoldingDetailView) hareketlerde etkindir. Veresiye satış/alış
-  // temsili satırları gerçek bir transaction DEĞİLDİR — iptal Borçlar
-  // ekranından yapılır.
-  const canSwipeCancel = !isCancelled && !isCreditPending && !row.isInvestment;
+  // Kaydırmalı iptal: gerçek, henüz iptal edilmemiş, veresiye BAĞLANTISI
+  // OLMAYAN hareketlerde etkindir. Yatırım hareketleri de artık dahildir
+  // — ama LIFO kuralı gereği YALNIZCA o holding için EN SON aktif işlemse
+  // (bkz. HoldingDetailView'daki AYNI kural). Bu, hem "her satırın
+  // tutarlı bir SwipeToAction sarmalayıcısına sahip olması" (layout
+  // kayması riskini ortadan kaldırır) hem de yatırım hareketlerinin de
+  // kaldırılabilir olması isteğini KARŞILAR.
+  const canSwipeCancel =
+    !isCancelled &&
+    !isCreditPending &&
+    (!row.isInvestment || row.isLastActiveHoldingTransaction);
 
   async function handleCancel() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
+
+    if (row.isInvestment && row.holdingTransactionId) {
+      const { error: rpcError } = await cancelHoldingTransaction(supabase, {
+        p_holding_transaction_id: row.holdingTransactionId,
+      });
+      setLoading(false);
+      setConfirmOpen(false);
+      if (rpcError) {
+        setError(rpcError.message || "İşlem iptal edilemedi.");
+        return;
+      }
+      router.refresh();
+      return;
+    }
+
     const { error: updateError } = await supabase
       .from("transactions")
       .update({ status: "cancelled" })
@@ -160,13 +181,9 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
   return (
     <div>
       {error ? <p className="mb-1.5 px-1 text-xs text-danger">{error}</p> : null}
-      {canSwipeCancel ? (
-        <SwipeToAction actionLabel="İptal et" onAction={() => setConfirmOpen(true)}>
-          {card}
-        </SwipeToAction>
-      ) : (
-        card
-      )}
+      <SwipeToAction actionLabel="İptal et" onAction={() => setConfirmOpen(true)} disabled={!canSwipeCancel}>
+        {card}
+      </SwipeToAction>
 
       <ConfirmModal
         open={confirmOpen}
