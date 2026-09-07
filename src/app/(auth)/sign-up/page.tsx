@@ -20,6 +20,7 @@ export default function SignUpPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,10 @@ export default function SignUpPage() {
     }
     if (password !== passwordConfirm) {
       setError("Şifreler birbiriyle uyuşmuyor.");
+      return;
+    }
+    if (!termsAccepted) {
+      setError("Devam etmek için Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmelisin.");
       return;
     }
 
@@ -136,22 +141,26 @@ export default function SignUpPage() {
 
         {error ? <ErrorBanner message={error} /> : null}
 
-        <form id="sign-up-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <TextField
-              label="Ad"
-              autoComplete="given-name"
-              required
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-            <TextField
-              label="Soyad"
-              autoComplete="family-name"
-              required
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
+        <form id="sign-up-form" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 gap-3">
+            <div className="min-w-0 flex-1">
+              <TextField
+                label="Ad"
+                autoComplete="given-name"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <TextField
+                label="Soyad"
+                autoComplete="family-name"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
           </div>
           <TextField
             label="E-posta"
@@ -190,6 +199,25 @@ export default function SignUpPage() {
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
           />
+
+          <label className="flex items-start gap-2.5 text-sm text-text-secondary">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-accent"
+            />
+            <span>
+              <Link href="/legal/kullanim-kosullari" target="_blank" className="font-semibold text-accent">
+                Kullanım Koşulları
+              </Link>
+              &apos;nı ve{" "}
+              <Link href="/legal/gizlilik-politikasi" target="_blank" className="font-semibold text-accent">
+                Gizlilik Politikası
+              </Link>
+              &apos;nı okudum, kabul ediyorum.
+            </span>
+          </label>
         </form>
 
         <div className="flex items-center gap-3 text-text-muted">

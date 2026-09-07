@@ -25,7 +25,11 @@ const PUBLIC_PATHS = [
 // uzantılarını KAPSAMADIĞINDAN) auth-redirect kuralına GİRERDİ ve
 // /welcome'a yönlendirilirdi, bu da hiç işlev görmemesine yol açardı —
 // bu yüzden açıkça muaf tutulur.
-const AUTH_REDIRECT_EXEMPT = ["/update-password", "/api", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest"];
+// /legal/*: yasal sayfalar (Gizlilik Politikası, Kullanım Koşulları
+// vb.) hem oturum AÇIK hem oturum KAPALI kullanıcılar için erişilebilir
+// olmalıdır — ne "oturum yoksa /welcome'a at" ne "oturum varsa /'e at"
+// kuralına tabidir.
+const AUTH_REDIRECT_EXEMPT = ["/update-password", "/api", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/legal"];
 
 /**
  * Rota koruması: yalnızca "oturum açık mı" seviyesinde. Onboarding

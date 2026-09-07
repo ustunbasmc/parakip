@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
 import { Logo } from "./Logo";
+import { InstallAppButton } from "./InstallAppButton";
 
 interface AppShellProps {
   children: ReactNode;
@@ -64,7 +65,10 @@ export function AppShell({
           ) : (
             <Logo withWordmark={false} className="scale-90 md:hidden" />
           )}
-          <div className="ml-auto">{headerEnd}</div>
+          <div className="ml-auto flex items-center gap-2">
+            <InstallAppButton variant="compact" />
+            {headerEnd}
+          </div>
         </header>
 
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-y-auto px-4 pb-6 md:max-w-none md:px-8 md:pb-10 xl:px-12 2xl:max-w-[100rem]">
