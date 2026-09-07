@@ -103,7 +103,7 @@ export default async function TransactionsPage({
         </div>
       }
     >
-      <div className="flex flex-col gap-4 pt-2 pb-4">
+      <div className="flex min-w-0 flex-col gap-4 pt-2 pb-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1">
             <TransactionFilters accounts={accounts} categories={categories} />

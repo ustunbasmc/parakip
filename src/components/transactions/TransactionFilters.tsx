@@ -66,7 +66,7 @@ export function TransactionFilters({ accounts, categories }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <form onSubmit={handleSearchSubmit} className="relative">
         <SearchIcon
           size={17}
@@ -81,7 +81,7 @@ export function TransactionFilters({ accounts, categories }: Props) {
         />
       </form>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+      <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5">
         {KIND_TABS.map((tab) => (
           <button
             key={tab.value}

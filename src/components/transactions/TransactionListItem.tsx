@@ -141,8 +141,8 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
         <Icon size={17} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-medium text-text-primary">{title}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{title}</p>
           {isCreditPending ? (
             <span className="shrink-0 rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-bold text-warning">
               Veresiye

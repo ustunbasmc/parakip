@@ -85,7 +85,7 @@ export function SwipeToAction({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl md:overflow-visible" style={{ touchAction: "pan-y" }}>
+    <div className="relative w-full overflow-hidden rounded-2xl md:overflow-visible" style={{ touchAction: "pan-y" }}>
       {!disabled ? (
         <div
           className={`absolute inset-y-0 right-0 flex items-center justify-center md:hidden ${danger ? "bg-danger" : "bg-warning"}`}
