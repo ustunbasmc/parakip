@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -22,7 +21,7 @@ import {
   ArrowUpRightIcon,
   ArrowDownRightIcon,
   TransferIcon,
-  ClockIcon,
+  PlusIcon,
 } from "@/components/icons";
 
 type ModalKind = "income" | "expense" | "transfer" | "sale" | "purchase";
@@ -31,32 +30,28 @@ interface ActionDef {
   label: string;
   Icon: typeof ArrowUpRightIcon;
   tint: string;
-  href: (bookId: string, spaceParam: string) => string;
-  /** Belirtilirse tıklayınca SAYFA DEĞİŞTİRMEZ — bunun yerine bir modal açar. */
-  modalKind?: ModalKind;
+  modalKind: ModalKind;
   /** Yalnızca modalKind="expense" ile birlikte — "Masraf ekle" akışını Ev'in genel Gider ekle'sinden ayırt eder (bkz. business.ts). */
   businessKind?: "expense";
 }
 
 const HOME_ACTIONS: ActionDef[] = [
-  { label: "Gelir ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", href: (b, s) => `/add-transaction?type=income&book_id=${b}&space=${s}`, modalKind: "income" },
-  { label: "Gider ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", href: (b, s) => `/add-transaction?type=expense&book_id=${b}&space=${s}`, modalKind: "expense" },
-  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", href: (b, s) => `/add-transaction?type=transfer&book_id=${b}&space=${s}`, modalKind: "transfer" },
+  { label: "Gelir ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", modalKind: "income" },
+  { label: "Gider ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "expense" },
+  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", modalKind: "transfer" },
 ];
 
 /**
  * İşletme alanı, Ev'in yalnızca daha geniş versiyonu DEĞİLDİR — satış/
- * alış/tahsilat/ödeme merkezli çalışır. Tahsilat/Ödeme, YENİ bir form
- * GEREKTİRMEZ: doğrudan mevcut Borçlar listesine (yön filtresiyle) gider,
- * oradaki "Ödeme ekle" akışı zaten hesap hareketi entegrasyonunu içerir.
+ * alış/masraf merkezli çalışır. Tahsilat/Ödeme burada YOKTUR (bilinçli
+ * sadeleştirme) — bunlar zaten Borçlar ekranından, ilgili kaydın
+ * üzerinden yapılıyor.
  */
 const BUSINESS_ACTIONS: ActionDef[] = [
-  { label: "Satış ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", href: (b, s) => `/sales/new?book_id=${b}&space=${s}`, modalKind: "sale" },
-  { label: "Alış ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", href: (b, s) => `/purchases/new?book_id=${b}&space=${s}`, modalKind: "purchase" },
-  { label: "Masraf ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", href: (b, s) => `/add-transaction?type=expense&business_kind=expense&book_id=${b}&space=${s}`, modalKind: "expense", businessKind: "expense" },
-  { label: "Tahsilat ekle", Icon: ClockIcon, tint: "bg-success-soft text-success", href: (_b, s) => `/debts?space=${s}&direction=receivable` },
-  { label: "Ödeme ekle", Icon: ClockIcon, tint: "bg-danger-soft text-danger", href: (_b, s) => `/debts?space=${s}&direction=payable` },
-  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", href: (b, s) => `/add-transaction?type=transfer&book_id=${b}&space=${s}`, modalKind: "transfer" },
+  { label: "Satış ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", modalKind: "sale" },
+  { label: "Alış ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "purchase" },
+  { label: "Masraf ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "expense", businessKind: "expense" },
+  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", modalKind: "transfer" },
 ];
 
 const MODAL_TITLES: Record<ModalKind, string> = {
@@ -68,17 +63,16 @@ const MODAL_TITLES: Record<ModalKind, string> = {
 };
 
 /**
- * En sık kullanılacak eylemler, tek dokunuşla erişilebilir büyük
- * hedefler olarak. book_id ve space, aktif alan hangisiyse ORADAN
- * geçirilir — form ekranı Ev/İşletme arasında ASLA karışmaz.
+ * Sağ altta sabit duran TEK bir "+" (FAB) hızlı işlem butonu. Basılınca
+ * ÖNCE bir seçim menüsü (aynı Modal altyapısında), bir eylem seçilince
+ * İSE o eylemin formu (yine aynı Modal içinde, içerik değişerek) açılır
+ * — hiçbir sayfa değişikliği YOKTUR, ikisi de aynı Modal örneğinin
+ * FARKLI aşamalarıdır (kod tekrarı yok, tek Escape/dışarı-tık/geri-tuşu
+ * davranışı ikisine de otomatik uygulanır).
  *
- * Gelir/Gider/Transfer/Satış/Alış artık sayfa DEĞİŞTİRMEZ — arkadaki
- * dashboard kalırken bir Modal (mobilde bottom-sheet, masaüstünde
- * ortalı) açılır. Gerekli veri (hesaplar/kategoriler/müşteri-tedarikçi/
- * çoklu alan hesapları) yalnızca modal AÇILDIĞINDA istemci tarafında
- * çekilir — sayfa ilk yüklemesini YAVAŞLATMAZ. Eski `/add-transaction`,
- * `/sales/new`, `/purchases/new` rotaları hiç kaldırılmadı, derin
- * bağlantı/geri uyumluluk için aynen çalışmaya devam ediyor.
+ * Gerekli veri (hesaplar/kategoriler/müşteri-tedarikçi/çoklu alan
+ * hesapları) yalnızca BİR EYLEM SEÇİLDİĞİNDE istemci tarafında çekilir —
+ * sayfa ilk yüklemesini YAVAŞLATMAZ.
  */
 export function QuickActions({
   bookId,
@@ -92,6 +86,7 @@ export function QuickActions({
   const router = useRouter();
   const actions = variant === "business" ? BUSINESS_ACTIONS : HOME_ACTIONS;
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [modalKind, setModalKind] = useState<ModalKind | null>(null);
   const [modalBusinessKind, setModalBusinessKind] = useState<"expense" | undefined>(undefined);
   const [loadingData, setLoadingData] = useState(false);
@@ -101,7 +96,10 @@ export function QuickActions({
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [isDirty, setIsDirty] = useState(false);
 
-  async function openModal(kind: ModalKind, businessKind?: "expense") {
+  const isOpen = menuOpen || modalKind !== null;
+
+  async function selectAction(kind: ModalKind, businessKind?: "expense") {
+    setMenuOpen(false);
     setModalKind(kind);
     setModalBusinessKind(businessKind);
     setLoadingData(true);
@@ -141,63 +139,68 @@ export function QuickActions({
   }
 
   function confirmClose() {
-    if (isDirty) return window.confirm("Kaydedilmemiş değişiklikler var. Kapatmak istediğine emin misin?");
+    // Yalnızca FORM aşamasında (menüde hiçbir veri girilmediğinden dirty olamaz) sorulur.
+    if (modalKind && isDirty) {
+      return window.confirm("Kaydedilmemiş değişiklikler var. Kapatmak istediğine emin misin?");
+    }
     return true;
   }
 
-  function handleCloseModal() {
-    if (!confirmClose()) return;
+  function resetAll() {
+    setMenuOpen(false);
     setModalKind(null);
     setModalBusinessKind(undefined);
     setIsDirty(false);
   }
 
+  function handleClose() {
+    if (!confirmClose()) return;
+    resetAll();
+  }
+
   function handleSuccess() {
-    setModalKind(null);
-    setModalBusinessKind(undefined);
-    setIsDirty(false);
+    resetAll();
     router.refresh();
   }
 
   const homeHref = `/home?space=${spaceParam}`;
+  const title = menuOpen
+    ? "Hızlı işlem"
+    : modalKind
+      ? modalKind === "expense" && modalBusinessKind === "expense"
+        ? "Masraf ekle"
+        : MODAL_TITLES[modalKind]
+      : "";
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-3">
-        {actions.map((action) =>
-          action.modalKind ? (
-            <button
-              key={action.label}
-              onClick={() => openModal(action.modalKind!, action.businessKind)}
-              className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface py-3 text-center transition-colors active:bg-surface-muted"
-            >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full ${action.tint}`}>
-                <action.Icon size={16} />
-              </span>
-              <span className="text-xs font-semibold text-text-primary">{action.label}</span>
-            </button>
-          ) : (
-            <Link
-              key={action.label}
-              href={action.href(bookId, spaceParam)}
-              className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface py-3 text-center transition-colors active:bg-surface-muted"
-            >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full ${action.tint}`}>
-                <action.Icon size={16} />
-              </span>
-              <span className="text-xs font-semibold text-text-primary">{action.label}</span>
-            </Link>
-          )
-        )}
-      </div>
-
-      <Modal
-        open={modalKind !== null}
-        title={modalKind ? (modalKind === "expense" && modalBusinessKind === "expense" ? "Masraf ekle" : MODAL_TITLES[modalKind]) : ""}
-        onClose={handleCloseModal}
-        confirmClose={confirmClose}
+      <button
+        onClick={() => setMenuOpen(true)}
+        aria-label="Hızlı işlem ekle"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-text-on-accent shadow-lg transition-transform active:scale-95 md:bottom-8 md:right-8"
       >
-        {loadingData || !modalKind ? (
+        <PlusIcon size={24} />
+      </button>
+
+      <Modal open={isOpen} title={title} onClose={handleClose} confirmClose={confirmClose}>
+        {menuOpen ? (
+          <div className="flex flex-col gap-1.5 pb-1">
+            {actions.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => selectAction(action.modalKind, action.businessKind)}
+                className="flex min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-surface-muted"
+              >
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${action.tint}`}>
+                  <action.Icon size={18} />
+                </span>
+                <span className="text-sm font-semibold text-text-primary">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : loadingData || !modalKind ? (
           <p className="py-8 text-center text-sm text-text-muted">Yükleniyor...</p>
         ) : modalKind === "income" || modalKind === "expense" ? (
           <IncomeExpenseForm
