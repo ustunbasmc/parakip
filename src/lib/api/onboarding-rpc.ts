@@ -80,12 +80,19 @@ export async function archiveSpace(client: SupabaseClient, params: ArchiveSpaceP
 
 export type ThemePreference = "light" | "dark" | "system";
 
+/**
+ * `.maybeSingle()` KASITLI olarak `.single()` yerine kullanılır: eğer
+ * (nadir bir veri tutarsızlığıyla) bu kullanıcı için profiles satırı
+ * henüz yoksa, `.single()` PostgREST'te 406 hatası fırlatır ve konsola
+ * gürültü düşer — `.maybeSingle()` bu durumda sessizce `data: null`
+ * döner, çağıran taraf (ThemeSync) zaten `!data` kontrolü yapıyor.
+ */
 export async function getThemePreference(client: SupabaseClient, userId: Uuid) {
   return client
     .from("profiles")
     .select("theme_preference")
     .eq("user_id", userId)
-    .single<{ theme_preference: ThemePreference }>();
+    .maybeSingle<{ theme_preference: ThemePreference }>();
 }
 
 export async function setThemePreference(

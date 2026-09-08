@@ -111,6 +111,7 @@ export function SwipeToAction({
           <button
             onClick={handleRightActionClick}
             aria-label={actionLabel}
+            tabIndex={revealedSide === "right" ? 0 : -1}
             className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-white"
           >
             {actionLabel}
@@ -126,6 +127,7 @@ export function SwipeToAction({
           <button
             onClick={handleLeftActionClick}
             aria-label={leftActionLabel}
+            tabIndex={revealedSide === "left" ? 0 : -1}
             className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-text-on-accent"
           >
             {leftActionLabel}
