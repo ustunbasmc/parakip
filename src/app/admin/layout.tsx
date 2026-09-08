@@ -31,6 +31,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/users" className="hover:text-text-primary">
             Kullanıcılar
           </Link>
+          <Link href="/admin/payments" className="hover:text-text-primary">
+            Ödeme Talepleri
+          </Link>
         </nav>
         <Link href="/home" className="ml-auto text-xs font-semibold text-accent">
           Uygulamaya dön

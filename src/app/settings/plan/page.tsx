@@ -2,15 +2,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
-import { BuySubscriptionCard } from "@/components/settings/BuySubscriptionCard";
+import { BankTransferCard } from "@/components/settings/BankTransferCard";
 import { PlanComparisonTable } from "@/components/settings/PlanComparisonTable";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getHomePlanInfo, getBusinessPlanInfo, HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
 
-function formatPriceTry(envValue: string | undefined): string {
+/** BankTransferCard sayısal (tam TL) tutar bekliyor — env değerleri kuruş değil TL, ondalık nokta ile. */
+function priceEnvAsNumber(envValue: string | undefined, fallback: number): number {
   const num = Number(envValue);
-  if (!envValue || Number.isNaN(num)) return "—";
-  return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return !envValue || Number.isNaN(num) ? fallback : Math.round(num);
 }
 
 export default async function PlanPage({
@@ -49,10 +49,17 @@ export default async function PlanPage({
     // Sessizce boş bırakılır — aşağıda hata durumu gösterilir.
   }
 
-  const homeMonthlyPrice = formatPriceTry(process.env.SHOPIER_HOME_MONTHLY_PRICE_TRY);
-  const homeYearlyPrice = formatPriceTry(process.env.SHOPIER_HOME_YEARLY_PRICE_TRY);
-  const businessMonthlyPrice = formatPriceTry(process.env.SHOPIER_BUSINESS_MONTHLY_PRICE_TRY);
-  const businessYearlyPrice = formatPriceTry(process.env.SHOPIER_BUSINESS_YEARLY_PRICE_TRY);
+  const homeMonthlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_HOME_MONTHLY_PRICE_TRY, 99);
+  const homeYearlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_HOME_YEARLY_PRICE_TRY, 990);
+  const businessMonthlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_BUSINESS_MONTHLY_PRICE_TRY, 249);
+  const businessYearlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_BUSINESS_YEARLY_PRICE_TRY, 2490);
+
+  // Banka havalesi bilgileri — [BANKA_HESAP_SAHIBI]/[IBAN]/[BANKA_ADI]
+  // env değişkenleri TANIMLI DEĞİLSE dürüst bir yer tutucu gösterilir
+  // (sahte/örnek bir IBAN ASLA gösterilmez).
+  const bankAccountHolder = process.env.BANK_ACCOUNT_HOLDER || "[Hesap sahibi tanımlı değil]";
+  const bankIban = process.env.BANK_IBAN || "[IBAN tanımlı değil]";
+  const bankName = process.env.BANK_NAME || "[Banka tanımlı değil]";
 
   return (
     <AppShell
@@ -133,11 +140,15 @@ export default async function PlanPage({
                     rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }]}
                   />
                   {ownerUserId === user.id ? (
-                    <BuySubscriptionCard
+                    <BankTransferCard
+                      userId={user.id}
                       spaceId={activeSpace.id}
                       plan="home_premium"
-                      monthlyPrice={homeMonthlyPrice}
-                      yearlyPrice={homeYearlyPrice}
+                      monthlyPrice={homeMonthlyPriceNum}
+                      yearlyPrice={homeYearlyPriceNum}
+                      bankAccountHolder={bankAccountHolder}
+                      bankIban={bankIban}
+                      bankName={bankName}
                     />
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
@@ -205,11 +216,15 @@ export default async function PlanPage({
                     premium: "Sınırsız",
                   }))}
                 />
-                <BuySubscriptionCard
+                <BankTransferCard
+                  userId={user.id}
                   spaceId={activeSpace.id}
                   plan="business"
-                  monthlyPrice={businessMonthlyPrice}
-                  yearlyPrice={businessYearlyPrice}
+                  monthlyPrice={businessMonthlyPriceNum}
+                  yearlyPrice={businessYearlyPriceNum}
+                  bankAccountHolder={bankAccountHolder}
+                  bankIban={bankIban}
+                  bankName={bankName}
                 />
               </>
             ) : null}
