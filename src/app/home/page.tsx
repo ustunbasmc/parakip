@@ -207,7 +207,7 @@ async function HomeDashboard({
           ) : (
             <div className="flex flex-col gap-2">
               {recent.value.rows.map((row) => (
-                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} />
+                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} bookId={bookId} />
               ))}
             </div>
           )
@@ -331,7 +331,7 @@ async function BusinessDashboard({
           ) : (
             <div className="flex flex-col gap-2">
               {recent.value.rows.map((row) => (
-                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} />
+                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} bookId={bookId} />
               ))}
             </div>
           )

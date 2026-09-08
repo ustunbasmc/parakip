@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { createSimpleTransaction } from "@/lib/api/financial-rpc";
+import { createSimpleTransaction, editSimpleTransaction } from "@/lib/api/financial-rpc";
 import { amountInputToCents, formatCentsAsCurrency } from "@/lib/format/amount";
 import { AppShell } from "@/components/AppShell";
 import { AmountInput } from "@/components/AmountInput";
@@ -34,6 +34,21 @@ interface Props {
   onSuccess?: () => void;
   /** Modal modunda, kapanmadan önce "kaydedilmemiş veri var mı" kontrolü için. */
   onDirtyChange?: (dirty: boolean) => void;
+  /**
+   * "create" (varsayılan): yeni işlem oluşturur (create_simple_transaction).
+   * "edit": mevcut bir işlemi GÜVENLİ şekilde düzenler (edit_simple_transaction
+   * — eski işlemi iptal edip yenisini oluşturur, bkz. migration 0059).
+   * Bu modda `editTransactionId` ve `initialValues` ZORUNLUDUR.
+   */
+  mode?: "create" | "edit";
+  editTransactionId?: string;
+  initialValues?: {
+    amountCents: number; // işaretli (income>0, expense<0) — mevcut kayıttaki HAM değer
+    accountId: string;
+    categoryId: string | null;
+    note: string | null;
+    occurredAt: string; // ISO
+  };
 }
 
 function todayIso() {
@@ -73,21 +88,33 @@ export function IncomeExpenseForm({
   variant = "page",
   onSuccess,
   onDirtyChange,
+  mode = "create",
+  editTransactionId,
+  initialValues,
 }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
-  const [amount, setAmount] = useState("");
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [categoryId, setCategoryId] = useState("");
-  const [date, setDate] = useState(todayIso());
-  const [note, setNote] = useState("");
+  const [amount, setAmount] = useState(
+    initialValues ? (Math.abs(initialValues.amountCents) / 100).toString().replace(".", ",") : ""
+  );
+  const [accountId, setAccountId] = useState(initialValues?.accountId ?? accounts[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? "");
+  const [date, setDate] = useState(initialValues ? initialValues.occurredAt.slice(0, 10) : todayIso());
+  const [note, setNote] = useState(initialValues?.note ?? "");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const isDirty = amount !== "" || note !== "" || categoryId !== "" || date !== todayIso();
+  const isDirty =
+    mode === "edit" && initialValues
+      ? amount !== (Math.abs(initialValues.amountCents) / 100).toString().replace(".", ",") ||
+        accountId !== initialValues.accountId ||
+        categoryId !== (initialValues.categoryId ?? "") ||
+        date !== initialValues.occurredAt.slice(0, 10) ||
+        note !== (initialValues.note ?? "")
+      : amount !== "" || note !== "" || categoryId !== "" || date !== todayIso();
   useUnsavedChangesGuard(isDirty && !success);
   useEffect(() => {
     onDirtyChange?.(isDirty && !success);
@@ -97,7 +124,7 @@ export function IncomeExpenseForm({
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const cents = amountInputToCents(amount);
 
-  const title = kind === "income" ? "Gelir ekle" : "Gider ekle";
+  const title = mode === "edit" ? (kind === "income" ? "Geliri düzenle" : "Gideri düzenle") : kind === "income" ? "Gelir ekle" : "Gider ekle";
   const label = kind === "income" ? "Gelir tutarı" : "Gider tutarı";
 
   const summary = useMemo(() => {
@@ -134,16 +161,29 @@ export function IncomeExpenseForm({
 
     const signedCents = kind === "income" ? Math.abs(cents) : -Math.abs(cents);
     const supabase = createClient();
-    const { error: rpcError } = await createSimpleTransaction(supabase, {
-      p_book_id: bookId,
-      p_account_id: accountId,
-      p_type: kind,
-      p_amount_cents: signedCents,
-      p_category_id: categoryId || null,
-      p_note: note.trim() || null,
-      p_occurred_at: new Date(date + "T12:00:00").toISOString(),
-      p_metadata: businessKind ? { business_kind: businessKind } : undefined,
-    });
+
+    const { error: rpcError } =
+      mode === "edit" && editTransactionId
+        ? await editSimpleTransaction(supabase, {
+            p_old_transaction_id: editTransactionId,
+            p_account_id: accountId,
+            p_type: kind,
+            p_amount_cents: signedCents,
+            p_category_id: categoryId || null,
+            p_note: note.trim() || null,
+            p_occurred_at: new Date(date + "T12:00:00").toISOString(),
+            p_metadata: businessKind ? { business_kind: businessKind } : undefined,
+          })
+        : await createSimpleTransaction(supabase, {
+            p_book_id: bookId,
+            p_account_id: accountId,
+            p_type: kind,
+            p_amount_cents: signedCents,
+            p_category_id: categoryId || null,
+            p_note: note.trim() || null,
+            p_occurred_at: new Date(date + "T12:00:00").toISOString(),
+            p_metadata: businessKind ? { business_kind: businessKind } : undefined,
+          });
 
     submittingRef.current = false;
     setSubmitting(false);
@@ -163,7 +203,12 @@ export function IncomeExpenseForm({
   }
 
   if (success && summary) {
-    const successBody = <FormSuccessState message={`${summary.amountLabel} · ${summary.accountName}`} />;
+    const successBody = (
+      <FormSuccessState
+        message={`${summary.amountLabel} · ${summary.accountName}`}
+        title={mode === "edit" ? "Güncellendi" : undefined}
+      />
+    );
     if (variant === "modal") return successBody;
     return (
       <AppShell variant="subpage" title={title} backFallbackHref={homeHref}>
@@ -240,7 +285,7 @@ export function IncomeExpenseForm({
 
       <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>
         <Button type="submit" form="income-expense-form" loading={submitting} disabled={accounts.length === 0}>
-          Kaydet
+          {mode === "edit" ? "Güncelle" : "Kaydet"}
         </Button>
       </div>
     </>

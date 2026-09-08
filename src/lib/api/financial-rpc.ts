@@ -380,6 +380,51 @@ export async function setRecurringPaymentRuleActive(
 }
 
 // ─────────────────────────────────────────────
+// Kategori yönetimi (create/update/deactivate/reassign) — bkz. 0059.
+// ─────────────────────────────────────────────
+
+export async function createCategory(
+  client: SupabaseClient,
+  params: { p_book_id: Uuid; p_name: string; p_kind: "income" | "expense" }
+) {
+  return client.rpc("create_category", params);
+}
+
+export async function updateCategory(client: SupabaseClient, params: { p_category_id: Uuid; p_name: string }) {
+  return client.rpc("update_category", params);
+}
+
+export async function deactivateCategory(client: SupabaseClient, params: { p_category_id: Uuid }) {
+  return client.rpc("deactivate_category", params);
+}
+
+export async function reassignCategoryAndDeactivate(
+  client: SupabaseClient,
+  params: { p_category_id: Uuid; p_new_category_id?: Uuid | null }
+) {
+  return client.rpc("reassign_category_and_deactivate", params);
+}
+
+// ─────────────────────────────────────────────
+// İşlem düzenleme (yalnızca income/expense — transfer KAPSAM DIŞI, bkz. 0059).
+// ─────────────────────────────────────────────
+
+export interface EditSimpleTransactionParams {
+  p_old_transaction_id: Uuid;
+  p_account_id: Uuid;
+  p_type: "income" | "expense";
+  p_amount_cents: number;
+  p_category_id?: Uuid | null;
+  p_note?: string | null;
+  p_occurred_at?: string;
+  p_metadata?: Record<string, unknown> | null;
+}
+
+export async function editSimpleTransaction(client: SupabaseClient, params: EditSimpleTransactionParams) {
+  return client.rpc("edit_simple_transaction", params);
+}
+
+// ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
 // NOT: create_budget/update_budget/cancel_budget ve
 // cancel_holding_transaction wrapper'ları bu dosyada ZATEN mevcuttu

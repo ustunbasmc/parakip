@@ -7,9 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import { cancelHoldingTransaction } from "@/lib/api/financial-rpc";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { formatRelativeDate, formatDueDateLabel } from "@/lib/format/date";
-import { ArrowUpRightIcon, ArrowDownRightIcon, TransferIcon, TrendingUpIcon } from "@/components/icons";
+import { getAccountsForBook, getCategoriesForBook, type AccountOption, type CategoryOption } from "@/lib/dashboard/formData";
+import { ArrowUpRightIcon, ArrowDownRightIcon, TransferIcon, TrendingUpIcon, PencilIcon } from "@/components/icons";
 import { SwipeToAction } from "@/components/SwipeToAction";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { Modal } from "@/components/Modal";
+import { IncomeExpenseForm } from "@/components/forms/IncomeExpenseForm";
 import type { TransactionHistoryRow, TransferInfo } from "@/lib/dashboard/transactionHistory";
 
 const TYPE_ICON = {
@@ -47,11 +50,26 @@ export function transferDirectionLabel(t: TransferInfo): string {
   return `${from} → ${to}`;
 }
 
-export function TransactionListItem({ row, spaceParam }: { row: TransactionHistoryRow; spaceParam: string }) {
+export function TransactionListItem({
+  row,
+  spaceParam,
+  bookId,
+}: {
+  row: TransactionHistoryRow;
+  spaceParam: string;
+  /** Verilirse düzenleme akışı (kategori/hesap listesi çekmek için) etkinleşir. Verilmezse "Düzenle" hiç gösterilmez (geriye uyumlu). */
+  bookId?: string;
+}) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editAccounts, setEditAccounts] = useState<AccountOption[]>([]);
+  const [editCategories, setEditCategories] = useState<CategoryOption[]>([]);
+  const [editDirty, setEditDirty] = useState(false);
 
   const Icon = row.isInvestment ? TrendingUpIcon : TYPE_ICON[row.type];
   const isCancelled = row.status === "cancelled";
@@ -84,15 +102,16 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
 
   // Kaydırmalı iptal: gerçek, henüz iptal edilmemiş, veresiye BAĞLANTISI
   // OLMAYAN hareketlerde etkindir. Yatırım hareketleri de artık dahildir
-  // — ama LIFO kuralı gereği YALNIZCA o holding için EN SON aktif işlemse
-  // (bkz. HoldingDetailView'daki AYNI kural). Bu, hem "her satırın
-  // tutarlı bir SwipeToAction sarmalayıcısına sahip olması" (layout
-  // kayması riskini ortadan kaldırır) hem de yatırım hareketlerinin de
-  // kaldırılabilir olması isteğini KARŞILAR.
+  // — ama LIFO kuralı gereği YALNIZCA o holding için EN SON aktif işlemse.
   const canSwipeCancel =
     !isCancelled &&
     !isCreditPending &&
     (!row.isInvestment || row.isLastActiveHoldingTransaction);
+
+  // Düzenleme yalnızca GERÇEK income/expense işlemleri için — transfer
+  // (iki taraflı, cross-book gizlilik riski nedeniyle KAPSAM DIŞI, bkz.
+  // migration 0059), yatırım, veresiye ve iptal edilmiş kayıtlar hariç.
+  const canEdit = Boolean(bookId) && !isCancelled && !isTransfer && !isCreditPending && !row.isInvestment;
 
   async function handleCancel() {
     setLoading(true);
@@ -127,6 +146,40 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
       );
       return;
     }
+    router.refresh();
+  }
+
+  async function handleOpenEdit() {
+    if (!bookId) return;
+    setEditOpen(true);
+    setEditLoading(true);
+    const supabase = createClient();
+    try {
+      const [acc, cat] = await Promise.all([
+        getAccountsForBook(supabase, bookId),
+        getCategoriesForBook(supabase, bookId, row.type as "income" | "expense"),
+      ]);
+      setEditAccounts(acc);
+      setEditCategories(cat);
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  function confirmCloseEdit() {
+    if (editDirty) return window.confirm("Kaydedilmemiş değişiklikler var. Kapatmak istediğine emin misin?");
+    return true;
+  }
+
+  function handleCloseEdit() {
+    if (!confirmCloseEdit()) return;
+    setEditOpen(false);
+    setEditDirty(false);
+  }
+
+  function handleEditSuccess() {
+    setEditOpen(false);
+    setEditDirty(false);
     router.refresh();
   }
 
@@ -175,13 +228,34 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
         {isPositive ? "+" : ""}
         {formatCentsAsCurrency(Math.abs(row.amountCents), row.currency)}
       </p>
+      {/* Masaüstü için düzenleme erişimi — mobilde swipe zaten var, burada
+          gizli; masaüstünde swipe olmadığı için ayrı bir buton gerekli. */}
+      {canEdit ? (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleOpenEdit();
+          }}
+          aria-label="İşlemi düzenle"
+          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-surface-muted hover:text-text-primary md:flex"
+        >
+          <PencilIcon size={15} />
+        </button>
+      ) : null}
     </Link>
   );
 
   return (
     <div>
       {error ? <p className="mb-1.5 px-1 text-xs text-danger">{error}</p> : null}
-      <SwipeToAction actionLabel="İptal et" onAction={() => setConfirmOpen(true)} disabled={!canSwipeCancel}>
+      <SwipeToAction
+        actionLabel="İptal et"
+        onAction={() => setConfirmOpen(true)}
+        disabled={!canSwipeCancel && !canEdit}
+        leftActionLabel={canEdit ? "Düzenle" : undefined}
+        onLeftAction={canEdit ? handleOpenEdit : undefined}
+      >
         {card}
       </SwipeToAction>
 
@@ -199,6 +273,40 @@ export function TransactionListItem({ row, spaceParam }: { row: TransactionHisto
         onConfirm={handleCancel}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {canEdit ? (
+        <Modal
+          open={editOpen}
+          title={row.type === "income" ? "Geliri düzenle" : "Gideri düzenle"}
+          onClose={handleCloseEdit}
+          confirmClose={confirmCloseEdit}
+        >
+          {editLoading ? (
+            <p className="py-8 text-center text-sm text-text-muted">Yükleniyor...</p>
+          ) : (
+            <IncomeExpenseForm
+              mode="edit"
+              editTransactionId={row.transactionId}
+              kind={row.type as "income" | "expense"}
+              bookId={bookId!}
+              homeHref=""
+              accounts={editAccounts}
+              categories={editCategories}
+              businessKind={row.businessKind === "expense" ? "expense" : undefined}
+              variant="modal"
+              initialValues={{
+                amountCents: row.amountCents,
+                accountId: row.accountId ?? "",
+                categoryId: row.categoryId,
+                note: row.note,
+                occurredAt: row.occurredAt,
+              }}
+              onSuccess={handleEditSuccess}
+              onDirtyChange={setEditDirty}
+            />
+          )}
+        </Modal>
+      ) : null}
     </div>
   );
 }

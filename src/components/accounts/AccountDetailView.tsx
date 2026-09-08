@@ -27,7 +27,7 @@ const TYPE_ICON: Record<string, typeof WalletIcon> = {
 const TYPED_CONFIRMATION = "HESABI ARŞİVLE";
 
 interface Props {
-  account: AccountWithBalance & { note?: string | null };
+  account: AccountWithBalance & { note?: string | null; bookId: string };
   canArchive: boolean;
   homeHref: string;
   accountsHref: string;
@@ -239,7 +239,7 @@ export function AccountDetailView({
           ) : (
             <div className="flex flex-col gap-2">
               {recentTransactions.map((row) => (
-                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceParam} />
+                <TransactionListItem key={row.entryId} row={row} spaceParam={spaceParam} bookId={account.bookId} />
               ))}
             </div>
           )}

@@ -131,6 +131,7 @@ export async function getCategoriesForBook(
     .from("categories")
     .select("id, name, book_id")
     .eq("kind", kind)
+    .eq("is_active", true)
     .or(`book_id.is.null,book_id.eq.${bookId}`)
     .order("name", { ascending: true });
 

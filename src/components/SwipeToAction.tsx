@@ -3,28 +3,27 @@
 import { useRef, useState } from "react";
 
 /**
- * Yalnızca MOBİLDE (md: altı) aktif, sağa kaydırınca bağlama uygun bir
- * aksiyon butonu (İptal et/Arşivle) açığa çıkaran satır sarmalayıcı.
- * Masaüstünde kaydırma DEVRE DIŞIDIR — children olduğu gibi render edilir,
- * aksiyon YALNIZCA çağıran taraf tarafından ayrıca (ör. bir menü/buton
- * ile) sağlanmalıdır.
+ * Yalnızca MOBİLDE (md: altı) aktif, iki yönlü kaydırma destekler:
+ * - SOLA kaydırınca SAĞDA bir aksiyon açılır (mevcut "İptal et"/
+ *   "Arşivle" davranışı — `actionLabel`/`onAction`/`danger` ile,
+ *   GERİYE UYUMLU, hiçbir mevcut kullanım yeri DEĞİŞMEDEN çalışır).
+ * - SAĞA kaydırınca SOLDA yeni bir aksiyon açılır (`leftActionLabel`/
+ *   `onLeftAction` verilirse — ör. "Düzenle"). Verilmezse sağa kaydırma
+ *   hiçbir şey yapmaz (yalnızca orijinal konuma geri döner).
+ * Masaüstünde kaydırma DEVRE DIŞIDIR — children olduğu gibi render edilir.
  *
  * GÜVENLİK/UX kuralları:
- * - Minimum kaydırma eşiği (24px) altında hiçbir şey tetiklenmez —
- *   yanlışlıkla dikey kaydırmayla karışmaz.
- * - touchAction: pan-y sayesinde dikey sayfa kaydırması ASLA engellenmez;
- *   yatay hareket SAYFANIN kendisini KAYDIRMAZ (yalnızca bu satırın kendi
- *   transform'u değişir, body/html hiç etkilenmez).
- * - Aksiyon dokunması (buton) en az 44px yükseklikte, kolay dokunulur.
+ * - Minimum kaydırma eşiği (24px) altında hiçbir şey tetiklenmez.
+ * - touchAction: pan-y sayesinde dikey sayfa kaydırması ASLA engellenmez.
+ * - Aksiyon dokunmaları en az 44px yükseklikte, kolay dokunulur.
+ * - Aynı anda yalnızca BİR yön açık kalabilir (sağa açıkken sola
+ *   kaydırma önce sağı kapatır, ve tam tersi) — state tek bir
+ *   `dragX` değeriyle tutulduğu için bu doğal olarak garanti edilir.
  *
- * `disabled`: aynı listede BAZI satırlar kaydırılabilir bazıları
- * DEĞİLSE (ör. yatırım hareketlerinde yalnızca LIFO'da en son işlem
- * kaldırılabilir), bu satırları SwipeToAction'IN DIŞINDA çıplak render
- * etmek yerine `disabled` ile İÇİNDE tutmak GEREKİR — aksi halde bazı
- * satırlarda `overflow-hidden`/`touchAction:pan-y` KORUMASI eksik kalır
- * ve bu, listede tutarsız dokunma davranışına/yatay kaymaya yol açar.
- * `disabled` true iken dokunma dinleyicileri hiç eklenmez ama DOM/CSS
- * yapısı diğer satırlarla BİREBİR aynı kalır.
+ * `disabled`: bu satırda kaydırma AKSİYONU yoksa (ör. yatırım
+ * hareketlerinde LIFO kuralı) `disabled` ile SwipeToAction'IN İÇİNDE
+ * tutulmalı — aksi halde bazı satırlarda overflow-hidden/touchAction
+ * koruması eksik kalır ve listede tutarsız davranışa yol açar.
  */
 export function SwipeToAction({
   children,
@@ -32,20 +31,26 @@ export function SwipeToAction({
   onAction,
   danger = true,
   disabled = false,
+  leftActionLabel,
+  onLeftAction,
 }: {
   children: React.ReactNode;
   actionLabel: string;
   onAction: () => void;
   danger?: boolean;
   disabled?: boolean;
+  /** Sağa kaydırınca SOLDA açılan ikinci aksiyon (ör. "Düzenle") — opsiyonel. */
+  leftActionLabel?: string;
+  onLeftAction?: () => void;
 }) {
   const [dragX, setDragX] = useState(0);
-  const [revealed, setRevealed] = useState(false);
+  const [revealedSide, setRevealedSide] = useState<"none" | "left" | "right">("none");
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef<number | null>(null);
   const draggingRef = useRef(false);
   const ACTION_WIDTH = 92;
   const THRESHOLD = 24;
+  const hasLeftAction = Boolean(leftActionLabel && onLeftAction);
 
   function handleTouchStart(e: React.TouchEvent) {
     if (disabled) return;
@@ -57,8 +62,10 @@ export function SwipeToAction({
   function handleTouchMove(e: React.TouchEvent) {
     if (disabled || startXRef.current === null) return;
     const delta = e.touches[0].clientX - startXRef.current;
-    // Yalnızca SOLA kaydırma (sağdaki aksiyonu açığa çıkarır) kabul edilir.
-    const clamped = Math.min(0, Math.max(delta, -ACTION_WIDTH));
+    const maxLeft = hasLeftAction ? ACTION_WIDTH : 0;
+    // Negatif (sola kaydırma) SAĞ aksiyonu, pozitif (sağa kaydırma —
+    // yalnızca leftAction TANIMLIYSA) SOL aksiyonu açığa çıkarır.
+    const clamped = Math.min(maxLeft, Math.max(delta, -ACTION_WIDTH));
     if (Math.abs(delta) > THRESHOLD) {
       setDragX(clamped);
     }
@@ -71,17 +78,26 @@ export function SwipeToAction({
     startXRef.current = null;
     if (dragX < -ACTION_WIDTH / 2) {
       setDragX(-ACTION_WIDTH);
-      setRevealed(true);
+      setRevealedSide("right");
+    } else if (hasLeftAction && dragX > ACTION_WIDTH / 2) {
+      setDragX(ACTION_WIDTH);
+      setRevealedSide("left");
     } else {
       setDragX(0);
-      setRevealed(false);
+      setRevealedSide("none");
     }
   }
 
-  function handleActionClick() {
+  function handleRightActionClick() {
     setDragX(0);
-    setRevealed(false);
+    setRevealedSide("none");
     onAction();
+  }
+
+  function handleLeftActionClick() {
+    setDragX(0);
+    setRevealedSide("none");
+    onLeftAction?.();
   }
 
   return (
@@ -90,13 +106,29 @@ export function SwipeToAction({
         <div
           className={`absolute inset-y-0 right-0 flex items-center justify-center md:hidden ${danger ? "bg-danger" : "bg-warning"}`}
           style={{ width: ACTION_WIDTH }}
-          aria-hidden={!revealed}
+          aria-hidden={revealedSide !== "right"}
         >
           <button
-            onClick={handleActionClick}
+            onClick={handleRightActionClick}
+            aria-label={actionLabel}
             className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-white"
           >
             {actionLabel}
+          </button>
+        </div>
+      ) : null}
+      {!disabled && hasLeftAction ? (
+        <div
+          className="absolute inset-y-0 left-0 flex items-center justify-center bg-accent md:hidden"
+          style={{ width: ACTION_WIDTH }}
+          aria-hidden={revealedSide !== "left"}
+        >
+          <button
+            onClick={handleLeftActionClick}
+            aria-label={leftActionLabel}
+            className="flex h-full w-full min-h-[44px] items-center justify-center px-2 text-xs font-bold text-text-on-accent"
+          >
+            {leftActionLabel}
           </button>
         </div>
       ) : null}

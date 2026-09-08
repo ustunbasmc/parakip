@@ -147,7 +147,7 @@ export default async function TransactionsPage({
         ) : (
           <div className="flex flex-col gap-2">
             {rows.map((row) => (
-              <TransactionListItem key={row.entryId} row={row} spaceParam={activeSpace.id} />
+              <TransactionListItem key={row.entryId} row={row} spaceParam={activeSpace.id} bookId={activeSpace.bookId} />
             ))}
           </div>
         )}

@@ -13,6 +13,7 @@ import {
   LogOutIcon,
   BuildingIcon,
   LockIcon,
+  TagIcon,
 } from "@/components/icons";
 import { useThemePreference } from "@/lib/theme/ThemeSync";
 
@@ -38,6 +39,7 @@ const LINKS: MenuLinkItem[] = [
   { href: "/settings/profile", label: "Profil bilgilerim", description: "Ad, e-posta ve profil fotoğrafı", icon: UserCircleIcon },
   { href: "/settings/spaces", label: "Alanlarım", description: "Ev/İşletme alanlarını yönet", icon: BuildingIcon },
   { href: "/settings/plan", label: "Planım ve limitlerim", description: "Aktif alanın plan ve kullanım durumu", icon: StarIcon, spaceAware: true },
+  { href: "/settings/categories", label: "Kategoriler", description: "Gelir/gider kategorilerini yönet", icon: TagIcon, spaceAware: true },
   { href: "/settings/security", label: "Güvenlik", description: "Şifre, oturumlar ve cihazlar", icon: ShieldIcon },
   { href: "/settings/account", label: "Hesap yönetimi", description: "Hesap silme talebi ve veri güvenliği", icon: LockIcon },
   { href: "/settings/notifications", label: "Bildirimler", description: "Bildirim tercihleri", icon: BellIcon, comingSoon: true },
