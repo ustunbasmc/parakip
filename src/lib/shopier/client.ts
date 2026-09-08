@@ -51,12 +51,20 @@ export interface BuildCheckoutFormParams {
 }
 
 /**
- * Kullanıcıyı Shopier'ın ödeme sayfasına GÖTÜRECEK, kendi kendine
- * submit olan bir HTML `<form>` üretir. Kart bilgisi HİÇBİR ZAMAN
- * Parakip'e uğramaz — kullanıcı doğrudan Shopier'ın güvenli sayfasında
- * kart girer.
+ * Kullanıcıyı Shopier'ın ödeme sayfasına GÖTÜRECEK form alanlarını
+ * üretir. Kart bilgisi HİÇBİR ZAMAN Parakip'e uğramaz — kullanıcı
+ * doğrudan Shopier'ın güvenli sayfasında kart girer.
+ *
+ * NOT: Bilinçli olarak HTML/`<script>` STRING'İ DÖNMEZ — bir önceki
+ * sürüm `dangerouslySetInnerHTML` ile eklenen bir `<script>
+ * form.submit()</script>` kullanıyordu, ama tarayıcılar `innerHTML`
+ * (ve React'in `dangerouslySetInnerHTML`'i) üzerinden DOM'a eklenen
+ * `<script>` etiketlerini GÜVENLİK GEREĞİ HİÇ ÇALIŞTIRMAZ — form asla
+ * otomatik gönderilmiyordu. Bunun yerine saf ALAN LİSTESİ döner; client
+ * tarafı gerçek bir React `<form>` render edip `formRef.current.submit()`
+ * ile göndermelidir (bkz. BuySubscriptionCard.tsx).
  */
-export function buildCheckoutForm(params: BuildCheckoutFormParams): string {
+export function buildCheckoutFields(params: BuildCheckoutFormParams): { actionUrl: string; fields: Record<string, string> } {
   const { apiKey, apiSecret } = getConfig();
   const randomNr = randomInt(100000, 999999).toString();
   const currency = "0"; // 0 = TRY (Shopier para birimi kodu)
@@ -94,20 +102,7 @@ export function buildCheckoutForm(params: BuildCheckoutFormParams): string {
     callback: params.callbackUrl,
   };
 
-  const inputs = Object.entries(fields)
-    .map(([key, value]) => `<input type="hidden" name="${key}" value="${escapeHtml(value)}" />`)
-    .join("\n");
-
-  return `
-    <form id="shopier-payment-form" method="POST" action="https://www.shopier.com/ShowProduct/api_pay4.php">
-      ${inputs}
-    </form>
-    <script>document.getElementById("shopier-payment-form").submit();</script>
-  `;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return { actionUrl: "https://www.shopier.com/ShowProduct/api_pay4.php", fields };
 }
 
 export interface ShopierCallbackPayload {

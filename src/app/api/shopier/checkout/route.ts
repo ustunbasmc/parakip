@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { buildCheckoutForm, type ShopierPeriod } from "@/lib/shopier/client";
+import { buildCheckoutFields, type ShopierPeriod } from "@/lib/shopier/client";
 
 type PlanKind = "home_premium" | "business";
 
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         : "Parakip İşletme Premium (Yıllık)";
 
   try {
-    const formHtml = buildCheckoutForm({
+    const { actionUrl, fields } = buildCheckoutFields({
       platformOrderId,
       productName: planLabel,
       totalOrderValue: price.toFixed(2),
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       callbackUrl: `${siteUrl}/api/shopier/callback`,
     });
 
-    return NextResponse.json({ formHtml });
+    return NextResponse.json({ actionUrl, fields });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Bilinmeyen hata" }, { status: 500 });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
 
@@ -18,10 +18,22 @@ const COPY: Record<PlanKind, { title: string; description: string }> = {
   },
 };
 
+interface CheckoutData {
+  actionUrl: string;
+  fields: Record<string, string>;
+}
+
 /**
  * Ev Premium VEYA İşletme Premium satın alma — Shopier ödeme akışını
  * başlatır. Kullanıcı Shopier'ın KENDİ barındırdığı ödeme sayfasına
  * yönlendirilir (kart bilgisi Parakip'e hiç ulaşmaz).
+ *
+ * ÖNEMLİ TEKNİK NOT: form GERÇEK bir React `<form>` elemanı olarak
+ * render edilip `useEffect` içinde `formRef.current.submit()` ile
+ * gönderilir — `dangerouslySetInnerHTML` ile eklenen bir `<script>`
+ * KULLANILMAZ, çünkü tarayıcılar `innerHTML` üzerinden DOM'a eklenen
+ * `<script>` etiketlerini GÜVENLİK GEREĞİ hiç çalıştırmaz (önceki
+ * sürümde tam olarak bu nedenle form asla otomatik gönderilmiyordu).
  *
  * DÜRÜST SINIRLAMA: Shopier'da GERÇEK, otomatik yenilenen abonelik
  * YOKTUR — bu bir MANUEL YENİLEMELİ paket satın almadır.
@@ -41,7 +53,17 @@ export function BuySubscriptionCard({
   const [period, setPeriod] = useState<Period>("monthly");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formHtml, setFormHtml] = useState<string | null>(null);
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // checkoutData set edildiği AN, gerçek DOM formu render edilir edilmez
+  // otomatik gönderilir — kullanıcının ekstra bir şeye tıklamasına GEREK
+  // YOKTUR, "Shopier'a yönlendiriliyorsun..." mesajı GERÇEKTEN doğrudur.
+  useEffect(() => {
+    if (checkoutData && formRef.current) {
+      formRef.current.submit();
+    }
+  }, [checkoutData]);
 
   async function handleStartCheckout() {
     setError(null);
@@ -58,7 +80,7 @@ export function BuySubscriptionCard({
         setLoading(false);
         return;
       }
-      setFormHtml(data.formHtml);
+      setCheckoutData({ actionUrl: data.actionUrl, fields: data.fields });
     } catch {
       setError("Bağlantı hatası. Lütfen tekrar dene.");
     } finally {
@@ -66,11 +88,22 @@ export function BuySubscriptionCard({
     }
   }
 
-  if (formHtml) {
+  if (checkoutData) {
     return (
       <div className="rounded-2xl border border-border bg-surface p-4">
-        <p className="mb-3 text-sm font-semibold text-text-primary">Shopier&apos;a yönlendiriliyorsun...</p>
-        <div dangerouslySetInnerHTML={{ __html: formHtml }} />
+        <p className="text-sm font-semibold text-text-primary">Shopier&apos;a yönlendiriliyorsun...</p>
+        <p className="mt-1 text-xs text-text-muted">
+          Birkaç saniye içinde yönlenmezse{" "}
+          <button type="button" onClick={() => formRef.current?.submit()} className="font-semibold text-accent underline">
+            buraya tıkla
+          </button>
+          .
+        </p>
+        <form ref={formRef} method="POST" action={checkoutData.actionUrl} className="hidden">
+          {Object.entries(checkoutData.fields).map(([key, value]) => (
+            <input key={key} type="hidden" name={key} value={value} />
+          ))}
+        </form>
       </div>
     );
   }
