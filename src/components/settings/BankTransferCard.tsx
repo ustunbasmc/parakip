@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { createManualPaymentRequest, type PlanKind, type BillingPeriod } from "@/lib/payments/manualBankTransfer";
+import {
+  createManualPaymentRequest,
+  generateReferenceCode,
+  type PlanKind,
+  type BillingPeriod,
+} from "@/lib/payments/manualBankTransfer";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { CopyIcon, CheckCircleIcon } from "@/components/icons";
@@ -11,11 +16,18 @@ import { CopyIcon, CheckCircleIcon } from "@/components/icons";
  * Banka havalesi/EFT ile MANUEL ödeme — kart ile ödeme sağlayıcısı
  * onayı beklenirken (veya kalıcı bir alternatif olarak) kullanılır.
  *
- * DÜRÜST AKIŞ: Bu bileşen subscriptions'a HİÇBİR ŞEY YAZMAZ — yalnızca
- * bir "talep" oluşturur. Abonelik, YALNIZCA platform admin banka
- * hesabını kontrol edip talebi onayladığında (bkz. /admin/payments)
- * aktifleşir. Kullanıcıya bu süreç AÇIKÇA anlatılır — "ödeme
- * bildirdim" demek "ödeme onaylandı" demek DEĞİLDİR.
+ * İKİ AŞAMALI AKIŞ (bilinçli tasarım — TEK adımda talep oluşturmak
+ * YANLIŞTIR): (1) "Havale bilgilerini göster" YALNIZCA bir referans
+ * kodu üretip GÖSTERİR — bu adımda VERİTABANINA HİÇBİR ŞEY YAZILMAZ,
+ * kullanıcı yalnızca bilgiye BAKMAK için tıklamış olabilir (aksi halde
+ * her tıklama admin paneline gereksiz bir "hayalet" talep düşürür).
+ * (2) Kullanıcı GERÇEKTEN havaleyi yaptıktan SONRA "Ödemeyi yaptım,
+ * bildir" der — YALNIZCA bu an bir `manual_payment_requests` satırı
+ * oluşturulur.
+ *
+ * DÜRÜST AKIŞ: subscriptions'a HİÇBİR ZAMAN buradan yazılmaz — abonelik
+ * YALNIZCA platform admin banka hesabını kontrol edip talebi
+ * onayladığında (bkz. /admin/payments) aktifleşir.
  */
 export function BankTransferCard({
   userId,
@@ -38,30 +50,53 @@ export function BankTransferCard({
   bankName: string;
 }) {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
+  const [step, setStep] = useState<"select" | "show" | "submitted">("select");
+  const [referenceCode, setReferenceCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceCode, setReferenceCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const amount = period === "monthly" ? monthlyPrice : yearlyPrice;
 
-  async function handleCreateRequest() {
+  function handleShowDetails() {
+    // YALNIZCA client-side bir kod üretir — veritabanına HİÇBİR ŞEY
+    // YAZILMAZ, kullanıcı henüz ödeme yapmamış olabilir.
+    setReferenceCode(generateReferenceCode());
+    setStep("show");
+  }
+
+  async function handleConfirmPaid() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
-    const result = await createManualPaymentRequest(supabase, {
-      userId,
-      plan,
-      spaceId,
-      period,
-      amountCents: amount * 100,
-    });
-    setLoading(false);
-    if ("error" in result) {
-      setError(result.error);
-      return;
+
+    // Referans kodu çakışması (UNIQUE kısıt, son derece nadir) —
+    // yalnızca bu durumda YENİ bir kod üretip tekrar dener.
+    let code = referenceCode;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await createManualPaymentRequest(supabase, {
+        userId,
+        plan,
+        spaceId,
+        period,
+        amountCents: amount * 100,
+        referenceCode: code,
+      });
+      if ("ok" in result) {
+        setLoading(false);
+        setStep("submitted");
+        return;
+      }
+      if (!result.error.includes("duplicate key") && !result.error.includes("unique")) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      code = generateReferenceCode();
+      setReferenceCode(code);
     }
-    setReferenceCode(result.referenceCode);
+    setError("Talep oluşturulamadı, lütfen tekrar dene.");
+    setLoading(false);
   }
 
   function handleCopyIban() {
@@ -70,25 +105,40 @@ export function BankTransferCard({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (referenceCode) {
+  if (step === "submitted") {
     return (
       <div className="rounded-2xl border border-accent bg-accent-soft p-4">
         <div className="flex items-center gap-2">
           <CheckCircleIcon size={18} className="text-accent" />
-          <p className="text-sm font-bold text-text-primary">Talebin oluşturuldu</p>
+          <p className="text-sm font-bold text-text-primary">Bildirimin alındı</p>
         </div>
         <p className="mt-2 text-sm text-text-secondary">
-          Aşağıdaki bilgilerle <strong>{amount} ₺</strong> havale/EFT yap. Açıklama kısmına{" "}
-          <strong>mutlaka</strong> referans kodunu yaz — aksi halde ödemen bulunamayabilir.
+          Ekibimiz banka hesabını kontrol edip <strong>{referenceCode}</strong> referans kodlu ödemeni
+          eşleştirdikten sonra aboneliğini aktif edecek — bu genellikle <strong>1 iş günü içinde</strong>{" "}
+          tamamlanır, anında olmaz.
         </p>
-        <div className="mt-3 flex flex-col gap-2 rounded-xl bg-surface p-3">
+      </div>
+    );
+  }
+
+  if (step === "show") {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-4">
+        <p className="text-sm font-bold text-text-primary">Havale/EFT bilgileri</p>
+        <p className="mt-1 text-sm text-text-secondary">
+          Aşağıdaki bilgilerle <strong>{amount} ₺</strong> gönder. Açıklama kısmına <strong>mutlaka</strong>{" "}
+          referans kodunu yaz — aksi halde ödemen bulunamayabilir.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 rounded-xl bg-surface-muted p-3">
           <div>
             <p className="text-xs text-text-muted">Referans kodu (açıklamaya yaz)</p>
             <p className="text-lg font-bold tabular-nums text-accent">{referenceCode}</p>
           </div>
           <div>
             <p className="text-xs text-text-muted">Alıcı</p>
-            <p className="text-sm font-semibold text-text-primary">{bankAccountHolder} — {bankName}</p>
+            <p className="text-sm font-semibold text-text-primary">
+              {bankAccountHolder} — {bankName}
+            </p>
           </div>
           <div>
             <p className="text-xs text-text-muted">IBAN</p>
@@ -100,10 +150,19 @@ export function BankTransferCard({
             </div>
           </div>
         </div>
+
+        {error ? <ErrorBanner message={error} /> : null}
+
         <p className="mt-3 text-xs text-text-muted">
-          Havale yaptıktan sonra ekibimiz banka hesabını kontrol edip aboneliğini aktif eder — bu genellikle{" "}
-          <strong>1 iş günü içinde</strong> tamamlanır, anında olmaz.
+          Havaleyi <strong>gönderdikten sonra</strong> aşağıdaki butona bas — bu, talebini ekibimize
+          bildirir. Yalnızca bilgilere bakmak için bastıysan, henüz bir şey yapmana gerek yok.
         </p>
+        <Button onClick={handleConfirmPaid} loading={loading} className="mt-3">
+          Ödemeyi yaptım, bildir
+        </Button>
+        <button onClick={() => setStep("select")} className="mt-2 w-full text-center text-xs text-text-muted">
+          Vazgeç
+        </button>
       </div>
     );
   }
@@ -116,8 +175,6 @@ export function BankTransferCard({
         yapabilirsin — ekibimiz kontrol edip aboneliğini elle aktif eder (anında değil, genellikle 1 iş günü
         içinde).
       </p>
-
-      {error ? <ErrorBanner message={error} /> : null}
 
       <div className="mt-3 flex gap-1 rounded-full bg-surface-muted p-1">
         <button
@@ -140,7 +197,7 @@ export function BankTransferCard({
         {amount} ₺<span className="text-sm font-normal text-text-muted">{period === "monthly" ? " / ay" : " / yıl"}</span>
       </p>
 
-      <Button onClick={handleCreateRequest} loading={loading} className="mt-3">
+      <Button onClick={handleShowDetails} className="mt-3">
         Havale bilgilerini göster
       </Button>
     </div>

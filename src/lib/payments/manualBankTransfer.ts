@@ -27,39 +27,32 @@ export interface CreateManualPaymentRequestParams {
   spaceId: string;
   period: BillingPeriod;
   amountCents: number;
+  /** Client'ta ÖNCEDEN üretilip kullanıcıya gösterilmiş olan kod — burada YENİDEN üretilmez, aynen kullanılır. */
+  referenceCode: string;
   userNote?: string | null;
 }
 
 /**
  * Yeni bir banka havalesi ödeme bildirimi oluşturur — subscriptions
  * tablosuna HİÇBİR ŞEY YAZMAZ (yalnızca bir "talep" kaydı oluşturur).
- * Referans kodu çakışması (son derece nadir, UNIQUE kısıt sayesinde
- * asla İKİ talebin AYNI kodu almasına izin verilmez) durumunda en fazla
- * 3 kez tekrar dener.
+ * Bu fonksiyon, kullanıcı GERÇEKTEN "ödemeyi yaptım" dediği ANDA
+ * çağrılmalıdır — yalnızca IBAN bilgilerini GÖRÜNTÜLEMEK için
+ * ÇAĞRILMAMALIDIR (aksi halde her görüntüleme admin paneline gereksiz
+ * bir "hayalet" talep düşürür).
  */
 export async function createManualPaymentRequest(
   client: SupabaseClient,
   params: CreateManualPaymentRequestParams
-): Promise<{ referenceCode: string } | { error: string }> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const referenceCode = generateReferenceCode();
-    const { error } = await client.from("manual_payment_requests").insert({
-      user_id: params.userId,
-      plan: params.plan,
-      space_id: params.spaceId,
-      period: params.period,
-      amount_cents: params.amountCents,
-      reference_code: referenceCode,
-      user_note: params.userNote ?? null,
-    });
-    if (!error) return { referenceCode };
-    // 23505 = unique_violation — yalnızca bu durumda tekrar dene, başka
-    // hiçbir hata türünde SESSİZCE tekrar denemek YANLIŞ olur (ör. RLS
-    // reddi sonsuz döngüye girmez çünkü kod her denemede DEĞİŞİR ama
-    // hata AYNI kalır — üçüncü denemede yine de çıkılır).
-    if (!error.message.includes("duplicate key") && !error.message.includes("unique")) {
-      return { error: error.message };
-    }
-  }
-  return { error: "Referans kodu oluşturulamadı, lütfen tekrar dene." };
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await client.from("manual_payment_requests").insert({
+    user_id: params.userId,
+    plan: params.plan,
+    space_id: params.spaceId,
+    period: params.period,
+    amount_cents: params.amountCents,
+    reference_code: params.referenceCode,
+    user_note: params.userNote ?? null,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
 }
