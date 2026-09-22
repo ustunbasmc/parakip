@@ -8,7 +8,8 @@ interface ScreenShellProps {
   /** Alt kısımda sabit kalan birincil eylem alanı (buton vb.). */
   footer?: ReactNode;
   showBack?: boolean;
-  backFallbackHref?: string;
+  /** Geri butonunun gideceği ebeveyn rota (akış içindeki bir önceki adım). */
+  parentHref?: string;
   title?: string;
 }
 
@@ -24,13 +25,13 @@ export function ScreenShell({
   children,
   footer,
   showBack = true,
-  backFallbackHref,
+  parentHref,
   title,
 }: ScreenShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
       <header className="flex items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
-        {showBack ? <BackButton fallbackHref={backFallbackHref} /> : <div className="h-11 w-11" />}
+        {showBack ? <BackButton href={parentHref} /> : <div className="h-11 w-11" />}
         {title ? <h1 className="text-base font-semibold text-text-primary">{title}</h1> : null}
       </header>
 

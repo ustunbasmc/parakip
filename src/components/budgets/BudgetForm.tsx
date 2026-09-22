@@ -138,7 +138,7 @@ export function BudgetForm({ bookId, homeHref, categories, variant = "page", onS
   if (variant === "modal") return formBody;
 
   return (
-    <AppShell variant="subpage" title="Yeni bütçe" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+    <AppShell variant="subpage" title="Yeni bütçe" parentHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
       {formBody}
     </AppShell>
   );

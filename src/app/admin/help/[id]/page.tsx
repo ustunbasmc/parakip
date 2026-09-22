@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminBackLink } from "@/components/admin/AdminBackLink";
 import { notFound } from "next/navigation";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import { AdminArticleForm } from "@/components/admin/AdminArticleForm";
@@ -24,9 +25,7 @@ export default async function AdminEditArticlePage({ params }: { params: Promise
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link href="/admin/help" className="text-sm font-semibold text-accent">
-          ← Tüm makaleler
-        </Link>
+        <AdminBackLink href="/admin/help" label="Tüm makaleler" />
         {article.status === "published" ? (
           <Link href={`/help/${article.slug}`} className="text-sm font-semibold text-accent">
             Uygulamada görüntüle →

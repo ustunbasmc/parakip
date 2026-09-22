@@ -33,7 +33,7 @@ export default async function NotificationsPage({
   const hasUnread = notifications.some((n) => !n.readAt);
 
   return (
-    <AppShell variant="subpage" title="Bildirimler" backFallbackHref={backHref}>
+    <AppShell variant="subpage" title="Bildirimler" parentHref={backHref}>
       <div className="flex flex-col gap-3 pt-3 pb-4">
         {notifications.length > 0 ? (
           <div className="flex justify-end">

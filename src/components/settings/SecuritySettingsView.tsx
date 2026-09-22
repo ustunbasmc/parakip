@@ -92,7 +92,7 @@ export function SecuritySettingsView({ email, lastSignInAt }: { email: string; l
   }
 
   return (
-    <AppShell variant="subpage" title="Güvenlik" backFallbackHref="/home" helpSlug="verilerim-guvende-mi">
+    <AppShell variant="subpage" title="Güvenlik" helpSlug="verilerim-guvende-mi">
       <div className="flex flex-col gap-5 pt-3 pb-4">
         <form onSubmit={handleChangePassword} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
           <p className="text-sm font-semibold text-text-secondary">Şifre değiştir</p>

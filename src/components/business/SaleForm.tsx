@@ -227,7 +227,7 @@ export function SaleForm({
       helpSlug="isletme-islemleri-nasil-takip-edilir"
       variant="subpage"
       title="Satış ekle"
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

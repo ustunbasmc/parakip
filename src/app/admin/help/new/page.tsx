@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminBackLink } from "@/components/admin/AdminBackLink";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import { AdminArticleForm } from "@/components/admin/AdminArticleForm";
 
@@ -9,9 +9,7 @@ export default async function AdminNewArticlePage() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
-      <Link href="/admin/help" className="text-sm font-semibold text-accent">
-        ← Tüm makaleler
-      </Link>
+      <AdminBackLink href="/admin/help" label="Tüm makaleler" />
       <h1 className="text-xl font-extrabold text-text-primary">Yeni makale</h1>
       <AdminArticleForm
         categories={categories ?? []}

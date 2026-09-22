@@ -54,7 +54,7 @@ export function HoldingDetailView({
   }
 
   return (
-    <AppShell variant="subpage" title={holding.assetSymbol} backFallbackHref={backHref}>
+    <AppShell variant="subpage" title={holding.assetSymbol} parentHref={backHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <p className="text-sm text-danger">{error}</p> : null}
 

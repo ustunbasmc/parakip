@@ -59,7 +59,7 @@ export default async function HelpCenterPage({
   const title = categoryView ? categoryView.category.title : "Yardım Merkezi";
 
   return (
-    <AppShell variant="subpage" title={title} backFallbackHref={categoryView ? "/help" : "/home"}>
+    <AppShell variant="subpage" title={title} parentHref={categoryView ? "/help" : "/home"}>
       <div className="flex min-w-0 flex-col gap-5 pb-4 pt-3">
         <HelpSearchBox key={query} initialQuery={query} />
 

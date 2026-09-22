@@ -59,7 +59,6 @@ export default async function CategoriesSettingsPage({
       helpSlug="kategori-nasil-eklenir"
       variant="subpage"
       title="Kategoriler"
-      backFallbackHref={`/settings/spaces?space=${activeSpace.id}`}
       headerEnd={
         <SpaceSwitcher options={spaces.map((s) => ({ id: s.id, type: s.type, name: s.name }))} activeId={activeSpace.id} />
       }

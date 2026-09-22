@@ -10,7 +10,7 @@ function FirstTransactionPrompt() {
 
   return (
     <ScreenShell
-      backFallbackHref="/onboarding/space-type"
+      parentHref="/onboarding/space-type"
       footer={<Button onClick={() => router.push("/home")}>Ana ekrana git</Button>}
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">

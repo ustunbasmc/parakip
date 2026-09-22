@@ -61,7 +61,7 @@ export function PartyDetailView({
   }
 
   return (
-    <AppShell variant="subpage" title={type === "customer" ? "Müşteri detayı" : "Tedarikçi detayı"} backFallbackHref={backHref}>
+    <AppShell variant="subpage" title={type === "customer" ? "Müşteri detayı" : "Tedarikçi detayı"} parentHref={backHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 

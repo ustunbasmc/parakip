@@ -165,7 +165,7 @@ export function InvestmentBuyForm({
   if (variant === "modal") return formBody;
 
   return (
-    <AppShell variant="subpage" title="Yatırım alışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+    <AppShell variant="subpage" title="Yatırım alışı" parentHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
       {formBody}
     </AppShell>
   );

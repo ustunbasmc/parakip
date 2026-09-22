@@ -96,7 +96,7 @@ export function RecurringRuleForm({ bookId, homeHref }: { bookId: string; homeHr
     <AppShell
       variant="subpage"
       title="Yeni tekrarlayan ödeme"
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       <form id="recurring-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">

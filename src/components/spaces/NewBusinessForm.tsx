@@ -103,7 +103,7 @@ export function NewBusinessForm({ hasExistingBusiness }: { hasExistingBusiness: 
 
   if (success) {
     return (
-      <AppShell variant="subpage" title="İşletme alanı" backFallbackHref="/home">
+      <AppShell variant="subpage" title="İşletme alanı">
         <FormSuccessState message={`"${name.trim()}" oluşturuldu.`} />
       </AppShell>
     );
@@ -113,7 +113,6 @@ export function NewBusinessForm({ hasExistingBusiness }: { hasExistingBusiness: 
     <AppShell
       variant="subpage"
       title="İşletme alanı oluştur"
-      backFallbackHref="/home"
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       <form id="new-business-form" onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 pt-3 pb-4">

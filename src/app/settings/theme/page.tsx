@@ -14,7 +14,7 @@ export default function ThemeSettingsPage() {
   const { theme, changeTheme, saving } = useThemePreference();
 
   return (
-    <AppShell variant="subpage" backFallbackHref="/home" title="Görünüm">
+    <AppShell variant="subpage" title="Görünüm">
       <div className="flex flex-col gap-3 pt-4">
         {OPTIONS.map((option) => {
           const selected = theme === option.value;

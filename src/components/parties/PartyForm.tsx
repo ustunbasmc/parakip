@@ -109,7 +109,7 @@ export function PartyForm({ type, spaceId, homeHref, variant = "page", onSuccess
     <AppShell
       variant="subpage"
       title={title}
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

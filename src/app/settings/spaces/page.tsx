@@ -15,7 +15,7 @@ export default async function ManageSpacesPage() {
   const spaces = await getManagedSpaces(supabase);
 
   return (
-    <AppShell variant="subpage" title="Alanlarım" backFallbackHref="/home">
+    <AppShell variant="subpage" title="Alanlarım">
       <div className="flex flex-col gap-3 pt-3 pb-4">
         <p className="text-sm text-text-secondary">
           Ev ve İşletme alanlarını buradan yönetebilirsin. Arşivleme fiziksel silme değildir — geçmiş kayıtların

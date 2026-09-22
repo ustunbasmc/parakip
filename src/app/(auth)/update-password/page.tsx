@@ -45,7 +45,7 @@ export default function UpdatePasswordPage() {
 
   return (
     <ScreenShell
-      backFallbackHref="/sign-in"
+      parentHref="/sign-in"
       footer={
         <Button type="submit" form="update-password-form" loading={loading}>
           Şifreyi güncelle

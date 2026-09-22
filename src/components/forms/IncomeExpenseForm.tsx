@@ -213,7 +213,7 @@ export function IncomeExpenseForm({
     );
     if (variant === "modal") return successBody;
     return (
-      <AppShell variant="subpage" title={title} backFallbackHref={homeHref}>
+      <AppShell variant="subpage" title={title} parentHref={homeHref}>
         {successBody}
       </AppShell>
     );
@@ -310,7 +310,7 @@ export function IncomeExpenseForm({
     <AppShell
       variant="subpage"
       title={title}
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

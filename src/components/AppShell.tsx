@@ -15,7 +15,8 @@ interface AppShellProps {
    *  "subpage": geri butonlu, bir alt seviye ekran (ör. Ayarlar). */
   variant?: "root" | "subpage";
   title?: string;
-  backFallbackHref?: string;
+  /** Geri butonunun gideceği ebeveyn rota. Verilmezse merkezi rota tablosundan hesaplanır (bkz. lib/navigation/parentRoutes.ts). */
+  parentHref?: string;
   /** Kaydedilmemiş veri varken geri çıkışını onaylatmak için (bkz. BackButton). */
   backGuard?: () => boolean;
   /** Başlığın yanına, sağa hizalı ekstra içerik (ör. alan seçici). */
@@ -45,7 +46,7 @@ export function AppShell({
   children,
   variant = "root",
   title,
-  backFallbackHref = "/home",
+  parentHref,
   backGuard,
   headerEnd,
   activeSpaceType,
@@ -61,7 +62,7 @@ export function AppShell({
         <header className="flex items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 md:px-8 md:pt-6">
           {variant === "subpage" ? (
             <>
-              <BackButton fallbackHref={backFallbackHref} guard={backGuard} />
+              <BackButton href={parentHref} guard={backGuard} />
               {title ? <h1 className="text-base font-semibold text-text-primary md:text-lg">{title}</h1> : null}
             </>
           ) : title ? (

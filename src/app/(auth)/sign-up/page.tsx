@@ -106,7 +106,7 @@ export default function SignUpPage() {
 
   if (checkEmail) {
     return (
-      <ScreenShell backFallbackHref="/welcome">
+      <ScreenShell parentHref="/welcome">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <Logo withWordmark={false} />
           <h1 className="text-xl font-bold text-text-primary">E-postanı kontrol et</h1>
@@ -124,7 +124,7 @@ export default function SignUpPage() {
 
   return (
     <ScreenShell
-      backFallbackHref="/welcome"
+      parentHref="/welcome"
       footer={
         <Button type="submit" form="sign-up-form" loading={loading}>
           Kayıt ol

@@ -46,7 +46,7 @@ export function BudgetDetailView({ budget, canManage, backHref }: { budget: Budg
   }
 
   return (
-    <AppShell variant="subpage" title="Bütçe detayı" backFallbackHref={backHref}>
+    <AppShell variant="subpage" title="Bütçe detayı" parentHref={backHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 

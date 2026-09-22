@@ -78,7 +78,7 @@ export function AccountManagementView({
   }
 
   return (
-    <AppShell variant="subpage" title="Hesap yönetimi" backFallbackHref="/home" helpSlug="hesabimi-nasil-silebilirim">
+    <AppShell variant="subpage" title="Hesap yönetimi" helpSlug="hesabimi-nasil-silebilirim">
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 

@@ -72,7 +72,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const closed = ticket.status === "closed";
 
   return (
-    <AppShell variant="subpage" title={formatTicketNumber(ticket.ticket_number)} backFallbackHref="/support/tickets">
+    <AppShell variant="subpage" title={formatTicketNumber(ticket.ticket_number)} parentHref="/support/tickets">
       <div className="flex min-w-0 flex-col gap-4 pb-4 pt-3">
         <header className="rounded-2xl border border-border bg-surface p-4">
           <div className="flex min-w-0 items-center justify-between gap-2">

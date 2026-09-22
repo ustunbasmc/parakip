@@ -118,7 +118,7 @@ export function InvestmentSellForm({
     const empty = <p className="pt-6 text-center text-sm text-text-muted">Satılacak bir varlığın yok.</p>;
     if (variant === "modal") return empty;
     return (
-      <AppShell variant="subpage" title="Yatırım satışı" backFallbackHref={homeHref}>
+      <AppShell variant="subpage" title="Yatırım satışı" parentHref={homeHref}>
         {empty}
       </AppShell>
     );
@@ -169,7 +169,7 @@ export function InvestmentSellForm({
   if (variant === "modal") return formBody;
 
   return (
-    <AppShell variant="subpage" title="Yatırım satışı" backFallbackHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
+    <AppShell variant="subpage" title="Yatırım satışı" parentHref={homeHref} backGuard={() => confirmLeaveIfDirty(isDirty)}>
       {formBody}
     </AppShell>
   );

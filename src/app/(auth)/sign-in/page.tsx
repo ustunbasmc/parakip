@@ -56,7 +56,7 @@ export default function SignInPage() {
 
   return (
     <ScreenShell
-      backFallbackHref="/welcome"
+      parentHref="/welcome"
       footer={
         <Button type="submit" form="sign-in-form" loading={loading}>
           Giriş yap

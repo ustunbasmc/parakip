@@ -186,7 +186,7 @@ export function TransferForm({ bookId, homeHref, spaces, variant = "page", onSuc
     const body = <FormSuccessState message={`${summary.amountLabel} · ${summary.fromLabel} → ${summary.toLabel}`} />;
     if (variant === "modal") return body;
     return (
-      <AppShell variant="subpage" title="Transfer yap" backFallbackHref={homeHref}>
+      <AppShell variant="subpage" title="Transfer yap" parentHref={homeHref}>
         {body}
       </AppShell>
     );
@@ -264,7 +264,7 @@ export function TransferForm({ bookId, homeHref, spaces, variant = "page", onSuc
     <AppShell
       variant="subpage"
       title="Transfer yap"
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

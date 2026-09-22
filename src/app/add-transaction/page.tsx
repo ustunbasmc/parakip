@@ -71,7 +71,7 @@ export default async function AddTransactionPage({
   const { title, Icon, tint } = entry;
 
   return (
-    <AppShell variant="subpage" title={title} backFallbackHref={homeHref}>
+    <AppShell variant="subpage" title={title} parentHref={homeHref}>
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-10 text-center">
         <span className={`flex h-14 w-14 items-center justify-center rounded-full ${tint}`}>
           <Icon size={24} />

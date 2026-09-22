@@ -57,7 +57,7 @@ export default async function TransactionDetailPage({
   const isPositive = !isTransfer && detail.amountCents > 0;
 
   return (
-    <AppShell variant="subpage" title="İşlem detayı" backFallbackHref={backHref}>
+    <AppShell variant="subpage" title="İşlem detayı" parentHref={backHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-center">
           <span className={`flex h-14 w-14 items-center justify-center rounded-full ${TYPE_TINT[detail.type]}`}>

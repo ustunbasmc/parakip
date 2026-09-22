@@ -40,7 +40,7 @@ export default async function RecurringRulesPage({
   const canManage = role === "owner" || role === "admin";
 
   return (
-    <AppShell variant="subpage" title="Tekrarlayan ödemeler" backFallbackHref={backHref}>
+    <AppShell variant="subpage" title="Tekrarlayan ödemeler" parentHref={backHref}>
       <div className="flex flex-col gap-3 pt-3 pb-4">
         <div className="flex justify-end">
           <Link

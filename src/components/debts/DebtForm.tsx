@@ -141,7 +141,7 @@ export function DebtForm({ bookId, homeHref, variant = "page", onSuccess, onDirt
     <AppShell
       variant="subpage"
       title="Yeni borç/alacak"
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

@@ -1,22 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { getParentHref, withSpaceParam } from "@/lib/navigation/parentRoutes";
 
 /**
- * Her ekranda görünür geri butonu (belge madde 3/14.7 gereği). router.back()
- * tarayıcı geçmişini kullanır — bu sayede cihazın kendi geri tuşu/gesture'ı
- * ile de TUTARLI davranır (aynı history mekanizması); ekranlar arası geçiş
- * router.push ile yapıldığı sürece (replace değil) her iki yol da aynı
- * sonucu üretir.
+ * Her ekranda görünür geri butonu — HİYERARŞİK çalışır: kullanıcıyı
+ * tarayıcı geçmişindeki önceki sayfaya değil, ekranın EBEVEYN rotasına
+ * götürür (ör. /accounts/123 → /accounts). router.back() KULLANILMAZ;
+ * böylece sayfa doğrudan URL ile açılmış olsa bile sonuç aynıdır.
+ *
+ * Ebeveyn: `href` verilmişse o, verilmemişse merkezi rota tablosu
+ * (bkz. lib/navigation/parentRoutes.ts). Cihazın fiziksel geri tuşu bu
+ * bileşenden etkilenmez; açık bir modal kendi popstate dinleyicisiyle
+ * önce kapanır.
  */
 export function BackButton({
-  fallbackHref,
+  href,
   label = "Geri",
   guard,
 }: {
-  /** router.back() ile geri gidecek bir geçmiş yoksa (ör. doğrudan link ile
-   * açılmış bir sayfa) kullanılacak yedek hedef. */
-  fallbackHref?: string;
+  /** Ebeveyn rota. Verilmezse bulunulan yoldan hesaplanır. */
+  href?: string;
   label?: string;
   /**
    * Verilirse, navigasyondan ÖNCE çağrılır. false dönerse navigasyon
@@ -26,19 +31,18 @@ export function BackButton({
   guard?: () => boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const target = href ?? getParentHref(pathname);
 
   return (
-    <button
-      type="button"
-      onClick={() => {
+    <Link
+      href={target}
+      onClick={(e) => {
+        e.preventDefault();
         if (guard && !guard()) return;
-        if (typeof window !== "undefined" && window.history.length > 1) {
-          router.back();
-        } else if (fallbackHref) {
-          router.push(fallbackHref);
-        } else {
-          router.back();
-        }
+        // useSearchParams yerine tıklama anında okunur — statik sayfalarda
+        // Suspense sınırı gerektirmesin diye.
+        router.push(href ? href : withSpaceParam(target, window.location.search));
       }}
       aria-label={label}
       className="inline-flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
@@ -52,6 +56,6 @@ export function BackButton({
           strokeLinejoin="round"
         />
       </svg>
-    </button>
+    </Link>
   );
 }

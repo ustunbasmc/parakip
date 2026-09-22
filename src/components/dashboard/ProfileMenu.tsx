@@ -4,17 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  UserCircleIcon,
-  StarIcon,
-  BellIcon,
-  ShieldIcon,
-  HelpCircleIcon,
-  LogOutIcon,
-  BuildingIcon,
-  LockIcon,
-  TagIcon,
-} from "@/components/icons";
+import { UserCircleIcon, LogOutIcon } from "@/components/icons";
+import { SETTINGS_LINKS, settingsHref, type SettingsLinkItem } from "@/components/settings/settingsLinks";
 import { useThemePreference } from "@/lib/theme/ThemeSync";
 
 interface ProfileMenuProps {
@@ -23,28 +14,7 @@ interface ProfileMenuProps {
   avatarUrl?: string | null;
 }
 
-interface MenuLinkItem {
-  href: string;
-  label: string;
-  description: string;
-  icon: typeof StarIcon;
-  comingSoon?: boolean;
-  /** Aktif alana göre içerik gösteren ekranlar için — URL'ye ?space= eklenir. */
-  spaceAware?: boolean;
-}
-
 const THEME_LABELS: Record<string, string> = { light: "Gündüz", dark: "Gece", system: "Sistem" };
-
-const LINKS: MenuLinkItem[] = [
-  { href: "/settings/profile", label: "Profil bilgilerim", description: "Ad, e-posta ve profil fotoğrafı", icon: UserCircleIcon },
-  { href: "/settings/spaces", label: "Alanlarım", description: "Ev/İşletme alanlarını yönet", icon: BuildingIcon },
-  { href: "/settings/plan", label: "Planım ve limitlerim", description: "Aktif alanın plan ve kullanım durumu", icon: StarIcon, spaceAware: true },
-  { href: "/settings/categories", label: "Kategoriler", description: "Gelir/gider kategorilerini yönet", icon: TagIcon, spaceAware: true },
-  { href: "/settings/security", label: "Güvenlik", description: "Şifre, oturumlar ve cihazlar", icon: ShieldIcon },
-  { href: "/settings/account", label: "Hesap yönetimi", description: "Hesap silme talebi ve veri güvenliği", icon: LockIcon },
-  { href: "/settings/notifications", label: "Bildirimler", description: "Bildirim tercihleri", icon: BellIcon, comingSoon: true },
-  { href: "/help", label: "Yardım Merkezi", description: "Destek ve sık sorulanlar", icon: HelpCircleIcon },
-];
 
 /**
  * Sağ üst profil menüsü — Ayarlar artık alt navigasyonda ayrı bir sekme
@@ -60,8 +30,8 @@ export function ProfileMenu({ displayName, email, avatarUrl }: ProfileMenuProps)
   const searchParams = useSearchParams();
   const currentSpace = searchParams.get("space");
 
-  function hrefFor(item: MenuLinkItem) {
-    return item.spaceAware && currentSpace ? `${item.href}?space=${currentSpace}` : item.href;
+  function hrefFor(item: SettingsLinkItem) {
+    return settingsHref(item, currentSpace);
   }
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -198,7 +168,7 @@ export function ProfileMenu({ displayName, email, avatarUrl }: ProfileMenuProps)
           </Link>
 
           <div className="flex flex-col gap-0.5">
-            {LINKS.map((item) =>
+            {SETTINGS_LINKS.map((item) =>
               item.comingSoon ? (
                 <div
                   key={item.href}

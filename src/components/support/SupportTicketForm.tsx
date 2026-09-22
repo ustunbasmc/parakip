@@ -159,7 +159,7 @@ export function SupportTicketForm({
 
   if (done) {
     return (
-      <AppShell variant="subpage" title="Destek talebi" backFallbackHref="/help" activeSpaceType={activeSpaceType}>
+      <AppShell variant="subpage" title="Destek talebi" parentHref="/help" activeSpaceType={activeSpaceType}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
           <CheckCircleIcon size={40} className="text-success" />
           <p className="text-lg font-bold text-text-primary">Talebin alındı</p>
@@ -192,7 +192,7 @@ export function SupportTicketForm({
     <AppShell
       variant="subpage"
       title="Destek talebi oluştur"
-      backFallbackHref="/help"
+      parentHref="/help"
       backGuard={() => confirmLeaveIfDirty(isDirty)}
       activeSpaceType={activeSpaceType}
     >

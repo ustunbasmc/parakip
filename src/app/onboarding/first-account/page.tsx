@@ -78,7 +78,7 @@ function FirstAccountForm() {
 
   return (
     <ScreenShell
-      backFallbackHref="/onboarding/space-type"
+      parentHref="/onboarding/space-type"
       footer={
         <div className="flex flex-col gap-2">
           <Button type="submit" form="first-account-form" loading={loading}>

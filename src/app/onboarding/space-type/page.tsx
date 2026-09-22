@@ -28,7 +28,7 @@ export default function SpaceTypePage() {
   const router = useRouter();
 
   return (
-    <ScreenShell backFallbackHref="/">
+    <ScreenShell parentHref="/">
       <div className="flex flex-1 flex-col gap-6 pt-4">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Nasıl kullanacaksın?</h1>

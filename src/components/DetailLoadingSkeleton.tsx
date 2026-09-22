@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
  */
 export function DetailLoadingSkeleton({ title }: { title?: string }) {
   return (
-    <AppShell variant="subpage" title={title ?? "Yükleniyor"} backFallbackHref="/home">
+    <AppShell variant="subpage" title={title ?? "Yükleniyor"}>
       <div className="flex flex-col gap-4 pt-3">
         <div className="animate-pulse rounded-2xl border border-border bg-surface p-6">
           <div className="mx-auto mb-3 h-3 w-24 rounded bg-surface-muted" />

@@ -94,7 +94,7 @@ export function DebtDetailView({ debt, accounts, canManage, backHref }: Props) {
   }
 
   return (
-    <AppShell variant="subpage" title="Borç/Alacak detayı" backFallbackHref={backHref}>
+    <AppShell variant="subpage" title="Borç/Alacak detayı" parentHref={backHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 

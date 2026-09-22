@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
 
   if (sent) {
     return (
-      <ScreenShell backFallbackHref="/sign-in">
+      <ScreenShell parentHref="/sign-in">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <Logo withWordmark={false} />
           <h1 className="text-xl font-bold text-text-primary">Bağlantı gönderildi</h1>
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
 
   return (
     <ScreenShell
-      backFallbackHref="/sign-in"
+      parentHref="/sign-in"
       footer={
         <Button type="submit" form="reset-form" loading={loading}>
           Sıfırlama bağlantısı gönder

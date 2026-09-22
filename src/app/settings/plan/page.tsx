@@ -66,7 +66,6 @@ export default async function PlanPage({
       helpSlug="abonelik-nasil-calisir"
       variant="subpage"
       title="Planım ve limitlerim"
-      backFallbackHref="/home"
       activeSpaceType={activeSpace.type}
       headerEnd={
         <SpaceSwitcher options={spaces.map((s) => ({ id: s.id, type: s.type, name: s.name }))} activeId={activeSpace.id} />

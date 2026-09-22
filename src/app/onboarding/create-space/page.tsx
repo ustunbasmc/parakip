@@ -65,7 +65,7 @@ function CreateSpaceForm() {
 
   return (
     <ScreenShell
-      backFallbackHref="/onboarding/space-type"
+      parentHref="/onboarding/space-type"
       footer={
         <Button type="submit" form="create-space-form" loading={loading}>
           Devam et

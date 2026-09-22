@@ -124,7 +124,7 @@ export function ProfileSettingsView({
   }
 
   return (
-    <AppShell variant="subpage" title="Profil bilgilerim" backFallbackHref="/home">
+    <AppShell variant="subpage" title="Profil bilgilerim">
       <div className="flex flex-col gap-5 pt-3 pb-4">
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-center">
           <span className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-accent">

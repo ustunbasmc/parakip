@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminBackLink } from "@/components/admin/AdminBackLink";
 import { notFound } from "next/navigation";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import { AdminUserEditForm } from "@/components/admin/AdminUserEditForm";
@@ -31,9 +32,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/admin/users" className="text-sm font-semibold text-accent">
-          ← Kullanıcılar
-        </Link>
+        <AdminBackLink href="/admin/users" label="Kullanıcılar" />
         <h1 className="mt-2 text-xl font-extrabold text-text-primary">
           {profile.display_name || "İsimsiz kullanıcı"}
         </h1>

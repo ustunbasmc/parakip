@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminBackLink } from "@/components/admin/AdminBackLink";
 import { notFound } from "next/navigation";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import { MessageThread, type ThreadMessage } from "@/components/support/MessageThread";
@@ -87,9 +88,7 @@ export default async function AdminTicketDetailPage({ params }: { params: Promis
 
   return (
     <div className="flex flex-col gap-5">
-      <Link href="/admin/support" className="text-sm font-semibold text-accent">
-        ← Tüm talepler
-      </Link>
+      <AdminBackLink href="/admin/support" label="Tüm talepler" />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
         <div className="flex min-w-0 flex-col gap-4">

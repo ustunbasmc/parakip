@@ -108,7 +108,7 @@ export function AccountDetailView({
   }
 
   return (
-    <AppShell variant="subpage" title="Hesap detayı" backFallbackHref={homeHref}>
+    <AppShell variant="subpage" title="Hesap detayı" parentHref={homeHref}>
       <div className="flex flex-col gap-5 pt-3 pb-4">
         {error ? <ErrorBanner message={error} /> : null}
 

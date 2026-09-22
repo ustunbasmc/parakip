@@ -170,7 +170,7 @@ export function AccountForm({ bookId, homeHref, variant = "page", onSuccess, onD
     <AppShell
       variant="subpage"
       title="Yeni hesap"
-      backFallbackHref={homeHref}
+      parentHref={homeHref}
       backGuard={() => confirmLeaveIfDirty(isDirty)}
     >
       {formBody}

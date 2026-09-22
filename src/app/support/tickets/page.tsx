@@ -24,7 +24,7 @@ export default async function MyTicketsPage() {
     .limit(100);
 
   return (
-    <AppShell variant="subpage" title="Destek Taleplerim" backFallbackHref="/help">
+    <AppShell variant="subpage" title="Destek Taleplerim" parentHref="/help">
       <div className="flex min-w-0 flex-col gap-3 pb-4 pt-3">
         <Link
           href="/support/new"

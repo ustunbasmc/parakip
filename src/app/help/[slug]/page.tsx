@@ -44,7 +44,7 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
     .filter(Boolean);
 
   return (
-    <AppShell variant="subpage" title="Yardım" backFallbackHref="/help">
+    <AppShell variant="subpage" title="Yardım" parentHref="/help">
       <article className="flex min-w-0 flex-col gap-5 pb-4 pt-3">
         <header>
           {article.categorySlug ? (
