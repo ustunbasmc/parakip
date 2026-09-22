@@ -186,8 +186,22 @@ async function main() {
     report("12. Aynı istek kimliğiyle mükerrer talep oluşmuyor", dup !== null && /duplicate key|unique/i.test(dup) && countA.rows[0].n === 1);
 
     // Kullanıcı kendi talebini UPDATE edemez (durumu kendisi değiştiremez)
-    const upd = await expectError("update public.support_tickets set status = 'resolved' where id = $1", [ticketA.id]);
-    report("   Kullanıcı talep durumunu doğrudan değiştiremiyor", upd !== null && /permission denied/i.test(upd));
+    const upd = await expectError("update public.support_tickets set status = 'resolved', priority = 'urgent' where id = $1", [ticketA.id]);
+    const del = await expectError("delete from public.support_tickets where id = $1", [ticketA.id]);
+    const after = await client.query("select status, priority from public.support_tickets where id = $1", [ticketA.id]);
+    report(
+      "   Kullanıcı talebi güncelleyemiyor/silemiyor",
+      after.rows[0]?.status === "open" && after.rows[0]?.priority === "high",
+      `update:${upd ? "reddedildi" : "etkisiz"} delete:${del ? "reddedildi" : "etkisiz"} durum=${after.rows[0]?.status}`
+    );
+    const anonRead = await (async () => {
+      await client.query("reset role");
+      await client.query("set local role anon");
+      const r = await expectError("select count(*) from public.help_articles");
+      await asUser(userA);
+      return r;
+    })();
+    report("   Oturumsuz (anon) kullanıcı makaleleri okuyamıyor", anonRead !== null, anonRead ?? "okunabildi");
 
     // Başkası adına talep oluşturulamıyor
     await asUser(userB);

@@ -598,6 +598,26 @@ create trigger support_messages_after_insert
   after insert on public.support_messages
   for each row execute function public.support_messages_after_insert();
 
+-- ─────────────────────────────────────────────
+-- 8) Yetki sıkılaştırma (savunma derinliği)
+-- ─────────────────────────────────────────────
+-- Supabase, public şemadaki YENİ tablolara varsayılan olarak anon ve
+-- authenticated rollerine TÜM yetkileri verir. RLS politikası olmadığı
+-- için bu yetkiler zaten etkisizdir (0 satır), ama niyet açık olsun diye
+-- gereksiz yetkiler burada geri alınır ve yalnızca yukarıdaki GRANT'ler
+-- bırakılır.
+revoke all on public.help_categories, public.help_articles, public.help_article_feedback,
+  public.support_tickets, public.support_messages, public.support_attachments,
+  public.support_ticket_events from anon;
+revoke update, delete, truncate, references, trigger on
+  public.help_categories, public.help_articles,
+  public.support_tickets, public.support_messages, public.support_attachments
+  from authenticated;
+revoke delete, truncate, references, trigger on public.help_article_feedback from authenticated;
+revoke all on public.support_ticket_events from authenticated;
+revoke insert on public.help_categories, public.help_articles from authenticated;
+revoke execute on function public.search_help_articles(text, integer) from anon;
+
 revoke all on function public.support_tickets_after_insert() from public;
 revoke all on function public.support_tickets_status_change() from public;
 revoke all on function public.support_messages_after_insert() from public;
