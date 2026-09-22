@@ -74,6 +74,7 @@ export default async function DebtsPage({
 
   return (
     <AppShell
+      helpSlug="borc-nasil-eklenir"
       activeSpaceType={activeSpace.type}
       title="Borçlar & Alacaklar"
       headerEnd={

@@ -7,7 +7,10 @@ import {
   PRIMARY_NAV_ITEMS,
   MORE_COMING_SOON_ITEMS,
   SPACE_AWARE_HREFS,
+  SUPPORT_NAV_ITEMS,
   getVisibleMoreItems,
+  isSupportPath,
+  supportHref,
 } from "./navItems";
 import { MoreHorizontalIcon } from "./icons";
 
@@ -33,7 +36,8 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
   const pushedHistoryRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const isMoreActive = moreItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"));
+  const isMoreActive =
+    moreItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/")) || isSupportPath(pathname);
 
   function hrefFor(href: string) {
     return currentSpace && SPACE_AWARE_HREFS.has(href) ? `${href}?space=${currentSpace}` : href;
@@ -159,6 +163,28 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
                     <span className="block truncate text-xs text-text-muted">{item.description}</span>
                   </span>
                 </div>
+              ))}
+
+              <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Yardım ve destek
+              </p>
+              {SUPPORT_NAV_ITEMS.map((item) => (
+                <button
+                  key={item.href}
+                  role="menuitem"
+                  onClick={() => navigateTo(supportHref(item, pathname, currentSpace))}
+                  className="flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-surface-muted"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-text-secondary">
+                    {item.icon(false)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-text-primary">{item.label}</span>
+                    {item.description ? (
+                      <span className="block truncate text-xs text-text-muted">{item.description}</span>
+                    ) : null}
+                  </span>
+                </button>
               ))}
             </div>
           </div>

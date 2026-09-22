@@ -43,12 +43,12 @@ const LINKS: MenuLinkItem[] = [
   { href: "/settings/security", label: "Güvenlik", description: "Şifre, oturumlar ve cihazlar", icon: ShieldIcon },
   { href: "/settings/account", label: "Hesap yönetimi", description: "Hesap silme talebi ve veri güvenliği", icon: LockIcon },
   { href: "/settings/notifications", label: "Bildirimler", description: "Bildirim tercihleri", icon: BellIcon, comingSoon: true },
-  { href: "/settings/help", label: "Yardım", description: "Destek ve sık sorulanlar", icon: HelpCircleIcon, comingSoon: true },
+  { href: "/help", label: "Yardım Merkezi", description: "Destek ve sık sorulanlar", icon: HelpCircleIcon },
 ];
 
 /**
  * Sağ üst profil menüsü — Ayarlar artık alt navigasyonda ayrı bir sekme
- * DEĞİL, buradan erişiliyor. "Abonelik/Bildirimler/Güvenlik/Yardım" henüz
+ * DEĞİL, buradan erişiliyor. "Bildirimler" henüz
  * gerçek ekranları olmayan bölümler için dürüst bir "Yakında" rozeti
  * gösterir (tıklanınca hiçbir şey olmaz, sahte bir ekran açılmaz).
  *

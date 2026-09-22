@@ -51,6 +51,7 @@ export default async function SuppliersPage({
 
   return (
     <AppShell
+      helpSlug="isletme-islemleri-nasil-takip-edilir"
       title="Tedarikçiler"
       headerEnd={
         <div className="flex items-center gap-2">

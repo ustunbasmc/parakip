@@ -90,6 +90,7 @@ export default async function TransactionsPage({
 
   return (
     <AppShell
+      helpSlug="islem-nasil-duzenlenir"
       activeSpaceType={activeSpace.type}
       title="Hareketler"
       headerEnd={

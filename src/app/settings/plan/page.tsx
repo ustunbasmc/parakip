@@ -63,6 +63,7 @@ export default async function PlanPage({
 
   return (
     <AppShell
+      helpSlug="abonelik-nasil-calisir"
       variant="subpage"
       title="Planım ve limitlerim"
       backFallbackHref="/home"

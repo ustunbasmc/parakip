@@ -57,6 +57,7 @@ export default async function AccountsPage({
 
   return (
     <AppShell
+      helpSlug="hesap-nasil-eklenir"
       activeSpaceType={activeSpace.type}
       title="Hesaplar"
       headerEnd={

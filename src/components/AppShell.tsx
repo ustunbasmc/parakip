@@ -7,6 +7,7 @@ import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
 import { Logo } from "./Logo";
 import { InstallAppButton } from "./InstallAppButton";
+import { HelpLink } from "./help/HelpLink";
 
 interface AppShellProps {
   children: ReactNode;
@@ -23,6 +24,8 @@ interface AppShellProps {
    * göstermek/gizlemek için — bilinmiyorsa (ör. alan-bağımsız ekranlar)
    * bu öğeler GÜVENLİ TARAFTA kalınarak gizlenir. */
   activeSpaceType?: "home" | "business";
+  /** Verilirse başlıkta bu ekranla ilgili yardım makalesine giden "?" bağlantısı gösterilir. */
+  helpSlug?: string;
 }
 
 /**
@@ -46,6 +49,7 @@ export function AppShell({
   backGuard,
   headerEnd,
   activeSpaceType,
+  helpSlug,
 }: AppShellProps) {
   return (
     <div className="flex min-h-dvh bg-bg md:items-stretch">
@@ -67,6 +71,7 @@ export function AppShell({
           )}
           <div className="ml-auto flex items-center gap-2">
             <InstallAppButton variant="compact" />
+            {helpSlug ? <HelpLink slug={helpSlug} label="Bu ekran hakkında yardım" /> : null}
             {headerEnd}
           </div>
         </header>

@@ -53,6 +53,7 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
 
   return (
     <AppShell
+      helpSlug="yatirim-islemi-nasil-eklenir"
       title="Yatırımlar"
       activeSpaceType={activeSpace.type}
       headerEnd={

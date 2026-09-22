@@ -218,6 +218,7 @@ export function PurchaseForm({
 
   return (
     <AppShell
+      helpSlug="isletme-islemleri-nasil-takip-edilir"
       variant="subpage"
       title="Alış ekle"
       backFallbackHref={homeHref}

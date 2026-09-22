@@ -56,6 +56,7 @@ export default async function CategoriesSettingsPage({
 
   return (
     <AppShell
+      helpSlug="kategori-nasil-eklenir"
       variant="subpage"
       title="Kategoriler"
       backFallbackHref={`/settings/spaces?space=${activeSpace.id}`}

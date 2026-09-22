@@ -53,6 +53,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
 
   return (
     <AppShell
+      helpSlug="butce-nasil-olusturulur"
       title="Bütçeler"
       activeSpaceType={activeSpace.type}
       headerEnd={

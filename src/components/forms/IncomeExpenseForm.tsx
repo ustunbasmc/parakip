@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HelpCircleIcon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { createSimpleTransaction, editSimpleTransaction } from "@/lib/api/financial-rpc";
 import { amountInputToCents, formatCentsAsCurrency } from "@/lib/format/amount";
@@ -281,6 +283,17 @@ export function IncomeExpenseForm({
             </p>
           </div>
         ) : null}
+
+        <Link
+          href={`/help/${kind === "income" ? "gelir-nasil-eklenir" : "gider-nasil-eklenir"}`}
+          onClick={(e) => {
+            if (!confirmLeaveIfDirty(isDirty)) e.preventDefault();
+          }}
+          className="inline-flex items-center gap-1 self-start text-xs font-semibold text-accent"
+        >
+          <HelpCircleIcon size={14} />
+          {kind === "income" ? "Gelir nasıl eklenir?" : "Gider nasıl eklenir?"}
+        </Link>
       </form>
 
       <div className={variant === "modal" ? "sticky bottom-0 border-t border-border bg-bg pt-3" : "sticky bottom-0 border-t border-border bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"}>

@@ -178,6 +178,74 @@ export function getVisibleMoreItems(activeSpaceType: "home" | "business" | undef
 /** Artık gerçek ekranı olmayan, hâlâ "Yakında" gösterilecek modül kalmadı — boş dizi korunuyor (gelecekte ihtiyaç olursa buraya eklenir). */
 export const MORE_COMING_SOON_ITEMS: ComingSoonItem[] = [];
 
+/** Yardım/destek öğeleri — `appendContext` true ise bulunulan ekran (from) ve aktif alan (space) talep formuna taşınır. */
+export interface SupportNavItem extends NavItem {
+  appendContext?: boolean;
+}
+
+export const SUPPORT_NAV_ITEMS: SupportNavItem[] = [
+  {
+    href: "/help",
+    label: "Yardım Merkezi",
+    description: "Rehberler ve sık sorulan sorular",
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
+        <path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.6" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" />
+        <path d="M12 17h.01" stroke="currentColor" strokeWidth={active ? 2.6 : 2.2} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/support/tickets",
+    label: "Destek Taleplerim",
+    description: "Taleplerini ve yanıtları takip et",
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v7a2.5 2.5 0 01-2.5 2.5H10l-4 4v-4h0A2 2 0 014 14V6.5z" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/support/new?type=bug",
+    label: "Hata Bildir",
+    description: "Bir şey beklendiği gibi çalışmıyor mu?",
+    appendContext: true,
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 4l9 16H3l9-16z" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinejoin="round" />
+        <path d="M12 10v4M12 17h.01" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/support/new?type=feature",
+    label: "Özellik Öner",
+    description: "Parakip'i birlikte geliştirelim",
+    appendContext: true,
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0012 3z" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
+
+/** Destek öğesinin gerçek bağlantısı — gerekiyorsa bulunulan ekranı ve alanı ekler. */
+export function supportHref(item: SupportNavItem, pathname: string, currentSpace: string | null): string {
+  if (!item.appendContext) return item.href;
+  const params = new URLSearchParams();
+  if (pathname && !pathname.startsWith("/support") && !pathname.startsWith("/help")) params.set("from", pathname);
+  if (currentSpace) params.set("space", currentSpace);
+  const extra = params.toString();
+  return extra ? `${item.href}&${extra}` : item.href;
+}
+
+/** Yardım/destek ekranlarından birinde mi? (menü vurgusu için) */
+export function isSupportPath(pathname: string): boolean {
+  return pathname === "/help" || pathname.startsWith("/help/") || pathname.startsWith("/support");
+}
+
 /** space parametresi taşınması GEREKEN tüm rotalar (aktif alana göre veri gösterirler). */
 export const SPACE_AWARE_HREFS = new Set([
   HOME_ITEM.href,

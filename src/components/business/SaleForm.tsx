@@ -224,6 +224,7 @@ export function SaleForm({
 
   return (
     <AppShell
+      helpSlug="isletme-islemleri-nasil-takip-edilir"
       variant="subpage"
       title="Satış ekle"
       backFallbackHref={homeHref}

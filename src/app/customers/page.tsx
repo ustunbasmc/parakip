@@ -52,6 +52,7 @@ export default async function CustomersPage({
 
   return (
     <AppShell
+      helpSlug="isletme-islemleri-nasil-takip-edilir"
       title="Müşteriler"
       headerEnd={
         <div className="flex items-center gap-2">

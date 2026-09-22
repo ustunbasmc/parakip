@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Logo } from "./Logo";
-import { PRIMARY_NAV_ITEMS, MORE_COMING_SOON_ITEMS, SPACE_AWARE_HREFS, getVisibleMoreItems } from "./navItems";
+import {
+  PRIMARY_NAV_ITEMS,
+  MORE_COMING_SOON_ITEMS,
+  SPACE_AWARE_HREFS,
+  SUPPORT_NAV_ITEMS,
+  getVisibleMoreItems,
+  supportHref,
+} from "./navItems";
 
 /**
  * Masaüstü sol sabit sidebar — mobildeki BottomNav'ın büyütülmüş hali
@@ -28,7 +35,7 @@ export function Sidebar({ activeSpaceType }: { activeSpaceType?: "home" | "busin
       <div className="px-3 pb-8">
         <Logo />
       </div>
-      <nav aria-label="Ana navigasyon" className="flex min-w-0 flex-col gap-1">
+      <nav aria-label="Ana navigasyon" className="flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -37,6 +44,25 @@ export function Sidebar({ activeSpaceType }: { activeSpaceType?: "home" | "busin
               href={hrefFor(item.href)}
               aria-current={active ? "page" : undefined}
               className={`flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                active ? "bg-accent-soft text-accent" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+              }`}
+            >
+              {item.icon(active)}
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        <p className="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Yardım ve destek</p>
+        {SUPPORT_NAV_ITEMS.map((item) => {
+          const basePath = item.href.split("?")[0];
+          const active = !item.appendContext && (pathname === basePath || pathname.startsWith(basePath + "/"));
+          return (
+            <Link
+              key={item.href}
+              href={supportHref(item, pathname, currentSpace)}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-w-0 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                 active ? "bg-accent-soft text-accent" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
               }`}
             >

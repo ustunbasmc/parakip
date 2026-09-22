@@ -27,15 +27,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin" className="text-sm font-extrabold text-text-primary">
           Parakip Admin
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-medium text-text-secondary">
+        <nav className="flex min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap text-sm font-medium text-text-secondary">
           <Link href="/admin/users" className="hover:text-text-primary">
             Kullanıcılar
           </Link>
           <Link href="/admin/payments" className="hover:text-text-primary">
             Ödeme Talepleri
           </Link>
+          <Link href="/admin/support" className="hover:text-text-primary">
+            Destek
+          </Link>
+          <Link href="/admin/help" className="hover:text-text-primary">
+            Yardım Makaleleri
+          </Link>
         </nav>
-        <Link href="/home" className="ml-auto text-xs font-semibold text-accent">
+        <Link href="/home" className="ml-auto shrink-0 text-xs font-semibold text-accent">
           Uygulamaya dön
         </Link>
       </header>
