@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -13,6 +14,7 @@ import {
   ROLE_LABELS,
   updateSpaceMemberRole,
   type InvitableRole,
+  type MemberQuota,
   type MemberRole,
   type SpaceMember,
 } from "@/lib/api/members-rpc";
@@ -75,6 +77,7 @@ export function MembersManager({
   myUserId,
   members,
   invitations,
+  quota,
 }: {
   spaceId: string;
   spaceName: string;
@@ -83,6 +86,7 @@ export function MembersManager({
   myUserId: string;
   members: SpaceMember[];
   invitations: PendingInvitation[];
+  quota: MemberQuota | null;
 }) {
   const router = useRouter();
   const canManage = myRole === "owner" || myRole === "admin";
@@ -144,18 +148,40 @@ export function MembersManager({
   }
 
   const card = "rounded-2xl border border-border bg-surface p-4";
+  // Ücretsiz plan: sahip dışı üye + bekleyen davet sınırı (veritabanında da uygulanır, bkz. 0066).
+  const atLimit = quota !== null && quota.limit !== null && quota.used >= quota.limit;
+  const quotaNote =
+    quota && quota.limit !== null ? (
+      <p className="text-xs text-text-muted">
+        Ücretsiz plan: alan sahibi dışında {quota.used}/{quota.limit} üye (bekleyen davetler dahil). Premium&apos;da sınırsız.
+      </p>
+    ) : null;
 
   return (
     <div className="flex flex-col gap-4 pt-3 pb-6">
       {error ? <ErrorBanner message={error} /> : null}
 
-      {canManage && !isArchived ? (
+      {canManage && !isArchived && atLimit ? (
+        <div className={`${card} flex flex-col gap-2`}>
+          <p className="text-sm font-bold text-text-primary">Üye sınırına ulaştın</p>
+          <p className="text-xs text-text-secondary">
+            Ücretsiz planda alan sahibi dışında {quota?.limit} kişi eklenebilir (bekleyen davetler dahil). Daha fazla kişiyle
+            birlikte kullanmak için Premium&apos;a geç ya da bekleyen bir daveti geri çek.
+          </p>
+          <Link href={`/settings/plan?space=${spaceId}`} className="w-fit rounded-full bg-accent px-4 py-2 text-sm font-bold text-text-on-accent">
+            Premium&apos;u incele
+          </Link>
+        </div>
+      ) : null}
+
+      {canManage && !isArchived && !atLimit ? (
         <form onSubmit={handleInvite} className={`${card} flex flex-col gap-3`}>
           <div>
             <p className="text-sm font-bold text-text-primary">Üye davet et</p>
             <p className="mt-0.5 text-xs text-text-muted">
               Davet ettiğin kişi aynı e-posta adresiyle Parakip&apos;e giriş yapıp daveti kabul edince bu alanı görmeye başlar.
             </p>
+            {quotaNote ? <div className="mt-1">{quotaNote}</div> : null}
           </div>
           <TextField
             label="E-posta"

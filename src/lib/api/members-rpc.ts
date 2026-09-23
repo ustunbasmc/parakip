@@ -141,3 +141,17 @@ export function friendlyMemberError(error: { message?: string; code?: string } |
   if (/[çğıöşüÇĞİÖŞÜ]/.test(m) || /^(Bu |Geçerli|Geçersiz|Alan|Oturum|Üye|Yönetici|Kendini)/.test(m)) return m;
   return "İşlem gerçekleştirilemedi. Lütfen tekrar dene.";
 }
+
+export interface MemberQuota {
+  /** Sahip dışı üyeler + bekleyen davetler. */
+  used: number;
+  /** null = sınırsız (Premium). */
+  limit: number | null;
+}
+
+export async function getSpaceMemberQuota(supabase: SupabaseClient, spaceId: string): Promise<MemberQuota | null> {
+  const { data, error } = await supabase.rpc("get_space_member_quota", { p_space_id: spaceId });
+  if (error) return null;
+  const r = (data ?? [])[0] as { used: number; member_limit: number | null } | undefined;
+  return r ? { used: r.used, limit: r.member_limit } : null;
+}

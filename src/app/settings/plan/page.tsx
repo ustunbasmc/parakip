@@ -6,12 +6,10 @@ import { BankTransferCard } from "@/components/settings/BankTransferCard";
 import { PlanComparisonTable } from "@/components/settings/PlanComparisonTable";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getHomePlanInfo, getBusinessPlanInfo, HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
+import { FREE_EXTRA_MEMBER_LIMIT, getPlanPrices } from "@/lib/plans/pricing";
+import { getSpaceMemberQuota } from "@/lib/api/members-rpc";
 
 /** BankTransferCard sayısal (tam TL) tutar bekliyor — env değerleri kuruş değil TL, ondalık nokta ile. */
-function priceEnvAsNumber(envValue: string | undefined, fallback: number): number {
-  const num = Number(envValue);
-  return !envValue || Number.isNaN(num) ? fallback : Math.round(num);
-}
 
 export default async function PlanPage({
   searchParams,
@@ -47,10 +45,31 @@ export default async function PlanPage({
     // Sessizce boş bırakılır — aşağıda hata durumu gösterilir.
   }
 
-  const homeMonthlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_HOME_MONTHLY_PRICE_TRY, 99);
-  const homeYearlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_HOME_YEARLY_PRICE_TRY, 990);
-  const businessMonthlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_BUSINESS_MONTHLY_PRICE_TRY, 249);
-  const businessYearlyPriceNum = priceEnvAsNumber(process.env.SHOPIER_BUSINESS_YEARLY_PRICE_TRY, 2490);
+  const prices = getPlanPrices();
+  const homeMonthlyPriceNum = prices.homeMonthly;
+  const homeYearlyPriceNum = prices.homeYearly;
+  const businessMonthlyPriceNum = prices.businessMonthly;
+  const businessYearlyPriceNum = prices.businessYearly;
+
+  // Üye kotası (sahip dışı üyeler + bekleyen davetler); sınır veritabanında uygulanır (0066).
+  const memberQuota = await getSpaceMemberQuota(supabase, activeSpace.id);
+  const memberRow = { label: "Ekstra üye (sahip dışı)", free: `${FREE_EXTRA_MEMBER_LIMIT}`, premium: "Sınırsız" };
+  const memberUsage = memberQuota ? (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-semibold text-text-secondary">Ekstra üye</span>
+        <span className="text-text-secondary">
+          {memberQuota.limit === null ? `${memberQuota.used} · Sınırsız (Premium)` : `${memberQuota.used} / ${memberQuota.limit}`}
+        </span>
+      </div>
+      {memberQuota.limit !== null ? (
+        <p className="mt-1 text-xs text-text-muted">
+          Ücretsiz planda alan sahibi dışında {memberQuota.limit} kişi (bekleyen davetler dahil) eklenebilir.
+          {memberQuota.used >= memberQuota.limit ? " Sınıra ulaştın; daha fazla üye için Premium'a geçebilirsin." : ""}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
 
   // Banka havalesi bilgileri — [BANKA_HESAP_SAHIBI]/[IBAN]/[BANKA_ADI]
   // env değişkenleri TANIMLI DEĞİLSE dürüst bir yer tutucu gösterilir
@@ -132,10 +151,12 @@ export default async function PlanPage({
                 )}
               </div>
 
+              {memberUsage}
+
               {!homeInfo.isPremium ? (
                 <>
                   <PlanComparisonTable
-                    rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }]}
+                    rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }, memberRow]}
                   />
                   {ownerUserId === user.id ? (
                     <BankTransferCard
@@ -152,7 +173,7 @@ export default async function PlanPage({
                     <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
                       <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
                       <p className="mt-1 text-xs text-text-muted">
-                        Sınırsız hesap. Yalnızca bu alanın sahibi satın alabilir.
+                        Sınırsız hesap ve sınırsız üye. Yalnızca bu alanın sahibi satın alabilir.
                       </p>
                     </div>
                   )}
@@ -205,14 +226,19 @@ export default async function PlanPage({
               </div>
             </div>
 
+            {memberUsage}
+
             {!businessInfo.hasActiveSubscription ? (
               <>
                 <PlanComparisonTable
-                  rows={businessInfo.limits.map((l) => ({
-                    label: l.label,
-                    free: l.limit === null ? "Sınırsız" : `${l.limit}`,
-                    premium: "Sınırsız",
-                  }))}
+                  rows={[
+                    ...businessInfo.limits.map((l) => ({
+                      label: l.label,
+                      free: l.limit === null ? "Sınırsız" : `${l.limit}`,
+                      premium: "Sınırsız",
+                    })),
+                    memberRow,
+                  ]}
                 />
                 <BankTransferCard
                   userId={user.id}

@@ -2,6 +2,12 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { InstallAppButton } from "@/components/InstallAppButton";
 import {
+  BUSINESS_FREE_LIMITS,
+  FREE_EXTRA_MEMBER_LIMIT,
+  HOME_FREE_ACCOUNT_LIMIT,
+  getPlanPrices,
+} from "@/lib/plans/pricing";
+import {
   WalletIcon,
   ArrowUpRightIcon,
   ArrowDownRightIcon,
@@ -36,13 +42,25 @@ const NAV_LINKS = [
  * Oturum açmamış ziyaretçiler için SEO'ya uygun, profesyonel tanıtım
  * sayfası. Sunucu bileşenidir (etkileşim gerektirmez, arama motorları
  * tam içeriği görebilir; anchor linkler dışında JS gerekmez). Yalnızca
- * GERÇEKTEN VAR OLAN özellikler anlatılır — "Yapay zekâ" ve ücretli
- * abonelik açıkça "yakında" olarak işaretlenir (henüz gerçek bir ödeme
- * altyapısı yok). Renkler tamamen mevcut CSS token sisteminden
+ * GERÇEKTEN VAR OLAN özellikler anlatılır — "Yapay zekâ" açıkça "yakında"
+ * olarak işaretlenir. Fiyatlar ve ücretsiz plan limitleri, uygulamanın
+ * plan ekranıyla AYNI kaynaktan (lib/plans/pricing.ts) okunur. Renkler tamamen mevcut CSS token sisteminden
  * (globals.css) gelir — Gece Modu zaten "koyu gece mavisi + turkuaz"
  * marka kimliğidir, buraya özel yeni bir renk EKLENMEDİ.
  */
+const tl = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 });
+
+function PlanItem({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
+  return (
+    <li className="flex items-start gap-2">
+      <CheckIcon size={15} className={`mt-0.5 shrink-0 ${muted ? "text-text-muted" : "text-accent"}`} />
+      <span>{children}</span>
+    </li>
+  );
+}
+
 export function LandingPage() {
+  const prices = getPlanPrices();
   return (
     <div className="min-h-dvh bg-bg">
       <header className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
@@ -164,8 +182,8 @@ export function LandingPage() {
                 </span>
                 <h3 className="mb-2 text-lg font-bold text-text-primary">İşletmeler için</h3>
                 <p className="text-sm text-text-secondary">
-                  Kişisel finansından tamamen ayrı bir işletme alanı oluştur; ekip üyelerini rolleriyle (sahip,
-                  yönetici, editör) davet et, birlikte yönetin.
+                  Kişisel finansından tamamen ayrı bir işletme alanı oluştur; ekip üyelerini rolleriyle (yönetici,
+                  düzenleyici, izleyici) davet et, birlikte yönetin.
                 </p>
               </div>
             </div>
@@ -217,43 +235,78 @@ export function LandingPage() {
             <ul className="flex flex-col gap-3 text-sm text-text-secondary">
               <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Satır düzeyinde erişim kontrolü (RLS)</li>
               <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Finansal kayıtlar asla fiziksel olarak silinmez — yalnızca iptal edilir</li>
-              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Rol bazlı yetkilendirme (sahip / yönetici / editör)</li>
+              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Rol bazlı yetkilendirme (sahip / yönetici / düzenleyici / izleyici)</li>
               <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Her önemli işlem denetim kaydına yazılır</li>
             </ul>
           </div>
         </section>
 
         {/* FİYATLANDIRMA */}
-        <section className="mx-auto max-w-4xl px-6 py-16 text-center" id="fiyatlandirma">
-          <h2 className="mb-3 text-2xl font-bold text-text-primary sm:text-3xl">Fiyatlandırma</h2>
-          <p className="mx-auto mb-10 max-w-lg text-text-secondary">
-            Temel Ev ve İşletme alanları ücretsizdir. Gelişmiş ekip ve raporlama özellikleri içeren ücretli plan
-            üzerinde çalışıyoruz.
-          </p>
-          <div className="mx-auto grid max-w-2xl gap-6 sm:grid-cols-2">
-            <div className="rounded-2xl border-2 border-accent bg-surface p-7 text-left">
-              <p className="text-sm font-bold text-accent">Ücretsiz</p>
+        <section className="mx-auto max-w-6xl px-6 py-16" id="fiyatlandirma">
+          <div className="text-center">
+            <h2 className="mb-3 text-2xl font-bold text-text-primary sm:text-3xl">Fiyatlandırma</h2>
+            <p className="mx-auto mb-10 max-w-xl text-text-secondary">
+              Ücretsiz başla, ihtiyacın büyüdüğünde alan bazında Premium&apos;a geç. Otomatik yenileme yoktur; kartla
+              (Shopier) veya havale/EFT ile ödeyebilirsin.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="flex flex-col rounded-2xl border border-border bg-surface p-7">
+              <p className="text-sm font-bold text-text-secondary">Ücretsiz</p>
               <p className="mt-1 text-3xl font-extrabold text-text-primary">₺0</p>
-              <ul className="mt-4 flex flex-col gap-2 text-sm text-text-secondary">
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-accent" /> Sınırsız Ev ve İşletme alanı</li>
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-accent" /> Gelir-gider, borç-alacak, bütçe, yatırım takibi</li>
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-accent" /> Raporlar</li>
+              <p className="mt-1 text-xs text-text-muted">Süre sınırı yok</p>
+              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
+                <PlanItem>Gelir-gider, borç-alacak, bütçe ve yatırım takibi</PlanItem>
+                <PlanItem>Raporlar, CSV ve PDF dışa aktarma</PlanItem>
+                <PlanItem>Ev alanında {HOME_FREE_ACCOUNT_LIMIT} hesap</PlanItem>
+                <PlanItem>
+                  İşletme alanında {BUSINESS_FREE_LIMITS.accounts} hesap, ayda {BUSINESS_FREE_LIMITS.monthlyTransactions} işlem,{" "}
+                  {BUSINESS_FREE_LIMITS.debts} borç/alacak, {BUSINESS_FREE_LIMITS.customers} müşteri ve {BUSINESS_FREE_LIMITS.suppliers} tedarikçi
+                </PlanItem>
+                <PlanItem>Her alanda sen + {FREE_EXTRA_MEMBER_LIMIT} üye</PlanItem>
               </ul>
-              <Link href="/sign-up" className="mt-6 block rounded-xl bg-accent py-2.5 text-center text-sm font-bold text-text-on-accent">
+              <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
                 Ücretsiz başla
               </Link>
             </div>
-            <div className="rounded-2xl border border-border bg-surface p-7 text-left opacity-80">
-              <p className="text-sm font-bold text-text-muted">Premium — Yakında</p>
-              <p className="mt-1 text-3xl font-extrabold text-text-primary">—</p>
-              <ul className="mt-4 flex flex-col gap-2 text-sm text-text-secondary">
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-text-muted" /> Genişletilmiş ekip yönetimi</li>
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-text-muted" /> Yapay zekâ destekli içgörüler</li>
-                <li className="flex items-center gap-2"><CheckIcon size={15} className="text-text-muted" /> CSV/PDF dışa aktarma</li>
-              </ul>
-              <span className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-semibold text-text-muted">
-                Fiyat henüz açıklanmadı
+
+            <div className="relative flex flex-col rounded-2xl border-2 border-accent bg-surface p-7">
+              <span className="absolute -top-3 left-7 rounded-full bg-accent px-3 py-0.5 text-[11px] font-bold text-text-on-accent">
+                Aileler için
               </span>
+              <p className="text-sm font-bold text-accent">Ev Premium</p>
+              <p className="mt-1 text-3xl font-extrabold text-text-primary">
+                {tl.format(prices.homeMonthly)}
+                <span className="text-base font-semibold text-text-muted">/ay</span>
+              </p>
+              <p className="mt-1 text-xs text-text-muted">veya yıllık {tl.format(prices.homeYearly)}</p>
+              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
+                <PlanItem>Ücretsiz plandaki her şey</PlanItem>
+                <PlanItem>Ev alanında sınırsız hesap</PlanItem>
+                <PlanItem>Sınırsız üye — ailenle birlikte kullan</PlanItem>
+                <PlanItem>Tüm aile üyeleri Premium&apos;dan yararlanır</PlanItem>
+              </ul>
+              <Link href="/sign-up" className="mt-6 block rounded-xl bg-accent py-2.5 text-center text-sm font-bold text-text-on-accent">
+                Ücretsiz başla, sonra yükselt
+              </Link>
+            </div>
+
+            <div className="flex flex-col rounded-2xl border border-border bg-surface p-7">
+              <p className="text-sm font-bold text-text-secondary">İşletme Premium</p>
+              <p className="mt-1 text-3xl font-extrabold text-text-primary">
+                {tl.format(prices.businessMonthly)}
+                <span className="text-base font-semibold text-text-muted">/ay</span>
+              </p>
+              <p className="mt-1 text-xs text-text-muted">veya yıllık {tl.format(prices.businessYearly)} · işletme alanı başına</p>
+              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
+                <PlanItem>Ücretsiz plandaki her şey</PlanItem>
+                <PlanItem>Sınırsız hesap, işlem ve borç/alacak</PlanItem>
+                <PlanItem>Sınırsız müşteri ve tedarikçi</PlanItem>
+                <PlanItem>Sınırsız ekip üyesi, rol bazlı yetki</PlanItem>
+              </ul>
+              <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
+                Ücretsiz başla, sonra yükselt
+              </Link>
             </div>
           </div>
         </section>

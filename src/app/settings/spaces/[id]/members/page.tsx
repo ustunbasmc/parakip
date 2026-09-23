@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { getManagedSpaces } from "@/lib/dashboard/formData";
-import { getSpaceMembers, type InvitableRole } from "@/lib/api/members-rpc";
+import { getSpaceMemberQuota, getSpaceMembers, type InvitableRole } from "@/lib/api/members-rpc";
 import { MembersManager, type PendingInvitation } from "@/components/spaces/MembersManager";
 
 /** Sayfa isteği anında süresi dolmuş mu (render dışında hesaplanır). */
@@ -28,8 +28,9 @@ export default async function SpaceMembersPage({ params }: { params: Promise<{ i
   if (!space) notFound();
 
   const canManage = space.role === "owner" || space.role === "admin";
-  const [members, invitations] = await Promise.all([
+  const [members, quota, invitations] = await Promise.all([
     getSpaceMembers(supabase, id).catch(() => []),
+    getSpaceMemberQuota(supabase, id),
     canManage
       ? supabase
           .from("space_invitations")
@@ -61,6 +62,7 @@ export default async function SpaceMembersPage({ params }: { params: Promise<{ i
         myUserId={user.id}
         members={members}
         invitations={pending}
+        quota={quota}
       />
     </AppShell>
   );

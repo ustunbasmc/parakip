@@ -10,11 +10,11 @@ type PlanKind = "home_premium" | "business";
 const COPY: Record<PlanKind, { title: string; description: string }> = {
   home_premium: {
     title: "Ev Premium satın al",
-    description: "Sınırsız hesap ve genişletilmiş özellikler. Yalnızca bu alanın sahibi satın alabilir.",
+    description: "Sınırsız hesap ve sınırsız üye (aile bireylerini ekle). Yalnızca bu alanın sahibi satın alabilir.",
   },
   business: {
     title: "İşletme Premium satın al",
-    description: "Sınırsız hesap, işlem, borç/alacak, müşteri ve tedarikçi kaydı.",
+    description: "Sınırsız hesap, işlem, borç/alacak, müşteri, tedarikçi kaydı ve sınırsız ekip üyesi.",
   },
 };
 
