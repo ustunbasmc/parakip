@@ -70,3 +70,39 @@ export async function cancelTransactionAsAdmin(transactionId: string, spaceIdFor
 
   revalidatePath(`/admin/spaces/${spaceIdForRevalidate}`);
 }
+
+/**
+ * Hesabı askıya alır / askıyı kaldırır (Supabase Auth ban). Kullanıcının
+ * verisine DOKUNMAZ — yalnızca girişi engeller. Admin kendini veya başka
+ * bir platform admin'ini askıya alamaz; silme işlemi tamamlanmış hesabın
+ * askısı kaldırılamaz (anonimleştirilmiş hesap geri açılmaz).
+ */
+export async function setUserBan(targetUserId: string, banned: boolean, reason: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await assertAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) return { ok: false, error: "Geçersiz kullanıcı." };
+  if (targetUserId === admin.id) return { ok: false, error: "Kendi hesabını askıya alamazsın." };
+
+  const supabase = getAdminDbClient();
+  const { data: isTargetAdmin } = await supabase.rpc("is_platform_admin", { p_user_id: targetUserId });
+  if (banned && isTargetAdmin) return { ok: false, error: "Platform admin'i askıya alınamaz." };
+
+  if (!banned) {
+    const { data: profile } = await supabase.from("profiles").select("deletion_completed_at").eq("user_id", targetUserId).maybeSingle();
+    if (profile?.deletion_completed_at) return { ok: false, error: "Silinmiş (anonimleştirilmiş) hesabın askısı kaldırılamaz." };
+  }
+
+  const { error } = await supabase.auth.admin.updateUserById(targetUserId, { ban_duration: banned ? "876000h" : "none" });
+  if (error) return { ok: false, error: error.message };
+
+  await logAdminAction({
+    adminUserId: admin.id,
+    action: banned ? "user_ban" : "user_unban",
+    entityType: "user",
+    entityId: targetUserId,
+    detail: { reason: reason.trim().slice(0, 300) || null },
+  });
+
+  revalidatePath(`/admin/users/${targetUserId}`);
+  revalidatePath("/admin/users");
+  return { ok: true };
+}

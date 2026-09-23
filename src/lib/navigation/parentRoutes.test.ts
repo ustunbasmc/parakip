@@ -19,7 +19,9 @@ test("getParentHref: hiyerarşik geri rotaları", () => {
     ["/admin/help/abc", "/admin/help"],
     ["/admin/help/categories", "/admin/help"],
     ["/settings/notifications", "/settings"],
-    ["/admin/spaces/abc", "/admin/users"],
+    ["/admin/spaces/abc", "/admin/spaces"],
+    ["/admin/subscriptions", "/admin"],
+    ["/admin/audit", "/admin"],
   ];
   for (const [path, parent] of cases) assert.equal(getParentHref(path), parent, path);
 });

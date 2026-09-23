@@ -31,18 +31,17 @@ export function AdminUserEditForm({
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
-      <p className="text-sm font-semibold text-text-primary">Profili düzenle</p>
+    <form action={handleSubmit} className="flex flex-col gap-3">
       {message ? (
         <p className={`text-xs ${message.type === "success" ? "text-success" : "text-danger"}`}>{message.text}</p>
       ) : null}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
           <label className="text-xs font-medium text-text-secondary">Ad</label>
           <input
             name="firstName"
             defaultValue={firstName ?? ""}
-            className="mt-1 h-10 w-full rounded-xl border border-border bg-bg px-3 text-sm"
+            className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-primary"
           />
         </div>
         <div className="flex-1">
@@ -50,7 +49,7 @@ export function AdminUserEditForm({
           <input
             name="lastName"
             defaultValue={lastName ?? ""}
-            className="mt-1 h-10 w-full rounded-xl border border-border bg-bg px-3 text-sm"
+            className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-primary"
           />
         </div>
       </div>
@@ -59,7 +58,7 @@ export function AdminUserEditForm({
         <input
           name="phone"
           defaultValue={phone ?? ""}
-          className="mt-1 h-10 w-full rounded-xl border border-border bg-bg px-3 text-sm"
+          className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-primary"
         />
       </div>
       <button

@@ -32,7 +32,7 @@ export default async function AdminEditArticlePage({ params }: { params: Promise
           </Link>
         ) : null}
       </div>
-      <h1 className="text-xl font-extrabold text-text-primary">Makaleyi düzenle</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight text-text-primary">Makaleyi düzenle</h1>
       <AdminArticleForm
         key={article.id}
         categories={categories ?? []}

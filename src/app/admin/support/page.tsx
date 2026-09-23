@@ -62,7 +62,7 @@ export default async function AdminSupportPage({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-xl font-extrabold text-text-primary">Destek Talepleri</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-text-primary">Destek Talepleri</h1>
         <p className="mt-1 text-sm text-text-muted">Öncelik talep türüne göre sistem tarafından atanır.</p>
       </div>
 

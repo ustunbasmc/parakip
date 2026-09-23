@@ -110,7 +110,7 @@ export async function adminReplyToTicket(input: {
   });
 
   revalidatePath(`/admin/support/${ticket.id}`);
-  revalidatePath("/admin/support");
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }
 
@@ -136,7 +136,7 @@ export async function adminSetTicketStatus(ticketId: string, status: string): Pr
   });
 
   revalidatePath(`/admin/support/${ticketId}`);
-  revalidatePath("/admin/support");
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }
 

@@ -35,7 +35,6 @@ const PARENT_RULES: [RegExp, string][] = [
   [/^\/settings\/.+$/, "/settings"],
 
   // Admin
-  [/^\/admin\/spaces\/.+$/, "/admin/users"],
   [/^\/admin\/([^/]+)\/.+$/, "/admin/$1"],
   [/^\/admin\/.+$/, "/admin"],
   [/^\/admin$/, "/home"],

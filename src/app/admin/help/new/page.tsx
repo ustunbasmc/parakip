@@ -10,7 +10,7 @@ export default async function AdminNewArticlePage() {
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <AdminBackLink href="/admin/help" label="Tüm makaleler" />
-      <h1 className="text-xl font-extrabold text-text-primary">Yeni makale</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight text-text-primary">Yeni makale</h1>
       <AdminArticleForm
         categories={categories ?? []}
         initial={{

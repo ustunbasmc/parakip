@@ -37,7 +37,7 @@ export default async function AdminHelpCategoriesPage() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-text-primary">Yardım Kategorileri</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-text-primary">Yardım Kategorileri</h1>
           <p className="mt-1 text-sm text-text-muted">
             Pasif kategoriler ve içindeki makaleler Yardım Merkezi&apos;nde görünmez. Kategoriler silinmez, pasife alınır.
           </p>

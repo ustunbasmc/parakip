@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { getCurrentUserAndAdminStatus } from "@/lib/admin/auth";
+import { getAdminDbClient, getCurrentUserAndAdminStatus } from "@/lib/admin/auth";
+import { AdminShell } from "@/components/admin/AdminShell";
+
+export const metadata = { title: "Admin | Parakip", robots: { index: false, follow: false } };
 
 /**
  * /admin altındaki TÜM sayfaların TEK, merkezi koruma noktası. Bu
@@ -8,12 +10,12 @@ import { getCurrentUserAndAdminStatus } from "@/lib/admin/auth";
  * ek DB sorgusu yapmaz ilkesi) burada, server component'te yapılır.
  *
  * Oturum yoksa normal "/welcome'a yönlendir" kuralı zaten proxy.ts'te
- * devrede (bu layout'a /admin PUBLIC_PATHS'e EKLENMEDİĞİ için oturumsuz
- * hiç ulaşamaz) — burada YALNIZCA "oturumu olan ama platform admin'i
- * OLMAYAN" kullanıcıyı engelliyoruz. Admin OLMAYAN bir kullanıcıya
- * "/admin var" bilgisini bile SIZDIRMAMAK için 404 (notFound)
- * kullanılır — 403 kullanmak "böyle bir sayfa var ama yetkin yok"
- * bilgisini verir, bu daha az bilgi sızdıran bir tercihtir.
+ * devrede — burada YALNIZCA "oturumu olan ama platform admin'i OLMAYAN"
+ * kullanıcıyı engelliyoruz. Admin OLMAYAN bir kullanıcıya "/admin var"
+ * bilgisini bile SIZDIRMAMAK için 404 (notFound) kullanılır.
+ *
+ * NOT: Server Action'lar bu layout'tan GEÇMEZ — her aksiyon kendi
+ * içinde assertAdmin() yapar.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin } = await getCurrentUserAndAdminStatus();
@@ -21,31 +23,27 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect("/welcome");
   if (!isAdmin) notFound();
 
+  // Menü rozetleri — sayım hatası paneli kilitlemesin diye 0'a düşer.
+  const supabase = getAdminDbClient();
+  const [payments, support, deletions] = await Promise.all([
+    supabase.from("manual_payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["open", "in_review"]),
+    supabase
+      .from("profiles")
+      .select("user_id", { count: "exact", head: true })
+      .not("deletion_requested_at", "is", null)
+      .is("deletion_completed_at", null),
+  ]);
+
   return (
-    <div className="min-h-dvh bg-bg">
-      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg-elevated px-5 py-3">
-        <Link href="/admin" className="text-sm font-extrabold text-text-primary">
-          Parakip Admin
-        </Link>
-        <nav className="flex min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap text-sm font-medium text-text-secondary">
-          <Link href="/admin/users" className="hover:text-text-primary">
-            Kullanıcılar
-          </Link>
-          <Link href="/admin/payments" className="hover:text-text-primary">
-            Ödeme Talepleri
-          </Link>
-          <Link href="/admin/support" className="hover:text-text-primary">
-            Destek
-          </Link>
-          <Link href="/admin/help" className="hover:text-text-primary">
-            Yardım Makaleleri
-          </Link>
-        </nav>
-        <Link href="/home" className="ml-auto shrink-0 text-xs font-semibold text-accent">
-          Uygulamaya dön
-        </Link>
-      </header>
-      <main className="mx-auto max-w-6xl px-5 py-6">{children}</main>
-    </div>
+    <AdminShell
+      adminEmail={user.email ?? null}
+      badges={{ payments: payments.count ?? 0, support: support.count ?? 0, deletions: deletions.count ?? 0 }}
+    >
+      {children}
+    </AdminShell>
   );
 }

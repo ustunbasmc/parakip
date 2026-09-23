@@ -89,7 +89,7 @@ export async function approvePaymentRequest(requestId: string) {
     detail: { plan: request.plan, period: request.period, spaceId: request.space_id },
   });
 
-  revalidatePath("/admin/payments");
+  revalidatePath("/admin", "layout");
 }
 
 export async function rejectPaymentRequest(requestId: string, adminNote: string) {
@@ -110,5 +110,5 @@ export async function rejectPaymentRequest(requestId: string, adminNote: string)
     entityId: requestId,
   });
 
-  revalidatePath("/admin/payments");
+  revalidatePath("/admin", "layout");
 }
