@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { PurchaseForm } from "@/components/business/PurchaseForm";
 import { getAccountsForBook, getCategoriesForBook } from "@/lib/dashboard/formData";
 import { getSuppliers } from "@/lib/dashboard/customers";
@@ -10,9 +10,7 @@ export default async function NewPurchasePage({
   searchParams: Promise<{ book_id?: string; space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) redirect("/welcome");
 

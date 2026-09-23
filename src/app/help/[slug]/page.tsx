@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ArticleFeedback } from "@/components/help/ArticleFeedback";
 import { ArticleListItem } from "@/components/help/ArticleListItem";
@@ -20,9 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function HelpArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { slug } = await params;

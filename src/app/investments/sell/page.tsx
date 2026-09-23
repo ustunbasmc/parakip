@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { InvestmentSellForm } from "@/components/investments/InvestmentSellForm";
 import { getAccountsForBook } from "@/lib/dashboard/formData";
 import { getPortfolioForBook, getHoldings } from "@/lib/dashboard/investments";
 
 export default async function InvestmentSellPage({ searchParams }: { searchParams: Promise<{ book_id?: string; space?: string }> }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { book_id: bookId, space } = await searchParams;

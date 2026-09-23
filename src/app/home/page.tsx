@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
@@ -63,9 +63,7 @@ export default async function HomePage({
   searchParams: Promise<{ space?: string; period?: string; from?: string; to?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) {
     redirect("/welcome");

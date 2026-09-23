@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AccountForm } from "@/components/accounts/AccountForm";
 
 export default async function NewAccountPage({
@@ -8,9 +8,7 @@ export default async function NewAccountPage({
   searchParams: Promise<{ book_id?: string; space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) redirect("/welcome");
 

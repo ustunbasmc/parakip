@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { getProfileHeaderInfo } from "@/lib/avatars";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
@@ -17,9 +17,7 @@ export default async function CustomersPage({
   searchParams: Promise<{ space?: string; archived?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) redirect("/welcome");
 

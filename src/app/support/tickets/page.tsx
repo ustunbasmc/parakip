@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 import { TICKET_TYPE_LABELS, formatSupportDate, formatTicketNumber, isTicketType } from "@/lib/support/constants";
@@ -9,9 +9,7 @@ export const metadata = { title: "Destek Taleplerim | Parakip" };
 
 export default async function MyTicketsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   // RLS: yalnızca kullanıcının KENDİ talepleri döner. user_id filtresi

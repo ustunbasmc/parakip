@@ -2,7 +2,7 @@ import Link from "next/link";
 import { NewBudgetButton } from "@/components/budgets/NewBudgetButton";
 import { CopyBudgetsButton, type CopyCandidate } from "@/components/budgets/CopyBudgetsButton";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
@@ -19,9 +19,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 export default async function BudgetsPage({ searchParams }: { searchParams: Promise<{ space?: string; month?: string }> }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const [profileHeader, spaces] = await Promise.all([

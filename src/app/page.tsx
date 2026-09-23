@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 /**
@@ -28,9 +28,7 @@ export const metadata: Metadata = {
 
 export default async function RootPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) {
     return <LandingPage />;

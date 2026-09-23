@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { ProfileSettingsView } from "@/components/settings/ProfileSettingsView";
 import { getSignedAvatarUrl } from "@/lib/avatars";
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { data: profile } = await supabase

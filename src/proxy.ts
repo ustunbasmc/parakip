@@ -29,7 +29,19 @@ const PUBLIC_PATHS = [
 // vb.) hem oturum AÇIK hem oturum KAPALI kullanıcılar için erişilebilir
 // olmalıdır — ne "oturum yoksa /welcome'a at" ne "oturum varsa /'e at"
 // kuralına tabidir.
-const AUTH_REDIRECT_EXEMPT = ["/update-password", "/api", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/legal"];
+// /offline ve /sw.js: service worker kurulumda çevrimdışı sayfasını ve
+// kendi dosyasını OTURUMDAN BAĞIMSIZ indirir; yönlendirme alırsa
+// çevrimdışı kabuğu hiç çalışmaz. /offline hiçbir kullanıcı verisi içermez.
+const AUTH_REDIRECT_EXEMPT = [
+  "/update-password",
+  "/api",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.webmanifest",
+  "/legal",
+  "/offline",
+  "/sw.js",
+];
 
 /**
  * Rota koruması: yalnızca "oturum açık mı" seviyesinde. Onboarding

@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { getAccountWithBalance, getUserRoleForBook } from "@/lib/dashboard/formData";
 import { getTransactionHistory } from "@/lib/dashboard/transactionHistory";
 import { AccountDetailView } from "@/components/accounts/AccountDetailView";
@@ -12,9 +12,7 @@ export default async function AccountDetailPage({
   searchParams: Promise<{ space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) redirect("/welcome");
 

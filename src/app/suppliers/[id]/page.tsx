@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { PartyDetailView } from "@/components/parties/PartyDetailView";
 import { getSupplierDetail } from "@/lib/dashboard/customers";
 
@@ -11,9 +11,7 @@ export default async function SupplierDetailPage({
   searchParams: Promise<{ space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { id } = await params;

@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { BudgetDetailView } from "@/components/budgets/BudgetDetailView";
 import { getBudgetDetail } from "@/lib/dashboard/budgets";
 import { getUserRoleForBook } from "@/lib/dashboard/formData";
@@ -12,9 +12,7 @@ export default async function BudgetDetailPage({
   searchParams: Promise<{ space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { id } = await params;

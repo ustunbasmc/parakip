@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { CategoryManagementView } from "@/components/settings/CategoryManagementView";
@@ -18,9 +18,7 @@ export default async function CategoriesSettingsPage({
   searchParams: Promise<{ space?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const spaces = await getUserSpacesBasic(supabase);

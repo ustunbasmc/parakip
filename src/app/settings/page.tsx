@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SETTINGS_LINKS, settingsHref } from "@/components/settings/settingsLinks";
 import { SparkleIcon } from "@/components/icons";
@@ -14,9 +14,7 @@ export const metadata = { title: "Ayarlar | Parakip" };
  */
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ space?: string }> }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { space } = await searchParams;

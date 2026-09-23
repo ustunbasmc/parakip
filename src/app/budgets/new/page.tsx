@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { BudgetForm } from "@/components/budgets/BudgetForm";
 import { getCategoriesForBook } from "@/lib/dashboard/formData";
 import { getExistingBudgetKeys } from "@/lib/dashboard/budgets";
@@ -7,9 +7,7 @@ import { parseMonthParam, shiftMonthIso, zonedMonthIso } from "@/lib/format/tz";
 
 export default async function NewBudgetPage({ searchParams }: { searchParams: Promise<{ book_id?: string; space?: string; month?: string }> }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const { book_id: bookId, space, month } = await searchParams;

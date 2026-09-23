@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { ThemeSync } from "@/lib/theme/ThemeSync";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ConnectivityLayer } from "@/components/ConnectivityLayer";
 
 // NOT: next/font/google (Geist) kasıtlı olarak KULLANILMIYOR — bkz. eski
 // yorum satırları (git geçmişi); sistem font yığını + self-hosted Manrope
@@ -32,8 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeSync />
+          <ConnectivityLayer />
           {children}
         </ThemeProvider>
+        {/* Gerçek kullanıcı sayfa hızı ölçümü (Vercel Speed Insights). */}
+        <SpeedInsights />
       </body>
     </html>
   );

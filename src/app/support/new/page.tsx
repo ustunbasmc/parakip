@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { SupportTicketForm } from "@/components/support/SupportTicketForm";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { isTicketType, matchScreen, SUBJECT_MAX } from "@/lib/support/constants";
@@ -12,9 +12,7 @@ export default async function NewSupportTicketPage({
   searchParams: Promise<{ type?: string; article?: string; from?: string; space?: string; subject?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const params = await searchParams;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { HelpSearchBox } from "@/components/help/HelpSearchBox";
 import { ArticleListItem, ChevronRightIcon } from "@/components/help/ArticleListItem";
@@ -29,9 +29,7 @@ export default async function HelpCenterPage({
   searchParams: Promise<{ q?: string; category?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
   if (!user) redirect("/welcome");
 
   const params = await searchParams;

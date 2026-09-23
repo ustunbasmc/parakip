@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ArrowUpRightIcon, ArrowDownRightIcon, TransferIcon } from "@/components/icons";
 import { IncomeExpenseForm } from "@/components/forms/IncomeExpenseForm";
@@ -18,9 +18,7 @@ export default async function AddTransactionPage({
   searchParams: Promise<{ type?: string; book_id?: string; space?: string; business_kind?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = await getSessionUser(supabase);
 
   if (!user) {
     redirect("/welcome");

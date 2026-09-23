@@ -39,3 +39,30 @@ export async function createClient() {
     }
   );
 }
+
+export interface SessionUser {
+  id: string;
+  email: string | null;
+}
+
+/**
+ * Sayfalar (Server Component) için oturum sahibini döndürür.
+ *
+ * PERFORMANS: getUser() her çağrıda Supabase Auth sunucusuna ağ isteği
+ * atar. getClaims() ise JWT'yi projenin asimetrik (ES256) imzalama
+ * anahtarıyla YEREL doğrular (JWKS önbelleklenir) — her sayfa açılışından
+ * bir ağ turu kalkar. İmza doğrulanmadan claim döndürülmez; simetrik
+ * anahtara geçilirse kütüphane kendiliğinden getUser()'a düşer.
+ *
+ * SINIR: Yerel doğrulama, token süresi (varsayılan 1 saat) dolana kadar
+ * askıya alınmış bir hesabı fark etmez; yenileme (refresh) ise reddedilir.
+ * Bu yüzden ödeme, admin ve yazma işlemleri (server action / route)
+ * getUser() ile tam doğrulamaya devam eder — bu yardımcı yalnızca sayfa
+ * render'ı içindir. Veri erişimi her durumda RLS ile korunur.
+ */
+export async function getSessionUser(supabase: Awaited<ReturnType<typeof createClient>>): Promise<SessionUser | null> {
+  const { data } = await supabase.auth.getClaims().catch(() => ({ data: null }));
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+}
