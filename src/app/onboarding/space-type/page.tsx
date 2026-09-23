@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ScreenShell } from "@/components/ScreenShell";
+import { PendingInvitesNotice } from "@/components/spaces/PendingInvitesNotice";
 
 const OPTIONS = [
   {
@@ -36,6 +37,8 @@ export default function SpaceTypePage() {
             İstediğin zaman diğerini de ekleyebilirsin.
           </p>
         </div>
+
+        <PendingInvitesNotice />
 
         <div className="flex flex-col gap-3">
           {OPTIONS.map((option) => (

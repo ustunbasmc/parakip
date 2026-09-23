@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
 import { normalizeTurkishPhone } from "@/lib/format/phone";
@@ -11,9 +11,23 @@ import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Logo } from "@/components/Logo";
+import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
+import { safeNext } from "@/lib/auth/safeNext";
 
+// useSearchParams (?next=) statik ön-render'da Suspense sınırı gerektirir.
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpPageInner />
+    </Suspense>
+  );
+}
+
+function SignUpPageInner() {
   const router = useRouter();
+  // Davetle gelindiyse onay/girişten sonra davete dönülür.
+  const next = safeNext(useSearchParams().get("next"));
+  const nextQuery = next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -60,7 +74,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${nextQuery}`,
         // NOT: telefon Supabase Auth'un KENDİ `phone` alanına DEĞİL, yalnızca
         // metadata'ya yazılır — bu, 0056'daki handle_new_user() trigger'ı
         // tarafından profiles tablosuna aktarılır. Auth'un phone alanını
@@ -81,7 +95,7 @@ export default function SignUpPage() {
 
     if (data.session) {
       // E-posta onayı kapalıysa oturum hemen açılır.
-      router.push("/onboarding/space-type");
+      router.push(next !== "/" ? next : "/onboarding/space-type");
       return;
     }
 
@@ -94,7 +108,7 @@ export default function SignUpPage() {
     const supabase = createClient();
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${nextQuery}` },
     });
     if (oauthError) {
       setGoogleLoading(false);
@@ -114,7 +128,8 @@ export default function SignUpPage() {
             <strong className="text-text-primary">{email}</strong> adresine bir onay bağlantısı
             gönderdik. Hesabını etkinleştirmek için bağlantıya tıkla.
           </p>
-          <Link href="/sign-in" className="mt-2 text-sm font-semibold text-accent">
+          <ResendConfirmation email={email.trim()} next={next !== "/" ? next : undefined} />
+          <Link href={`/sign-in${nextQuery}`} className="mt-2 text-sm font-semibold text-accent">
             Giriş ekranına dön
           </Link>
         </div>
@@ -233,7 +248,7 @@ export default function SignUpPage() {
 
         <p className="text-center text-sm text-text-secondary">
           Zaten hesabın var mı?{" "}
-          <Link href="/sign-in" className="font-semibold text-accent">
+          <Link href={`/sign-in${nextQuery}`} className="font-semibold text-accent">
             Giriş yap
           </Link>
         </p>

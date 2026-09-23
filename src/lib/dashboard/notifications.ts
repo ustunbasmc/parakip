@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * bir kontrole gerek yoktur.
  */
 
-export type NotificationType = "debt_due" | "budget_80" | "budget_exceeded" | "transfer_created" | "space_invite" | "support_reply";
+export type NotificationType = "debt_due" | "budget_80" | "budget_exceeded" | "transfer_created" | "space_invite" | "support_reply" | "subscription_expiring";
 
 export interface NotificationRow {
   id: string;
@@ -79,5 +79,7 @@ export function notificationHref(n: Pick<NotificationRow, "entityType" | "entity
     return `/transactions/${n.entityId}${s ? `?space=${s}` : ""}`;
   }
   if (n.entityType === "support_ticket") return `/support/tickets/${n.entityId}`;
+  if (n.entityType === "space_invitation") return "/invitations";
+  if (n.entityType === "subscription") return n.spaceId ? `/settings/plan?space=${n.spaceId}` : "/settings/plan";
   return null;
 }

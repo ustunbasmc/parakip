@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/auth/safeNext";
 
 /**
  * Hem Google OAuth hem e-posta onay/şifre sıfırlama bağlantılarının
@@ -10,7 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  // Yalnızca uygulama içi yol (açık yönlendirmeye karşı, bkz. safeNext).
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

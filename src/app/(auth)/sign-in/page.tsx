@@ -1,17 +1,31 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
+import { safeNext } from "@/lib/auth/safeNext";
 
+// useSearchParams (?next=) statik ön-render'da Suspense sınırı gerektirir.
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInPageInner />
+    </Suspense>
+  );
+}
+
+function SignInPageInner() {
   const router = useRouter();
+  // Davet bağlantısı gibi bir sayfadan girişe gelindiyse, girişten sonra oraya dönülür.
+  const next = safeNext(useSearchParams().get("next"));
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,6 +35,7 @@ export default function SignInPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setUnconfirmed(false);
     setLoading(true);
 
     const supabase = createClient();
@@ -33,10 +48,11 @@ export default function SignInPage() {
 
     if (signInError) {
       setError(translateAuthError(signInError.message));
+      setUnconfirmed(signInError.message.toLowerCase().includes("email not confirmed"));
       return;
     }
 
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 
@@ -46,7 +62,7 @@ export default function SignInPage() {
     const supabase = createClient();
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}` },
     });
     if (oauthError) {
       setGoogleLoading(false);
@@ -70,6 +86,7 @@ export default function SignInPage() {
         </div>
 
         {error ? <ErrorBanner message={error} /> : null}
+        {unconfirmed ? <ResendConfirmation email={email.trim()} next={next !== "/" ? next : undefined} /> : null}
 
         <form id="sign-in-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
           <TextField
@@ -106,7 +123,7 @@ export default function SignInPage() {
 
         <p className="text-center text-sm text-text-secondary">
           Hesabın yok mu?{" "}
-          <Link href="/sign-up" className="font-semibold text-accent">
+          <Link href={next !== "/" ? `/sign-up?next=${encodeURIComponent(next)}` : "/sign-up"} className="font-semibold text-accent">
             Kayıt ol
           </Link>
         </p>

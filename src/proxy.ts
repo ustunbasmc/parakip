@@ -66,13 +66,21 @@ export async function proxy(request: NextRequest) {
 
   if (!user && !isPublicPath && pathname !== "/") {
     const url = request.nextUrl.clone();
+    // Davet bağlantısı: girişten (veya kayıttan) sonra davete geri dönülsün.
+    if (pathname.startsWith("/invite/")) {
+      url.pathname = "/sign-in";
+      url.search = `?next=${encodeURIComponent(pathname)}`;
+      return NextResponse.redirect(url);
+    }
     url.pathname = "/welcome";
     return NextResponse.redirect(url);
   }
 
   if (user && isPublicPath && pathname !== "/auth/callback") {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    const next = request.nextUrl.searchParams.get("next");
+    url.search = "";
+    url.pathname = next && next.startsWith("/invite/") ? next : "/";
     return NextResponse.redirect(url);
   }
 

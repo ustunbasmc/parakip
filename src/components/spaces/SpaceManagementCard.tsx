@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { updateSpaceDetails, archiveSpace } from "@/lib/api/onboarding-rpc";
@@ -11,6 +12,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { ArchiveIcon, BuildingIcon, WalletIcon } from "@/components/icons";
 import type { ManagedSpace } from "@/lib/dashboard/formData";
+import { ROLE_LABELS, type MemberRole } from "@/lib/api/members-rpc";
 
 const SECTOR_OPTIONS = [
   { value: "retail", label: "Perakende" },
@@ -136,10 +138,13 @@ export function SpaceManagementCard({ space }: { space: ManagedSpace }) {
                 {space.type === "business" ? "İşletme" : "Ev"}
                 {space.sector ? ` · ${SECTOR_OPTIONS.find((o) => o.value === space.sector)?.label ?? space.sector}` : ""}
                 {" · "}
-                {space.role === "owner" ? "Sahip" : space.role === "admin" ? "Yönetici" : "Editör"}
+                {ROLE_LABELS[space.role as MemberRole] ?? space.role}
                 {space.isArchived ? " · Arşivlenmiş" : ""}
               </p>
-              <div className="mt-2.5 flex gap-2">
+              <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-2">
+                <Link href={`/settings/spaces/${space.id}/members`} className="text-xs font-semibold text-accent">
+                  Üyeler
+                </Link>
                 {canEditName || canEditSector ? (
                   <button onClick={() => setEditing(true)} className="text-xs font-semibold text-accent">
                     Düzenle
