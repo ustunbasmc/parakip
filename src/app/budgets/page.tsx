@@ -77,7 +77,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
             <CardEmptyState
               message="Bu ay için henüz bütçe belirlenmedi."
               hint="Toplam veya kategori bazlı bir harcama sınırı belirleyerek ne kadar harcadığını takip edebilirsin."
-              action={{ href: `/budgets/new?space=${activeSpace.id}`, label: "Bütçe oluştur" }}
+              action={{ href: `/budgets/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`, label: "Bütçe oluştur" }}
             />
           </div>
         ) : (

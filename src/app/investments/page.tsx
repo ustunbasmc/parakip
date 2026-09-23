@@ -78,7 +78,7 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
                 <CardEmptyState
                   message="Henüz yatırımın yok."
                   hint="Hisse, altın, döviz veya kripto alışlarını kaydederek portföyünü takip edebilirsin."
-                  action={{ href: `/investments/buy?space=${activeSpace.id}`, label: "İlk alışı ekle" }}
+                  action={{ href: `/investments/buy?book_id=${activeSpace.bookId}&space=${activeSpace.id}`, label: "İlk alışı ekle" }}
                 />
               </div>
             ) : (

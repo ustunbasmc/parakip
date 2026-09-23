@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BudgetForm } from "@/components/budgets/BudgetForm";
 import { getCategoriesForBook } from "@/lib/dashboard/formData";
+import { getExistingBudgetKeys } from "@/lib/dashboard/budgets";
 
 export default async function NewBudgetPage({ searchParams }: { searchParams: Promise<{ book_id?: string; space?: string }> }) {
   const supabase = await createClient();
@@ -17,7 +18,10 @@ export default async function NewBudgetPage({ searchParams }: { searchParams: Pr
   const { data: book } = await supabase.from("books").select("id").eq("id", bookId).maybeSingle();
   if (!book) redirect(homeHref);
 
-  const categories = await getCategoriesForBook(supabase, bookId, "expense");
+  const [categories, existing] = await Promise.all([
+    getCategoriesForBook(supabase, bookId, "expense"),
+    getExistingBudgetKeys(supabase, bookId).catch(() => undefined),
+  ]);
 
-  return <BudgetForm bookId={bookId} homeHref={homeHref} categories={categories} />;
+  return <BudgetForm bookId={bookId} homeHref={homeHref} categories={categories} existing={existing} />;
 }

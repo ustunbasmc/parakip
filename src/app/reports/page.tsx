@@ -260,7 +260,7 @@ export default async function ReportsPage({
             ) : accounts.value.length === 0 ? (
               <CardEmptyState
                 message="Henüz hesap eklenmedi."
-                action={{ href: `/accounts/new?space=${activeSpace.id}`, label: "Hesap ekle" }}
+                action={{ href: `/accounts/new?book_id=${bookId}&space=${activeSpace.id}`, label: "Hesap ekle" }}
               />
             ) : (
               <AccountBars accounts={accounts.value} />
@@ -288,7 +288,7 @@ export default async function ReportsPage({
               <CardEmptyState
                 message="Önümüzdeki 30 günde planlı ödeme yok."
                 hint="Kira, kredi taksidi gibi düzenli ödemeler için tekrarlayan kural ekleyebilirsin."
-                action={{ href: `/debts/recurring/new?space=${activeSpace.id}`, label: "Kural ekle" }}
+                action={{ href: `/debts/recurring/new?book_id=${bookId}&space=${activeSpace.id}`, label: "Kural ekle" }}
                 icon={<ClockIcon size={20} />}
               />
             ) : (

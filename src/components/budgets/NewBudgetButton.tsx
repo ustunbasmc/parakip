@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getCategoriesForBook, type CategoryOption } from "@/lib/dashboard/formData";
+import { getExistingBudgetKeys, type ExistingBudgetKeys } from "@/lib/dashboard/budgets";
 import { Modal } from "@/components/Modal";
 import { BudgetForm } from "@/components/budgets/BudgetForm";
 import { PlusIcon } from "@/components/icons";
@@ -13,6 +14,7 @@ export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceP
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [existing, setExisting] = useState<ExistingBudgetKeys | undefined>(undefined);
   const [isDirty, setIsDirty] = useState(false);
 
   async function handleOpen() {
@@ -20,7 +22,14 @@ export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceP
     setLoading(true);
     const supabase = createClient();
     try {
-      setCategories(await getCategoriesForBook(supabase, bookId, "expense"));
+      // Kategoriler ve bu ayın mevcut bütçeleri paralel çekilir. Mevcut
+      // bütçeler okunamazsa form yine açılır (son kontrol veritabanında).
+      const [cats, keys] = await Promise.all([
+        getCategoriesForBook(supabase, bookId, "expense"),
+        getExistingBudgetKeys(supabase, bookId).catch(() => undefined),
+      ]);
+      setCategories(cats);
+      setExisting(keys);
     } finally {
       setLoading(false);
     }
@@ -61,6 +70,7 @@ export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceP
             bookId={bookId}
             homeHref={`/budgets?space=${spaceParam}`}
             categories={categories}
+            existing={existing}
             variant="modal"
             onSuccess={handleSuccess}
             onDirtyChange={setIsDirty}

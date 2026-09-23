@@ -145,7 +145,7 @@ export default async function DebtsPage({
             <CardEmptyState
               message="Henüz borç veya alacak yok."
               hint="Birine olan borcunu ya da birinden alacağını kaydederek kalan tutarı takip edebilirsin."
-              action={{ href: `/debts/new?space=${activeSpace.id}`, label: "Borç/alacak ekle" }}
+              action={{ href: `/debts/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`, label: "Borç/alacak ekle" }}
             />
           </div>
         ) : (

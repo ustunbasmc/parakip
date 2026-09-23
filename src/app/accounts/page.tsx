@@ -123,7 +123,7 @@ export default async function AccountsPage({
           <CardEmptyState
             message={showArchived ? "Arşivlenmiş hesap yok." : "Henüz hesap eklenmedi."}
             hint={showArchived ? undefined : "Banka, nakit veya kart hesabını ekleyerek bakiyelerini takip etmeye başla."}
-            action={showArchived ? undefined : { href: `/accounts/new?space=${activeSpace.id}`, label: "Hesap ekle" }}
+            action={showArchived ? undefined : { href: `/accounts/new?book_id=${activeSpace.bookId}&space=${activeSpace.id}`, label: "Hesap ekle" }}
           />
           </div>
         ) : (

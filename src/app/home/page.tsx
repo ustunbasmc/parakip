@@ -388,7 +388,7 @@ async function BudgetSection({ supabase, bookId, spaceId }: Props) {
         <CardEmptyState
           message="Bu ay için bütçe yok."
           hint="Harcama sınırı belirleyerek ne kadar harcadığını takip edebilirsin."
-          action={{ href: `/budgets/new?space=${spaceId}`, label: "Bütçe oluştur" }}
+          action={{ href: `/budgets/new?book_id=${bookId}&space=${spaceId}`, label: "Bütçe oluştur" }}
         />
       ) : (
         <div className="flex min-w-0 flex-col gap-3">
@@ -427,7 +427,7 @@ async function PortfolioSection({ supabase, bookId, spaceId }: Props) {
         <CardEmptyState
           message="Henüz yatırımın yok."
           hint="Hisse, altın, döviz veya kripto alışlarını kaydedebilirsin."
-          action={{ href: `/investments/buy?space=${spaceId}`, label: "Alış ekle" }}
+          action={{ href: `/investments/buy?book_id=${bookId}&space=${spaceId}`, label: "Alış ekle" }}
         />
       ) : (
         <ul className="flex min-w-0 flex-col gap-2">

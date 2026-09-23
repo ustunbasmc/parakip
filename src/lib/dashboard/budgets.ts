@@ -90,3 +90,34 @@ export async function getBudgetDetail(supabase: SupabaseClient, budgetId: string
     createdAt: createdRow?.created_at ?? "",
   };
 }
+
+export interface ExistingBudgetKeys {
+  /** Bu ay için aktif bir TOPLAM bütçe var mı? */
+  hasTotal: boolean;
+  /** Bu ay aktif bütçesi olan kategori kimlikleri. */
+  categoryIds: string[];
+}
+
+/**
+ * Bütçe oluşturma formunun, veritabanının zaten reddedeceği bir bütçeyi
+ * (aynı ay için ikinci toplam bütçe / aynı kategoriye ikinci bütçe — bkz.
+ * create_budget ve budgets_*_unique) kullanıcıya baştan göstermesi için.
+ * Yalnızca okuma; asıl kural veritabanında kalır.
+ */
+export async function getExistingBudgetKeys(
+  supabase: SupabaseClient,
+  bookId: string,
+  periodMonth: string = currentMonthIso()
+): Promise<ExistingBudgetKeys> {
+  const { data, error } = await supabase
+    .from("budget_usage")
+    .select("category_id")
+    .eq("book_id", bookId)
+    .eq("period_month", periodMonth);
+  if (error) throw error;
+  const rows = data ?? [];
+  return {
+    hasTotal: rows.some((r) => r.category_id === null),
+    categoryIds: rows.map((r) => r.category_id).filter((id): id is string => Boolean(id)),
+  };
+}
