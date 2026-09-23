@@ -1,6 +1,8 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
+import { notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email/billing";
 import { getCurrentUserAndAdminStatus, getAdminDbClient, logAdminAction } from "@/lib/admin/auth";
 
 /**
@@ -89,6 +91,14 @@ export async function approvePaymentRequest(requestId: string) {
     detail: { plan: request.plan, period: request.period, spaceId: request.space_id },
   });
 
+  // Kullanıcıya e-posta (yanıt geciktirmesin diye istekten sonra; hata onayı etkilemez).
+  after(async () => {
+    const { data } = await supabase.auth.admin.getUserById(request.user_id);
+    if (data?.user?.email) {
+      await notifyPaymentApproved({ to: data.user.email, plan: request.plan, periodEnd: periodEnd.toISOString(), spaceId: request.space_id });
+    }
+  });
+
   revalidatePath("/admin", "layout");
 }
 
@@ -96,12 +106,24 @@ export async function rejectPaymentRequest(requestId: string, adminNote: string)
   const admin = await assertAdmin();
   const supabase = getAdminDbClient();
 
-  const { error } = await supabase
+  const note = adminNote?.trim() || null;
+  const { data: rejected, error } = await supabase
     .from("manual_payment_requests")
-    .update({ status: "rejected", reviewed_by: admin.id, reviewed_at: new Date().toISOString(), admin_note: adminNote || null })
+    .update({ status: "rejected", reviewed_by: admin.id, reviewed_at: new Date().toISOString(), admin_note: note })
     .eq("id", requestId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("user_id, plan, space_id")
+    .maybeSingle();
   if (error) throw new Error(error.message);
+
+  if (rejected) {
+    after(async () => {
+      const { data } = await supabase.auth.admin.getUserById(rejected.user_id);
+      if (data?.user?.email) {
+        await notifyPaymentRejected({ to: data.user.email, plan: rejected.plan, note, spaceId: rejected.space_id });
+      }
+    });
+  }
 
   await logAdminAction({
     adminUserId: admin.id,

@@ -170,6 +170,7 @@ export const ACTION_LABELS: Record<string, string> = {
   subscription_cancel: "Abonelik iptal edildi",
   user_ban: "Kullanıcı askıya alındı",
   user_unban: "Askı kaldırıldı",
+  email_test: "Test e-postası gönderildi",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {

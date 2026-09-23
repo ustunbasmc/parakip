@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
+import { renderEmail } from "@/lib/email/layout";
 import { ROLE_LABELS, type MemberRole } from "@/lib/api/members-rpc";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -43,21 +44,21 @@ export async function sendSpaceInvitationEmail(invitationId: string): Promise<{ 
   const origin = await siteOrigin();
   if (!origin) return { sent: false };
 
+  const spaceName = space?.name ?? "bir alan";
+  const mail = renderEmail({
+    preheader: `${inviter} seni "${spaceName}" alanına davet etti.`,
+    heading: `"${spaceName}" alanına davet edildin`,
+    paragraphs: [
+      `${inviter} seni Parakip'teki "${spaceName}" alanına ${ROLE_LABELS[inv.role as MemberRole] ?? inv.role} olarak davet etti.`,
+      "Parakip hesabın yoksa bu e-posta adresiyle ücretsiz kayıt olup daveti kabul edebilirsin.",
+    ],
+    button: { label: "Daveti görüntüle", url: `${origin}/invite/${inv.token}` },
+    note: "Bu davet 7 gün geçerlidir. Beklemediğin bir davetse bu e-postayı yok sayabilirsin.",
+  });
   const result = await sendEmail({
     to: inv.email,
-    subject: `${inviter} seni Parakip'te "${space?.name ?? "bir alan"}" alanına davet etti`,
-    text: [
-      "Merhaba,",
-      "",
-      `${inviter} seni Parakip'teki "${space?.name ?? "bir alan"}" alanına ${ROLE_LABELS[inv.role as MemberRole] ?? inv.role} olarak davet etti.`,
-      "Daveti görüntülemek ve kabul etmek için:",
-      `${origin}/invite/${inv.token}`,
-      "",
-      "Bu davet 7 gün geçerlidir. Parakip hesabın yoksa aynı e-posta adresiyle ücretsiz kayıt olabilirsin.",
-      "Bu daveti beklemiyorsan e-postayı yok sayabilirsin.",
-      "",
-      "Parakip",
-    ].join("\n"),
+    subject: `${inviter} seni Parakip'te "${spaceName}" alanına davet etti`,
+    ...mail,
   });
   return { sent: result.sent };
 }

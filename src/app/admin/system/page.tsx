@@ -1,6 +1,7 @@
 import { getAdminDbClient } from "@/lib/admin/auth";
 import { fmtDateTime, fmtRelative, requestNow } from "@/lib/admin/data";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/admin/ui";
+import { TestEmailButton } from "@/components/admin/TestEmailButton";
 
 const HOUR = 3_600_000;
 
@@ -39,9 +40,9 @@ const ENV_GROUPS: { title: string; vars: { name: string; purpose: string; requir
   {
     title: "E-posta",
     vars: [
-      { name: "RESEND_API_KEY", purpose: "Destek e-postaları (Resend)", required: false },
-      { name: "SUPPORT_EMAIL_FROM", purpose: "Gönderen adresi", required: false },
-      { name: "SUPPORT_EMAIL", purpose: "Yeni taleplerin bildirileceği ekip adresi", required: false },
+      { name: "RESEND_API_KEY", purpose: "Uygulama e-postaları (destek, davet, ödeme) — Resend", required: false },
+      { name: "SUPPORT_EMAIL_FROM", purpose: 'Gönderen, ör. "Parakip <bildirim@parakip.com>"', required: false },
+      { name: "SUPPORT_EMAIL", purpose: "Yeni destek taleplerinin bildirileceği ekip adresi", required: false },
     ],
   },
 ];
@@ -176,6 +177,13 @@ export default async function AdminSystemPage() {
         </Card>
 
         <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader
+              title="E-posta testi"
+              subtitle="Resend ayarlarını doğrular. Kayıt onayı ve şifre sıfırlama e-postaları ayrıca Supabase SMTP ayarına bağlıdır."
+            />
+            <TestEmailButton />
+          </Card>
           <Card>
             <CardHeader title="Dağıtım" />
             <dl className="flex flex-col gap-2 text-sm">

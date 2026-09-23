@@ -15,6 +15,8 @@ export async function sendEmail(params: {
   to: string;
   subject: string;
   text: string;
+  /** Verilirse HTML gövde (bkz. lib/email/layout.ts); text her zaman yedek olarak gider. */
+  html?: string;
   replyTo?: string;
 }): Promise<{ sent: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -35,6 +37,7 @@ export async function sendEmail(params: {
         to: [params.to],
         subject: params.subject,
         text: params.text,
+        ...(params.html ? { html: params.html } : {}),
         ...(params.replyTo ? { reply_to: params.replyTo } : {}),
       }),
       signal: AbortSignal.timeout(8000),

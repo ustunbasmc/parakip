@@ -1,10 +1,7 @@
 import "server-only";
 import { sendEmail } from "@/lib/email/send";
+import { renderEmail, siteUrl } from "@/lib/email/layout";
 import { TICKET_TYPE_LABELS, formatTicketNumber, type TicketType } from "./constants";
-
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
-}
 
 /**
  * Yeni destek talebinde destek ekibine bildirim. Alıcı SUPPORT_EMAIL
@@ -24,17 +21,16 @@ export async function notifySupportTeamNewTicket(ticket: {
   const to = process.env.SUPPORT_EMAIL;
   if (!to) return { sent: false, reason: "no_support_email" };
 
+  const mail = renderEmail({
+    preheader: `${TICKET_TYPE_LABELS[ticket.type]} · ${ticket.subject}`,
+    heading: `Yeni destek talebi: ${formatTicketNumber(ticket.ticketNumber)}`,
+    paragraphs: [`Tür: ${TICKET_TYPE_LABELS[ticket.type]}`, `Öncelik: ${ticket.priority}`, `Konu: ${ticket.subject}`],
+    button: { label: "Admin panelinde aç", url: `${siteUrl()}/admin/support/${ticket.id}` },
+  });
   return sendEmail({
     to,
     subject: `[Parakip Destek] ${formatTicketNumber(ticket.ticketNumber)} ${TICKET_TYPE_LABELS[ticket.type]}: ${ticket.subject}`,
-    text: [
-      `Yeni destek talebi: ${formatTicketNumber(ticket.ticketNumber)}`,
-      `Tür: ${TICKET_TYPE_LABELS[ticket.type]}`,
-      `Öncelik: ${ticket.priority}`,
-      `Konu: ${ticket.subject}`,
-      "",
-      `Admin panelinde görüntüle: ${siteUrl()}/admin/support/${ticket.id}`,
-    ].join("\n"),
+    ...mail,
   });
 }
 
@@ -43,15 +39,15 @@ export async function notifySupportTeamUserReply(ticket: { id: string; ticketNum
   const to = process.env.SUPPORT_EMAIL;
   if (!to) return { sent: false, reason: "no_support_email" };
 
+  const mail = renderEmail({
+    heading: `${formatTicketNumber(ticket.ticketNumber)} numaralı talebe yeni mesaj`,
+    paragraphs: ["Kullanıcı mevcut talebine yeni bir mesaj yazdı.", `Konu: ${ticket.subject}`],
+    button: { label: "Admin panelinde aç", url: `${siteUrl()}/admin/support/${ticket.id}` },
+  });
   return sendEmail({
     to,
     subject: `[Parakip Destek] ${formatTicketNumber(ticket.ticketNumber)} yeni kullanıcı mesajı`,
-    text: [
-      `${formatTicketNumber(ticket.ticketNumber)} numaralı talebe kullanıcı yeni bir mesaj yazdı.`,
-      `Konu: ${ticket.subject}`,
-      "",
-      `Admin panelinde görüntüle: ${siteUrl()}/admin/support/${ticket.id}`,
-    ].join("\n"),
+    ...mail,
   });
 }
 
@@ -66,18 +62,19 @@ export async function notifyUserAdminReplied(params: {
   ticketNumber: number;
   subject: string;
 }) {
+  const mail = renderEmail({
+    preheader: "Destek ekibimiz talebine yanıt verdi.",
+    heading: "Destek talebin yanıtlandı",
+    paragraphs: [
+      `"${params.subject}" konulu destek talebine (${formatTicketNumber(params.ticketNumber)}) yanıt verdik.`,
+      "Güvenliğin için yanıtın içeriğini e-postaya eklemiyoruz; uygulamada okuyabilirsin.",
+    ],
+    button: { label: "Yanıtı oku", url: `${siteUrl()}/support/tickets/${params.ticketId}` },
+  });
   return sendEmail({
     to: params.to,
     replyTo: process.env.SUPPORT_EMAIL || undefined,
     subject: `Destek talebin yanıtlandı (${formatTicketNumber(params.ticketNumber)})`,
-    text: [
-      "Merhaba,",
-      "",
-      `"${params.subject}" konulu destek talebine yanıt verdik.`,
-      "Yanıtı okumak için uygulamaya giriş yapabilirsin:",
-      `${siteUrl()}/support/tickets/${params.ticketId}`,
-      "",
-      "Parakip Destek",
-    ].join("\n"),
+    ...mail,
   });
 }
