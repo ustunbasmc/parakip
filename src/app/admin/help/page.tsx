@@ -40,9 +40,14 @@ export default async function AdminHelpPage({ searchParams }: { searchParams: Pr
           <h1 className="text-xl font-extrabold text-text-primary">Yardım Makaleleri</h1>
           <p className="mt-1 text-sm text-text-muted">Yalnızca &ldquo;Yayında&rdquo; makaleler kullanıcılara görünür.</p>
         </div>
-        <Link href="/admin/help/new" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-text-on-accent">
-          Yeni makale
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/help/categories" className="text-sm font-semibold text-accent">
+            Kategoriler
+          </Link>
+          <Link href="/admin/help/new" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-text-on-accent">
+            Yeni makale
+          </Link>
+        </div>
       </div>
 
       <nav className="flex flex-wrap gap-2 text-sm">

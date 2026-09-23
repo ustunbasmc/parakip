@@ -7,6 +7,7 @@ import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 import { DashboardCard, CardError, CardEmptyState, CardLink } from "@/components/dashboard/DashboardCard";
 import { PeriodSelector } from "@/components/dashboard/PeriodSelector";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -153,12 +154,22 @@ export default async function ReportsPage({
       }
     >
       <div className="mx-auto flex w-full min-w-0 max-w-[80rem] flex-col gap-4 pb-6 pt-2 md:gap-5 md:pt-4">
+        {/* Yalnızca yazdırma/PDF çıktısında görünen başlık */}
+        <div className="hidden print:block">
+          <p className="text-lg font-bold text-text-primary">Parakip · {activeSpace.name} raporu</p>
+          <p className="text-xs text-text-muted">
+            Dönem: {PERIOD_LABELS[period]} · Oluşturulma:{" "}
+            {new Intl.DateTimeFormat("tr-TR", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(new Date())}
+          </p>
+        </div>
+
         {/* Dönem + dışa aktarma */}
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center print:hidden">
           <div className="min-w-0 flex-1">
             <PeriodSelector active={period} />
           </div>
-          <div className="shrink-0 self-end sm:self-auto">
+          <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+            <PrintButton />
             <ExportCsvButton
               headers={["Kategori", "Toplam"]}
               rows={categoryRows.map((c) => [c.categoryName, (c.totalCents / 100).toFixed(2).replace(".", ",")])}
@@ -171,7 +182,7 @@ export default async function ReportsPage({
         {isBusiness ? (
           <nav
             aria-label="Rapor türü"
-            className="flex min-w-0 gap-1 overflow-x-auto rounded-2xl border border-border bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex min-w-0 gap-1 overflow-x-auto print:hidden rounded-2xl border border-border bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {REPORT_KIND_TABS.map((tab) => (
               <Link
@@ -297,8 +308,9 @@ export default async function ReportsPage({
           </DashboardCard>
         </div>
 
-        <p className="px-1 text-center text-xs text-text-muted">
-          &ldquo;Raporu indir&rdquo; kategori özetini CSV olarak verir. PDF dışa aktarma yakında.
+        <p className="px-1 text-center text-xs text-text-muted print:hidden">
+          &ldquo;Raporu indir&rdquo; kategori özetini CSV olarak verir. &ldquo;PDF olarak indir&rdquo; yazdırma penceresini açar;
+          hedef olarak &ldquo;PDF olarak kaydet&rdquo;i seçerek raporun tamamını PDF&apos;e aktarabilirsin.
         </p>
       </div>
     </AppShell>

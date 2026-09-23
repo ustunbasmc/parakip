@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getPeriodRange } from "@/lib/format/date";
+import { getPeriodRange, getPreviousPeriodRange } from "@/lib/format/date";
 
 /**
  * İşletme Finans Modu'nun veri katmanı. Satış/Alış/Masraf ayrımı ARTIK
@@ -30,15 +30,9 @@ export const BUSINESS_PERIOD_LABELS: Record<BusinessPeriod, string> = {
 };
 
 function getBusinessPeriodRange(period: BusinessPeriod, now: Date = new Date()): { start: string; end: string } {
-  if (period === "yesterday") {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return getPeriodRange("today", yesterday);
-  }
-  if (period === "lastMonth") {
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return getPeriodRange("month", lastMonth);
-  }
+  // Dün / geçen ay — uygulama saat dilimine göre (bkz. format/tz.ts).
+  if (period === "yesterday") return getPreviousPeriodRange("today", now);
+  if (period === "lastMonth") return getPreviousPeriodRange("month", now);
   return getPeriodRange(period, now);
 }
 

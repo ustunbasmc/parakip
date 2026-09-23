@@ -21,18 +21,44 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
  * auth.users SATIRI SİLİNMEZ, spaces/accounts/transactions/debts HİÇ
  * DOKUNULMAZ (bkz. migration 0057'deki gerekçe).
  */
+function bearer(request: Request): string {
+  const authHeader = request.headers.get("authorization") ?? "";
+  return authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+}
+
+/** Elle/harici zamanlayıcı ile çağrı — ADMIN_SECRET ister (mevcut davranış). */
 export async function POST(request: Request) {
   const expected = process.env.ADMIN_SECRET;
   if (!expected) {
     return NextResponse.json({ error: "ADMIN_SECRET tanımlı değil." }, { status: 500 });
   }
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const provided = bearer(request);
   if (!provided || provided !== expected) {
     return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
   }
+  return completeDeletions();
+}
 
+/**
+ * Vercel Cron çağrısı — Vercel, cron isteklerini GET ile ve
+ * "Authorization: Bearer <CRON_SECRET>" başlığıyla gönderir (bkz.
+ * vercel.json). Önceden yalnızca POST+ADMIN_SECRET vardı ve hiçbir yerde
+ * zamanlanmamıştı; silme talepleri bekleme süresi dolsa bile hiç
+ * tamamlanmıyordu.
+ */
+export async function GET(request: Request) {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) {
+    return NextResponse.json({ error: "CRON_SECRET tanımlı değil." }, { status: 500 });
+  }
+  const provided = bearer(request);
+  if (!provided || provided !== expected) {
+    return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+  }
+  return completeDeletions();
+}
+
+async function completeDeletions() {
   const graceDays = Number(process.env.ACCOUNT_DELETION_GRACE_DAYS ?? "7");
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - graceDays);

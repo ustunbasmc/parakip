@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getPeriodRange, type DashboardPeriod } from "@/lib/format/date";
+import { zonedMonthIso } from "@/lib/format/tz";
 
 /**
  * TÜM fonksiyonlar, ÇAĞIRANIN kendi oturumlu Supabase client'ını
@@ -127,9 +128,7 @@ export async function getTotalBudgetSummary(
   // YANLIŞ (önceki ayın) bütçesini arıyordu. Bütçeler ayın 1'ine
   // normalize edilerek saklandığından (bkz. 0022), "bugün" burada
   // AÇIKÇA Europe/Istanbul'a göre hesaplanır.
-  const now = new Date();
-  const istanbulNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
-  const periodMonth = `${istanbulNow.getFullYear()}-${String(istanbulNow.getMonth() + 1).padStart(2, "0")}-01`;
+  const periodMonth = zonedMonthIso();
 
   const { data, error } = await supabase
     .from("budget_usage")

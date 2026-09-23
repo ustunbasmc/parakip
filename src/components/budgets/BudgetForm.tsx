@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createBudget } from "@/lib/api/financial-rpc";
 import { amountInputToCents } from "@/lib/format/amount";
+import { zonedMonthIso } from "@/lib/format/tz";
 import { AppShell } from "@/components/AppShell";
 import { AmountInput } from "@/components/AmountInput";
 import { FormSelect } from "@/components/forms/FormSelect";
@@ -14,10 +15,7 @@ import { useUnsavedChangesGuard, confirmLeaveIfDirty } from "@/lib/forms/useUnsa
 import type { CategoryOption } from "@/lib/dashboard/formData";
 import type { ExistingBudgetKeys } from "@/lib/dashboard/budgets";
 
-function currentMonthIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
+
 
 /**
  * create_budget'ın teknik (ASCII, kimlik içeren) hata mesajlarını
@@ -27,7 +25,7 @@ function currentMonthIso() {
 function friendlyBudgetError(message: string | undefined): string {
   const m = (message ?? "").toLowerCase();
   if (m.includes("zaten aktif bir toplam")) {
-    return "Bu ay için zaten bir toplam bütçe var. Mevcut bütçeyi listeden açıp düzenleyebilir ya da kategori bazlı bir bütçe ekleyebilirsin.";
+    return "Seçili ay için zaten bir toplam bütçe var. Mevcut bütçeyi listeden açıp düzenleyebilir ya da kategori bazlı bir bütçe ekleyebilirsin.";
   }
   if (m.includes("kategori ve ay icin zaten")) {
     return "Bu kategori için bu ay zaten bir bütçe var. Başka bir kategori seçebilir ya da mevcut bütçeyi düzenleyebilirsin.";
@@ -50,6 +48,8 @@ interface Props {
   categories: CategoryOption[];
   /** Bu ay zaten var olan aktif bütçeler — verilirse çakışan seçenekler baştan kapatılır. */
   existing?: ExistingBudgetKeys;
+  /** Bütçenin ayı ("YYYY-MM-01"). Verilmezse bu ay (uygulama saat dilimine göre). */
+  periodMonth?: string;
   variant?: "page" | "modal";
   onSuccess?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -65,7 +65,7 @@ interface Props {
  * açıkken ve içerik kaydırılmışken formun en üstündeki bir mesaj
  * görünmüyor, kullanıcı "butona bastım, hiçbir şey olmadı" sanıyordu.
  */
-export function BudgetForm({ bookId, homeHref, categories, existing, variant = "page", onSuccess, onDirtyChange }: Props) {
+export function BudgetForm({ bookId, homeHref, categories, existing, periodMonth, variant = "page", onSuccess, onDirtyChange }: Props) {
   const router = useRouter();
   const submittingRef = useRef(false);
 
@@ -123,7 +123,7 @@ export function BudgetForm({ bookId, homeHref, categories, existing, variant = "
       const { error: rpcError } = await createBudget(supabase, {
         p_book_id: bookId,
         p_amount_cents: cents,
-        p_period_month: currentMonthIso(),
+        p_period_month: periodMonth ?? zonedMonthIso(),
         p_category_id: scope === "category" ? categoryId : null,
       });
       if (rpcError) {
@@ -171,13 +171,13 @@ export function BudgetForm({ bookId, homeHref, categories, existing, variant = "
 
         {totalTaken ? (
           <p className="rounded-xl bg-warning-soft px-3 py-2 text-xs font-semibold text-warning">
-            Bu ay için zaten bir toplam bütçen var. İstersen kategori bazlı bütçe ekleyebilir ya da mevcut toplam bütçeyi
+            Seçili ay için zaten bir toplam bütçen var. İstersen kategori bazlı bütçe ekleyebilir ya da mevcut toplam bütçeyi
             listeden açıp düzenleyebilirsin.
           </p>
         ) : (
           <p className="text-xs text-text-muted">
             {scope === "total"
-              ? "Bu ay, bu deftere ait TÜM giderleri kapsar."
+              ? "Seçili ayda bu deftere ait TÜM giderleri kapsar."
               : "Yalnızca seçtiğin kategorideki giderleri kapsar — toplam bütçeden bağımsız, ayrı bir ölçümdür."}
           </p>
         )}

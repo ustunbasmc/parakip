@@ -21,9 +21,9 @@ function formatDate(iso: string) {
  * silme işlemi service_role/admin API gerektirir (bu turun kapsamı
  * DIŞINDA) — bu yüzden buton yalnızca bir TALEP kaydeder
  * (profiles.deletion_requested_at), hiçbir veri HEMEN silinmez/kaybolmaz.
- * "E-posta onayı" için GERÇEKTE bir e-posta gönderen bir backend
- * KURULMADIĞINDAN, arayüz bunu DÜRÜSTÇE "ekibimiz e-posta ile seninle
- * iletişime geçecek" olarak ifade eder — sahte "onay e-postası
+ * Uygulamada e-posta gönderen bir silme akışı YOKTUR — bu yüzden arayüz
+ * e-posta vaat etmez; bekleme süresi dolunca talep günlük zamanlanmış
+ * görevle (/api/admin/complete-account-deletions, vercel.json) işlenir. Sahte "onay e-postası
  * gönderildi" mesajı GÖSTERİLMEZ.
  */
 export function AccountManagementView({
@@ -94,9 +94,9 @@ export function AccountManagementView({
           <div className="rounded-2xl border border-warning/40 bg-warning-soft p-4">
             <p className="text-sm font-semibold text-warning">Hesap silme talebin alındı</p>
             <p className="mt-1 text-xs text-text-secondary">
-              {formatDate(deletionRequestedAt)} tarihinde talep oluşturuldu. Ekibimiz, işleme almadan önce
-              e-posta yoluyla seninle iletişime geçecek. Talebin işleme alınana kadar hesabın normal şekilde
-              kullanılmaya devam edebilir.
+              {formatDate(deletionRequestedAt)} tarihinde talep oluşturuldu. Talebin en az 7 günlük bekleme
+              süresinden sonra otomatik olarak işleme alınır. Bu süre içinde hesabını normal şekilde kullanabilir
+              ve istersen talebi aşağıdan iptal edebilirsin.
             </p>
             <Button variant="secondary" onClick={handleCancelRequest} loading={loading} fullWidth={false} className="mt-3">
               Talebi iptal et
@@ -145,7 +145,7 @@ export function AccountManagementView({
       <ConfirmModal
         open={step === "confirm"}
         title="Hesap silme talebi oluştur"
-        description="Bu işlem hesabını hemen silmez, ancak silme sürecini başlatan bir talep oluşturur ve ekibimiz e-posta ile seninle iletişime geçer. Devam etmek istediğine emin misin?"
+        description="Bu işlem hesabını hemen silmez; en az 7 günlük bekleme süresi olan bir silme talebi oluşturur. Bu sürede talebi iptal edebilirsin. Devam etmek istediğine emin misin?"
         confirmLabel="Talep oluştur"
         danger
         loading={loading}

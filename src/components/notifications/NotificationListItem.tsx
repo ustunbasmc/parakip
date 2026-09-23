@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { markNotificationRead } from "@/lib/api/notifications-rpc";
 import { formatRelativeDate } from "@/lib/format/date";
-import { ClockIcon, PieChartIcon, TransferIcon, BuildingIcon } from "@/components/icons";
-import type { NotificationRow } from "@/lib/dashboard/notifications";
+import { ClockIcon, PieChartIcon, TransferIcon, BuildingIcon, MessageIcon } from "@/components/icons";
+import { notificationHref, type NotificationRow } from "@/lib/dashboard/notifications";
 
 const TYPE_ICON = {
   debt_due: ClockIcon,
@@ -14,6 +14,7 @@ const TYPE_ICON = {
   budget_exceeded: PieChartIcon,
   transfer_created: TransferIcon,
   space_invite: BuildingIcon,
+  support_reply: MessageIcon,
 } as const;
 
 const TYPE_TINT = {
@@ -22,6 +23,7 @@ const TYPE_TINT = {
   budget_exceeded: "bg-danger-soft text-danger",
   transfer_created: "bg-accent-soft text-accent",
   space_invite: "bg-accent-soft text-accent",
+  support_reply: "bg-accent-soft text-accent",
 } as const;
 
 /**
@@ -54,10 +56,8 @@ export function NotificationListItem({ notification, spaceParam }: { notificatio
 
     setPending(false);
 
-    if (notification.entityType === "transaction_entry" && notification.entityId) {
-      const space = spaceParam ?? notification.spaceId ?? "";
-      router.push(`/transactions/${notification.entityId}${space ? `?space=${space}` : ""}`);
-    }
+    const href = notificationHref(notification, spaceParam);
+    if (href) router.push(href);
   }
 
   return (

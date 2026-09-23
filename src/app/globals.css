@@ -271,3 +271,32 @@ body {
 .theme-logo-dark { display: none; }
 .dark .theme-logo-light { display: none; }
 .dark .theme-logo-dark { display: block; }
+
+/* ── Yazdırma / "PDF olarak kaydet" ──
+   Menü, üst bar ve alt gezinme AppShell'de print:hidden ile gizlenir.
+   Burada yalnızca çıktının okunaklı ve bölünmeden basılması sağlanır. */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  main {
+    overflow: visible !important;
+  }
+  .surface-card,
+  section {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

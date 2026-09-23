@@ -63,6 +63,11 @@ export async function getOrCreatePortfolioForBook(supabase: SupabaseClient, book
   return data.id;
 }
 
+/** Fiyat × miktar → kuruş. Uygulamadaki TEK değerleme formülü (liste, detay ve günlük anlık görüntü aynı sonucu verir). */
+export function holdingValueCents(price: number, quantity: number): number {
+  return Math.round(price * 100 * quantity);
+}
+
 export async function getHoldings(supabase: SupabaseClient, bookId: string): Promise<HoldingRow[]> {
   const portfolio = await getPortfolioForBook(supabase, bookId);
   if (!portfolio) return [];
@@ -91,7 +96,7 @@ export async function getHoldings(supabase: SupabaseClient, bookId: string): Pro
     const avgCostPerUnitCents = h.quantity > 0 ? h.total_cost_basis_cents / h.quantity : 0;
     const priceEntry = priceMap.get(`${h.asset_symbol}:${h.asset_type}:${h.currency}`);
     const currentPrice = priceEntry?.price ?? null;
-    const currentValueCents = currentPrice !== null ? Math.round(currentPrice * 100 * h.quantity) : null;
+    const currentValueCents = currentPrice !== null ? holdingValueCents(currentPrice, h.quantity) : null;
     const unrealizedGainCents = currentValueCents !== null ? currentValueCents - h.total_cost_basis_cents : null;
 
     return {
@@ -138,7 +143,7 @@ export async function getHoldingDetail(supabase: SupabaseClient, holdingId: stri
 
   const avgCostPerUnitCents = h.quantity > 0 ? h.total_cost_basis_cents / h.quantity : 0;
   const currentPrice = priceRow?.price ?? null;
-  const currentValueCents = currentPrice !== null ? Math.round(currentPrice * 100 * h.quantity) : null;
+  const currentValueCents = currentPrice !== null ? holdingValueCents(currentPrice, h.quantity) : null;
   const unrealizedGainCents = currentValueCents !== null ? currentValueCents - h.total_cost_basis_cents : null;
 
   return {

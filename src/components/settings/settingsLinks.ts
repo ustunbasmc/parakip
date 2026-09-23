@@ -27,7 +27,7 @@ export const SETTINGS_LINKS: SettingsLinkItem[] = [
   { href: "/settings/categories", label: "Kategoriler", description: "Gelir/gider kategorilerini yönet", icon: TagIcon, spaceAware: true },
   { href: "/settings/security", label: "Güvenlik", description: "Şifre, oturumlar ve cihazlar", icon: ShieldIcon },
   { href: "/settings/account", label: "Hesap yönetimi", description: "Hesap silme talebi ve veri güvenliği", icon: LockIcon },
-  { href: "/settings/notifications", label: "Bildirimler", description: "Bildirim tercihleri", icon: BellIcon, comingSoon: true },
+  { href: "/settings/notifications", label: "Bildirimler", description: "Hangi bildirimleri alacağını seç", icon: BellIcon },
   { href: "/help", label: "Yardım Merkezi", description: "Destek ve sık sorulanlar", icon: HelpCircleIcon },
 ];
 

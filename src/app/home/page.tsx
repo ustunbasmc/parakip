@@ -16,7 +16,6 @@ import { DashboardCard, CardError, CardEmptyState, CardLink } from "@/components
 import { DebtList } from "@/components/dashboard/DebtListCard";
 import { TransactionListItem } from "@/components/transactions/TransactionListItem";
 import { BudgetListItem } from "@/components/budgets/BudgetListItem";
-import { AiTeaserCard } from "@/components/dashboard/AiTeaserCard";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { BusinessSummaryGrid } from "@/components/business/BusinessSummaryGrid";
 import { DonutChart } from "@/components/charts/DonutChart";
@@ -197,8 +196,6 @@ function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props
           </div>
         </Link>
       ) : null}
-
-      <AiTeaserCard />
 
       <QuickActions bookId={bookId} spaceParam={spaceId} />
     </>
@@ -561,8 +558,6 @@ function BusinessDashboard({ supabase, bookId, spaceId }: Props) {
       <Suspense fallback={<CardSkeleton lines={4} className="min-h-[14rem]" />}>
         <InsightsSection supabase={supabase} bookId={bookId} spaceId={spaceId} range={month.range} rangeLabel={month.label} />
       </Suspense>
-
-      <AiTeaserCard />
 
       <QuickActions bookId={bookId} spaceParam={spaceId} variant="business" />
     </>

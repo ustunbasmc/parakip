@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getPeriodRange, type DashboardPeriod } from "@/lib/format/date";
+import { shiftMonthIso, zonedDate, zonedMidnight, zonedMonthIso, zonedMonthKey } from "@/lib/format/tz";
 /**
  * Raporlar ekranının veri katmanı. Mevcut sorgu desenlerini (RLS'e tabi,
  * service_role YOK, book_id ile sınırlı) yeniden kullanır — yeni bir
@@ -75,8 +76,9 @@ export async function getMonthlyTrend(
   bookId: string,
   months = 6
 ): Promise<MonthlyTrendRow[]> {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  // Ay sınırları ve gruplama uygulama saat dilimine göre (bkz. format/tz.ts).
+  const nowZ = zonedDate();
+  const start = zonedMidnight(nowZ.year, nowZ.month - (months - 1), 1);
 
   const { data, error } = await supabase
     .from("transaction_entries")
@@ -89,17 +91,15 @@ export async function getMonthlyTrend(
   if (error) throw error;
 
   const buckets = new Map<string, { income: number; expense: number }>();
+  const firstMonth = zonedMonthIso(start);
   for (let i = 0; i < months; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    buckets.set(key, { income: 0, expense: 0 });
+    buckets.set(shiftMonthIso(firstMonth, i).slice(0, 7), { income: 0, expense: 0 });
   }
 
   for (const row of (data ?? []) as unknown as { amount_cents: number; transactions: { type: string; occurred_at: string } | { type: string; occurred_at: string }[] | null }[]) {
     const tx = one(row.transactions);
     if (!tx) continue;
-    const d = new Date(tx.occurred_at);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const key = zonedMonthKey(new Date(tx.occurred_at));
     const bucket = buckets.get(key);
     if (!bucket) continue;
     if (tx.type === "income") bucket.income += Math.abs(row.amount_cents);

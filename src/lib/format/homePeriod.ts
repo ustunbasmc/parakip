@@ -2,9 +2,11 @@
  * Ana sayfa dönem seçicisi: Bu ay, Geçen ay, Bu yıl, Özel tarih.
  * Raporlar ekranının DashboardPeriod tipinden bilinçli olarak AYRIDIR
  * (o ekranın davranışı değişmesin diye). Aralıklar [start, end) biçiminde
- * ISO döner; gün sınırları projedeki mevcut konvansiyonla aynı şekilde
- * yerel saatle hesaplanır (bkz. format/date.ts getPeriodRange).
+ * ISO döner; gün/ay sınırları uygulama saat dilimine (Europe/Istanbul)
+ * göre hesaplanır (bkz. format/tz.ts) — sunucunun saat dilimi sonucu
+ * değiştirmez.
  */
+import { zonedDate, zonedMidnight } from "./tz";
 
 export type HomePeriod = "month" | "last_month" | "year" | "custom";
 
@@ -36,23 +38,24 @@ export interface ResolvedHomePeriod {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_CUSTOM_DAYS = 366;
 
-function parseLocalDate(value: string): Date | null {
+/** "YYYY-MM-DD" → geçerli bir takvim tarihiyse {y, m, d}. */
+function parseIsoDate(value: string): { y: number; m: number; d: number } | null {
   if (!DATE_RE.test(value)) return null;
   const [y, m, d] = value.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+  const check = new Date(Date.UTC(y, m - 1, d));
+  return check.getUTCFullYear() === y && check.getUTCMonth() === m - 1 && check.getUTCDate() === d ? { y, m, d } : null;
 }
 
 function iso(d: Date) {
   return d.toISOString();
 }
 
-function monthLabel(d: Date) {
-  return new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" }).format(d);
+function monthLabel(year: number, month: number) {
+  return new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-function shortDay(d: Date) {
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" }).format(d);
+function shortDay(p: { y: number; m: number; d: number }) {
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(p.y, p.m - 1, p.d)));
 }
 
 export function isHomePeriod(v: unknown): v is HomePeriod {
@@ -72,17 +75,20 @@ export function resolveHomePeriod(
   const period: HomePeriod = isHomePeriod(rawPeriod) ? rawPeriod : "month";
 
   if (period === "custom") {
-    const from = rawFrom ? parseLocalDate(rawFrom) : null;
-    const to = rawTo ? parseLocalDate(rawTo) : null;
-    if (from && to && from <= to) {
-      const endExclusive = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1);
-      const days = Math.round((endExclusive.getTime() - from.getTime()) / 86_400_000);
+    const from = rawFrom ? parseIsoDate(rawFrom) : null;
+    const to = rawTo ? parseIsoDate(rawTo) : null;
+    const fromUtc = from ? Date.UTC(from.y, from.m - 1, from.d) : NaN;
+    const toUtc = to ? Date.UTC(to.y, to.m - 1, to.d) : NaN;
+    if (from && to && fromUtc <= toUtc) {
+      const days = Math.round((toUtc - fromUtc) / 86_400_000) + 1;
       if (days <= MAX_CUSTOM_DAYS) {
-        const prevStart = new Date(from.getFullYear(), from.getMonth(), from.getDate() - days);
+        const start = zonedMidnight(from.y, from.m, from.d);
+        const endExclusive = zonedMidnight(to.y, to.m, to.d + 1);
+        const prevStart = zonedMidnight(from.y, from.m, from.d - days);
         return {
           period,
-          range: { start: iso(from), end: iso(endExclusive) },
-          previous: { start: iso(prevStart), end: iso(from) },
+          range: { start: iso(start), end: iso(endExclusive) },
+          previous: { start: iso(prevStart), end: iso(start) },
           label: `${shortDay(from)} – ${shortDay(to)}`,
           from: rawFrom,
           to: rawTo,
@@ -92,26 +98,24 @@ export function resolveHomePeriod(
     return resolveHomePeriod("month", undefined, undefined, now);
   }
 
+  const z = zonedDate(now);
   if (period === "year") {
-    const start = new Date(now.getFullYear(), 0, 1);
-    const end = new Date(now.getFullYear() + 1, 0, 1);
-    const prevStart = new Date(now.getFullYear() - 1, 0, 1);
+    const start = zonedMidnight(z.year, 1, 1);
     return {
       period,
-      range: { start: iso(start), end: iso(end) },
-      previous: { start: iso(prevStart), end: iso(start) },
-      label: String(now.getFullYear()),
+      range: { start: iso(start), end: iso(zonedMidnight(z.year + 1, 1, 1)) },
+      previous: { start: iso(zonedMidnight(z.year - 1, 1, 1)), end: iso(start) },
+      label: String(z.year),
     };
   }
 
   const offset = period === "last_month" ? -1 : 0;
-  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 1);
-  const prevStart = new Date(now.getFullYear(), now.getMonth() + offset - 1, 1);
+  const start = zonedMidnight(z.year, z.month + offset, 1);
+  const labelDate = new Date(Date.UTC(z.year, z.month - 1 + offset, 1));
   return {
     period,
-    range: { start: iso(start), end: iso(end) },
-    previous: { start: iso(prevStart), end: iso(start) },
-    label: monthLabel(start),
+    range: { start: iso(start), end: iso(zonedMidnight(z.year, z.month + offset + 1, 1)) },
+    previous: { start: iso(zonedMidnight(z.year, z.month + offset - 1, 1)), end: iso(start) },
+    label: monthLabel(labelDate.getUTCFullYear(), labelDate.getUTCMonth() + 1),
   };
 }

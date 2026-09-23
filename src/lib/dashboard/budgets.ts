@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { zonedMonthIso } from "@/lib/format/tz";
 
 /**
  * Bütçeler modülünün veri katmanı. Mevcut budgets/budget_usage şeması
@@ -19,9 +20,9 @@ export interface BudgetRow {
   alertLevel: "ok" | "warning_80" | "exceeded";
 }
 
+/** Bu ay — uygulama saat dilimine göre (sunucu UTC'de olsa bile ay başında doğru ay). */
 function currentMonthIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return zonedMonthIso();
 }
 
 export async function getBudgets(

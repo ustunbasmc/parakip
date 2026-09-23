@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { MessageThread, type ThreadMessage } from "@/components/support/MessageThread";
 import { SupportReplyForm } from "@/components/support/SupportReplyForm";
+import { CloseTicketButton } from "@/components/support/CloseTicketButton";
 import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 import {
   SUPPORT_BUCKET,
@@ -127,7 +128,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             </Link>
           </div>
         ) : (
-          <SupportReplyForm ticketId={ticket.id} />
+          <>
+            <SupportReplyForm ticketId={ticket.id} />
+            <CloseTicketButton ticketId={ticket.id} />
+          </>
         )}
 
         <p className="text-center text-xs text-text-muted">Yeni yanıtları görmek için sayfayı yenileyebilirsin.</p>

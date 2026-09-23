@@ -9,7 +9,16 @@ import { Modal } from "@/components/Modal";
 import { BudgetForm } from "@/components/budgets/BudgetForm";
 import { PlusIcon } from "@/components/icons";
 
-export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceParam: string }) {
+export function NewBudgetButton({
+  bookId,
+  spaceParam,
+  periodMonth,
+}: {
+  bookId: string;
+  spaceParam: string;
+  /** "YYYY-MM-01" — bütçenin oluşturulacağı ay (verilmezse bu ay). */
+  periodMonth?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -22,11 +31,11 @@ export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceP
     setLoading(true);
     const supabase = createClient();
     try {
-      // Kategoriler ve bu ayın mevcut bütçeleri paralel çekilir. Mevcut
+      // Kategoriler ve seçili ayın mevcut bütçeleri paralel çekilir. Mevcut
       // bütçeler okunamazsa form yine açılır (son kontrol veritabanında).
       const [cats, keys] = await Promise.all([
         getCategoriesForBook(supabase, bookId, "expense"),
-        getExistingBudgetKeys(supabase, bookId).catch(() => undefined),
+        getExistingBudgetKeys(supabase, bookId, periodMonth).catch(() => undefined),
       ]);
       setCategories(cats);
       setExisting(keys);
@@ -71,6 +80,7 @@ export function NewBudgetButton({ bookId, spaceParam }: { bookId: string; spaceP
             homeHref={`/budgets?space=${spaceParam}`}
             categories={categories}
             existing={existing}
+            periodMonth={periodMonth}
             variant="modal"
             onSuccess={handleSuccess}
             onDirtyChange={setIsDirty}

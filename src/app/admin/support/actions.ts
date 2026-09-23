@@ -3,7 +3,7 @@
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserAndAdminStatus, getAdminDbClient, logAdminAction } from "@/lib/admin/auth";
-import { MESSAGE_MAX, isTicketStatus, type TicketStatus } from "@/lib/support/constants";
+import { MESSAGE_MAX, formatTicketNumber, isTicketStatus, type TicketStatus } from "@/lib/support/constants";
 import { notifyUserAdminReplied } from "@/lib/support/notify";
 
 /**
@@ -76,6 +76,17 @@ export async function adminReplyToTicket(input: {
       .from("support_tickets")
       .update({ status: nextStatus, last_message_at: now, last_admin_reply_at: now })
       .eq("id", ticket.id);
+
+    // Uygulama içi bildirim (zil). Başarısız olursa yanıt yine kaydedilmiş sayılır.
+    const { error: notifError } = await supabase.from("notifications").insert({
+      user_id: ticket.user_id,
+      type: "support_reply",
+      title: `Destek talebine yanıt geldi (${formatTicketNumber(ticket.ticket_number)})`,
+      body: ticket.subject,
+      entity_type: "support_ticket",
+      entity_id: ticket.id,
+    });
+    if (notifError) console.error("[support] uygulama içi bildirim oluşturulamadı:", notifError.message);
 
     after(async () => {
       const { data } = await supabase.auth.admin.getUserById(ticket.user_id);

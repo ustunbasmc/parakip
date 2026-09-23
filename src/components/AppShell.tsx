@@ -54,12 +54,14 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="flex min-h-dvh bg-bg md:items-stretch">
-      <Suspense fallback={<div className="hidden w-64 shrink-0 md:block" />}>
-        <Sidebar activeSpaceType={activeSpaceType} />
-      </Suspense>
+      <div className="contents print:hidden">
+        <Suspense fallback={<div className="hidden w-64 shrink-0 md:block" />}>
+          <Sidebar activeSpaceType={activeSpaceType} />
+        </Suspense>
+      </div>
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 md:px-8 md:pt-6">
+        <header className="flex items-center gap-2 print:hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 md:px-8 md:pt-6">
           {variant === "subpage" ? (
             <>
               <BackButton href={parentHref} guard={backGuard} />
@@ -81,9 +83,11 @@ export function AppShell({
           {children}
         </main>
 
-        <Suspense fallback={<div className="h-[3.75rem] shrink-0 md:hidden" />}>
-          <BottomNav activeSpaceType={activeSpaceType} />
-        </Suspense>
+        <div className="contents print:hidden">
+          <Suspense fallback={<div className="h-[3.75rem] shrink-0 md:hidden" />}>
+            <BottomNav activeSpaceType={activeSpaceType} />
+          </Suspense>
+        </div>
       </div>
     </div>
   );

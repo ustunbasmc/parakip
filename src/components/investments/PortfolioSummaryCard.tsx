@@ -9,8 +9,8 @@ import { TrendingUpIcon } from "@/components/icons";
  * varlığın güncel değeri (fiyat YOKSA maliyet tabanı — /investments ile
  * aynı kural) üzerinden yalnızca görsel oran olarak gösterilir.
  *
- * Fiyat geçmişi tutulmadığı için bir "trend çizgisi" ÇİZİLMEZ (sahte
- * grafik üretilmez).
+ * Değer geçmişi ayrı bir kartta (PortfolioValueChart) günlük gerçek
+ * anlık görüntülerden çizilir; burada tahmini bir çizgi üretilmez.
  */
 export function PortfolioSummaryCard({
   totals,

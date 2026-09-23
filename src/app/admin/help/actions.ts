@@ -145,3 +145,72 @@ export async function setHelpArticleStatus(id: string, status: string): Promise<
   revalidatePath("/help", "layout");
   return { ok: true, id };
 }
+
+export interface CategoryInput {
+  id: string | null;
+  slug: string;
+  title: string;
+  description: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+/**
+ * Yardım kategorisi oluşturur/günceller. Kategori SİLİNMEZ (makaleler
+ * ona bağlı); kullanıcıdan gizlemek için pasife alınır — pasif kategori
+ * ve makaleleri Yardım Merkezi'nde listelenmez (bkz. 0061 politikaları).
+ */
+export async function saveHelpCategory(input: CategoryInput): Promise<Result> {
+  const admin = await assertAdmin();
+  const supabase = getAdminDbClient();
+
+  const slug = input.slug.trim();
+  const title = input.title.trim();
+  const description = input.description.trim();
+  if (input.id !== null && !UUID_RE.test(input.id)) return { ok: false, error: "Geçersiz kategori." };
+  if (!title || title.length > 80) return { ok: false, error: "Başlık 1-80 karakter olmalı." };
+  if (!SLUG_RE.test(slug) || slug.length > 80) return { ok: false, error: "Slug yalnızca küçük harf, rakam ve tire içerebilir." };
+  if (description.length > 240) return { ok: false, error: "Açıklama en fazla 240 karakter olabilir." };
+
+  const row = {
+    slug,
+    title,
+    description: description || null,
+    sort_order: Number.isFinite(input.sortOrder) ? Math.round(input.sortOrder) : 100,
+    is_active: Boolean(input.isActive),
+  };
+
+  let id = input.id;
+  let before: { is_active: boolean } | null = null;
+  if (id) {
+    const { data } = await supabase.from("help_categories").select("is_active").eq("id", id).maybeSingle();
+    if (!data) return { ok: false, error: "Kategori bulunamadı." };
+    before = data;
+    const { error } = await supabase.from("help_categories").update(row).eq("id", id);
+    if (error) return { ok: false, error: error.code === "23505" ? "Bu slug başka bir kategoride kullanılıyor." : error.message };
+  } else {
+    const { data, error } = await supabase.from("help_categories").insert(row).select("id").single();
+    if (error) return { ok: false, error: error.code === "23505" ? "Bu slug başka bir kategoride kullanılıyor." : error.message };
+    id = data.id;
+  }
+
+  await logAdminAction({
+    adminUserId: admin.id,
+    action:
+      input.id === null
+        ? "help_category_create"
+        : before && before.is_active !== row.is_active
+          ? row.is_active
+            ? "help_category_activate"
+            : "help_category_deactivate"
+          : "help_category_update",
+    entityType: "help_category",
+    entityId: id!,
+    detail: { slug, isActive: row.is_active },
+  });
+
+  revalidatePath("/admin/help/categories");
+  revalidatePath("/admin/help");
+  revalidatePath("/help", "layout");
+  return { ok: true, id: id! };
+}

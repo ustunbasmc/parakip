@@ -3,28 +3,32 @@
  * "son işlemler" ve "yaklaşan ödemeler" kartlarında kullanılır.
  */
 
+import { zonedDate, zonedIsoDate, zonedMidnight } from "./tz";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Bugünün (yerel saat) başlangıcını döner — gün farkı hesaplarken kullanılır. */
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
+/** "YYYY-MM-DD" tarihinin gün numarası (UTC takvimi üzerinden, saat dilimsiz). */
+function dayNumber(isoDate: string): number {
+  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / DAY_MS);
 }
 
-/** İki tarih arasındaki tam gün farkını döner (b - a). */
+/**
+ * İki an arasındaki TAKVİM günü farkı (b - a), uygulama saat dilimine
+ * (Europe/Istanbul) göre — sunucu UTC'de çalışsa bile "bugün/dün" doğru olur.
+ */
 export function dayDiff(a: Date, b: Date): number {
-  return Math.round((startOfDay(b).getTime() - startOfDay(a).getTime()) / DAY_MS);
+  return dayNumber(zonedIsoDate(b)) - dayNumber(zonedIsoDate(a));
 }
 
 /**
  * Bir vade tarihini, bugüne göreli, kullanıcı dostu bir Türkçe etikete
  * çevirir. Kesin tarih yerine bu etiket kullanılması, "3 gün sonra" gibi
- * aciliyeti anında anlaşılır kılar.
+ * aciliyeti anında anlaşılır kılar. Vade bir takvim tarihidir
+ * ("YYYY-MM-DD"), bugün ise uygulama saat dilimine göre alınır.
  */
 export function formatDueDateLabel(dueDateIso: string, now: Date = new Date()): string {
-  const due = new Date(dueDateIso + "T00:00:00");
-  const diff = dayDiff(now, due);
+  const diff = dayNumber(dueDateIso) - dayNumber(zonedIsoDate(now));
 
   if (diff < 0) {
     const overdue = Math.abs(diff);
@@ -33,7 +37,8 @@ export function formatDueDateLabel(dueDateIso: string, now: Date = new Date()): 
   if (diff === 0) return "Bugün";
   if (diff === 1) return "Yarın";
   if (diff <= 7) return `${diff} gün sonra`;
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" }).format(due);
+  const [y, m, d] = dueDateIso.slice(0, 10).split("-").map(Number);
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
 /** Bir işlem zaman damgasını kısa, göreli bir Türkçe etikete çevirir. */
@@ -42,18 +47,17 @@ export function formatRelativeDate(isoTimestamp: string, now: Date = new Date())
   const diff = dayDiff(date, now);
 
   if (diff === 0) {
-    return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit" }).format(date);
+    return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }).format(date);
   }
   if (diff === 1) return "Dün";
   if (diff < 7) return `${diff} gün önce`;
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" }).format(date);
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "Europe/Istanbul" }).format(date);
 }
 
-/** Verilen tarihin (varsayılan: bugün) bulunduğu ayın [başlangıç, bitiş) aralığını ISO olarak döner. */
+/** Verilen anın (varsayılan: şimdi) uygulama saat dilimindeki ayının [başlangıç, bitiş) aralığı. */
 export function getCurrentMonthRange(now: Date = new Date()): { start: string; end: string } {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { start: start.toISOString(), end: end.toISOString() };
+  const z = zonedDate(now);
+  return { start: zonedMidnight(z.year, z.month, 1).toISOString(), end: zonedMidnight(z.year, z.month + 1, 1).toISOString() };
 }
 
 export type DashboardPeriod = "today" | "week" | "month" | "year";
@@ -66,50 +70,37 @@ export const PERIOD_LABELS: Record<DashboardPeriod, string> = {
 };
 
 /**
- * Dashboard'daki gelir/gider/net değişim zaman filtresi için
- * [başlangıç, bitiş) aralığını döner. Hafta Pazartesi'den başlar (tr-TR
- * konvansiyonu). "occurred_at" üzerinden hesaplama yapıldığı için burada
- * yalnızca gün sınırları önemlidir, saat dilimi karmaşasından kaçınmak
- * için yerel (tarayıcı/sunucu) saat dilimi kullanılır — tüm proje zaten
- * bu konvansiyonu izliyor (bkz. getCurrentMonthRange).
+ * Dashboard'daki gelir/gider/net değişim zaman filtresi için [başlangıç,
+ * bitiş) aralığını döner. Hafta Pazartesi'den başlar (tr-TR konvansiyonu).
+ * Sınırlar uygulama saat dilimine (Europe/Istanbul) göre hesaplanır —
+ * sunucunun saat dilimi sonucu DEĞİŞTİRMEZ.
  */
 export function getPeriodRange(period: DashboardPeriod, now: Date = new Date()): { start: string; end: string } {
+  const z = zonedDate(now);
   if (period === "today") {
-    const start = startOfDay(now);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    return { start: start.toISOString(), end: end.toISOString() };
+    return { start: zonedMidnight(z.year, z.month, z.day).toISOString(), end: zonedMidnight(z.year, z.month, z.day + 1).toISOString() };
   }
-
   if (period === "week") {
-    const start = startOfDay(now);
-    // Pazartesi = 1 ... Pazar = 0 → Pazar'ı haftanın SONUNA taşımak için 7'ye çeviriyoruz.
-    const isoDay = start.getDay() === 0 ? 7 : start.getDay();
-    start.setDate(start.getDate() - (isoDay - 1));
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-    return { start: start.toISOString(), end: end.toISOString() };
+    const startDay = z.day - (z.isoWeekday - 1);
+    return {
+      start: zonedMidnight(z.year, z.month, startDay).toISOString(),
+      end: zonedMidnight(z.year, z.month, startDay + 7).toISOString(),
+    };
   }
-
   if (period === "year") {
-    const start = new Date(now.getFullYear(), 0, 1);
-    const end = new Date(now.getFullYear() + 1, 0, 1);
-    return { start: start.toISOString(), end: end.toISOString() };
+    return { start: zonedMidnight(z.year, 1, 1).toISOString(), end: zonedMidnight(z.year + 1, 1, 1).toISOString() };
   }
-
   return getCurrentMonthRange(now);
 }
 
 /**
  * Seçili dönemin bir önceki EŞDEĞER dönemi (dün, geçen hafta, geçen ay,
  * geçen yıl) — yalnızca karşılaştırma göstergeleri (değişim yüzdesi) için.
- * getPeriodRange ile aynı yerel saat konvansiyonunu kullanır.
+ * Mevcut dönemin başlangıcından biraz öncesine bakılarak bulunur; böylece
+ * ay uzunluğu/saat dilimi farkı sonucu kaydırmaz.
  */
 export function getPreviousPeriodRange(period: DashboardPeriod, now: Date = new Date()): { start: string; end: string } {
-  const ref = new Date(now);
-  if (period === "today") ref.setDate(ref.getDate() - 1);
-  else if (period === "week") ref.setDate(ref.getDate() - 7);
-  else if (period === "year") ref.setFullYear(ref.getFullYear() - 1, 0, 1);
-  else ref.setMonth(ref.getMonth() - 1, 1);
-  return getPeriodRange(period, ref);
+  const current = getPeriodRange(period, now);
+  const back = period === "week" ? 3 * DAY_MS : 12 * 60 * 60 * 1000;
+  return getPeriodRange(period, new Date(new Date(current.start).getTime() - back));
 }

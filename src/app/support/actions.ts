@@ -233,3 +233,21 @@ export async function submitArticleFeedback(input: { articleId: string; helpful:
   if (error) return { ok: false, error: "Geri bildirimin kaydedilemedi." };
   return { ok: true };
 }
+
+/**
+ * Kullanıcı kendi talebini kapatır. Kullanıcının support_tickets üzerinde
+ * UPDATE yetkisi yoktur; tek yol close_own_support_ticket RPC'sidir
+ * (bkz. migration 0063) — sahiplik kontrolü ve olay kaydı veritabanında.
+ */
+export async function closeOwnSupportTicket(ticketId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(ticketId)) return { ok: false, error: "Geçersiz talep." };
+  const { supabase, user } = await requireUser();
+  if (!user) return { ok: false, error: "Oturumun sona ermiş. Lütfen tekrar giriş yap." };
+
+  const { error } = await supabase.rpc("close_own_support_ticket", { p_ticket_id: ticketId });
+  if (error) return { ok: false, error: "Talep kapatılamadı. Lütfen biraz sonra tekrar dene." };
+
+  revalidatePath(`/support/tickets/${ticketId}`);
+  revalidatePath("/support/tickets");
+  return { ok: true };
+}

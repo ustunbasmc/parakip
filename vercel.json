@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/update-market-prices",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/admin/complete-account-deletions",
+      "schedule": "30 3 * * *"
     }
   ]
 }

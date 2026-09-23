@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { recordPortfolioSnapshots } from "@/lib/investments/snapshots";
 
 /**
  * Yatırım modülü için piyasa fiyatı önbelleğini (market_prices_cache)
@@ -108,6 +109,16 @@ async function handle(request: Request) {
     results.push({ symbol: "BTC/ETH", assetType: "crypto", ok: false, error: err instanceof Error ? err.message : "CoinGecko hatası" });
   }
 
+  // ── Günlük portföy değeri anlık görüntüsü (bkz. migration 0063) ──
+  // Fiyatlar güncellendikten SONRA alınır; fiyat kaynağı hata verse bile
+  // önbellekteki son fiyatlarla (veya maliyetle) o günün değeri kaydedilir.
+  let snapshots: { written: number; date: string } | { error: string };
+  try {
+    snapshots = await recordPortfolioSnapshots(supabase, now);
+  } catch (err) {
+    snapshots = { error: err instanceof Error ? err.message : "Anlık görüntü yazılamadı" };
+  }
+
   const successCount = results.filter((r) => r.ok).length;
-  return NextResponse.json({ updated: successCount, total: results.length, results });
+  return NextResponse.json({ updated: successCount, total: results.length, results, snapshots });
 }

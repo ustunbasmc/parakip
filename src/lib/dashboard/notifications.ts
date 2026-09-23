@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * bir kontrole gerek yoktur.
  */
 
-export type NotificationType = "debt_due" | "budget_80" | "budget_exceeded" | "transfer_created" | "space_invite";
+export type NotificationType = "debt_due" | "budget_80" | "budget_exceeded" | "transfer_created" | "space_invite" | "support_reply";
 
 export interface NotificationRow {
   id: string;
@@ -66,4 +66,18 @@ export async function getNotifications(
 
   if (error) throw error;
   return (data ?? []).map(mapRow);
+}
+
+/**
+ * Bildirime tıklanınca gidilecek sayfa (yoksa null — yalnızca okundu
+ * işaretlenir). Zil balonu ve /notifications listesi aynı kuralı kullanır.
+ */
+export function notificationHref(n: Pick<NotificationRow, "entityType" | "entityId" | "spaceId">, space: string | null): string | null {
+  if (!n.entityId) return null;
+  if (n.entityType === "transaction_entry") {
+    const s = space ?? n.spaceId ?? "";
+    return `/transactions/${n.entityId}${s ? `?space=${s}` : ""}`;
+  }
+  if (n.entityType === "support_ticket") return `/support/tickets/${n.entityId}`;
+  return null;
 }

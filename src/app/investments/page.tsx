@@ -12,6 +12,10 @@ import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getProfileHeaderInfo } from "@/lib/avatars";
 import { getHoldings, computePortfolioTotals } from "@/lib/dashboard/investments";
+import { getPortfolioSnapshots, type SnapshotPoint } from "@/lib/investments/snapshots";
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { PortfolioValueChart } from "@/components/investments/PortfolioValueChart";
+import { TrendingUpIcon } from "@/components/icons";
 
 export default async function InvestmentsPage({ searchParams }: { searchParams: Promise<{ space?: string }> }) {
   const supabase = await createClient();
@@ -40,9 +44,14 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
   }
 
   let holdings;
+  let snapshots: SnapshotPoint[] = [];
   let loadError = false;
   try {
-    holdings = await getHoldings(supabase, activeSpace.bookId);
+    [holdings, snapshots] = await Promise.all([
+      getHoldings(supabase, activeSpace.bookId),
+      // Geçmiş okunamazsa (ör. tablo henüz yoksa) sayfa yine açılır; grafik boş durumda kalır.
+      getPortfolioSnapshots(supabase, activeSpace.bookId).catch(() => [] as SnapshotPoint[]),
+    ]);
   } catch {
     loadError = true;
     holdings = [] as Awaited<ReturnType<typeof getHoldings>>;
@@ -70,6 +79,12 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
         ) : (
           <>
             <PortfolioSummaryCard totals={totals} currency={primaryCurrency} holdings={holdings} />
+
+            {holdings.length > 0 ? (
+              <DashboardCard title="Değer geçmişi" subtitle="Günlük otomatik kayıt" icon={<TrendingUpIcon size={16} />}>
+                <PortfolioValueChart points={snapshots} currency={primaryCurrency} />
+              </DashboardCard>
+            ) : null}
 
             <InvestmentActionButtons bookId={activeSpace.bookId} spaceParam={activeSpace.id} holdings={holdings} />
 

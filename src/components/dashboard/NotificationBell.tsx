@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getNotifications, type NotificationRow } from "@/lib/dashboard/notifications";
+import { getNotifications, notificationHref, type NotificationRow } from "@/lib/dashboard/notifications";
 import { markNotificationRead, markAllNotificationsRead } from "@/lib/api/notifications-rpc";
 import { formatRelativeDate } from "@/lib/format/date";
-import { BellIcon, ClockIcon, PieChartIcon, TransferIcon, BuildingIcon } from "@/components/icons";
+import { BellIcon, ClockIcon, PieChartIcon, TransferIcon, BuildingIcon, MessageIcon } from "@/components/icons";
 import { CardEmptyState } from "@/components/dashboard/DashboardCard";
 
 const TYPE_ICON = {
@@ -15,6 +15,7 @@ const TYPE_ICON = {
   budget_exceeded: PieChartIcon,
   transfer_created: TransferIcon,
   space_invite: BuildingIcon,
+  support_reply: MessageIcon,
 } as const;
 
 const TYPE_TINT = {
@@ -23,6 +24,7 @@ const TYPE_TINT = {
   budget_exceeded: "bg-danger-soft text-danger",
   transfer_created: "bg-accent-soft text-accent",
   space_invite: "bg-accent-soft text-accent",
+  support_reply: "bg-accent-soft text-accent",
 } as const;
 
 const PREVIEW_LIMIT = 5;
@@ -141,10 +143,8 @@ export function NotificationBell({ unreadCount: initialUnreadCount }: { unreadCo
       }
     }
 
-    if (n.entityType === "transaction_entry" && n.entityId) {
-      const space = currentSpace ?? n.spaceId ?? "";
-      navigateTo(`/transactions/${n.entityId}${space ? `?space=${space}` : ""}`);
-    }
+    const href = notificationHref(n, currentSpace);
+    if (href) navigateTo(href);
     // Yönlendirilecek bir detay yoksa yalnızca okundu işaretlenir, balon açık kalır.
   }
 

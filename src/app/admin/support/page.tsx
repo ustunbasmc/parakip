@@ -33,6 +33,9 @@ export default async function AdminSupportPage({
   const from = params.from && DATE_RE.test(params.from) ? params.from : "";
   const to = params.to && DATE_RE.test(params.to) ? params.to : "";
 
+  // Yalnızca DEĞİŞKEN ADLARI gösterilir — değerler asla sayfaya yazılmaz.
+  const missingEmailEnv = ["RESEND_API_KEY", "SUPPORT_EMAIL_FROM", "SUPPORT_EMAIL"].filter((k) => !process.env[k]);
+
   const supabase = getAdminDbClient();
   let query = supabase
     .from("support_tickets")
@@ -62,6 +65,17 @@ export default async function AdminSupportPage({
         <h1 className="text-xl font-extrabold text-text-primary">Destek Talepleri</h1>
         <p className="mt-1 text-sm text-text-muted">Öncelik talep türüne göre sistem tarafından atanır.</p>
       </div>
+
+      {missingEmailEnv.length > 0 ? (
+        <div className="rounded-2xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
+          <p className="font-bold">E-posta bildirimleri kapalı</p>
+          <p className="mt-1 text-xs">
+            Şu ortam değişkenleri tanımlı değil: {missingEmailEnv.join(", ")}. Yeni talepler için ekibe ve yanıtlarda
+            kullanıcıya e-posta gönderilmiyor (talepler ve uygulama içi bildirimler yine de çalışır). Vercel &rarr;
+            Project Settings &rarr; Environment Variables altından eklenebilir.
+          </p>
+        </div>
+      ) : null}
 
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-semibold text-text-muted">
