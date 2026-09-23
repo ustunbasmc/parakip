@@ -19,8 +19,8 @@ import { BudgetListItem } from "@/components/budgets/BudgetListItem";
 import { AiTeaserCard } from "@/components/dashboard/AiTeaserCard";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { BusinessSummaryGrid } from "@/components/business/BusinessSummaryGrid";
-import { DonutChart, type DonutSegment } from "@/components/charts/DonutChart";
-import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
+import { DonutChart } from "@/components/charts/DonutChart";
+import { TrendChart } from "@/components/charts/TrendChart";
 import { DeltaBadge } from "@/components/ui/DeltaBadge";
 import { CardSkeleton } from "@/components/ui/CardSkeleton";
 import {
@@ -33,7 +33,7 @@ import {
   PlusIcon,
 } from "@/components/icons";
 import { resolveHomePeriod, type ResolvedHomePeriod } from "@/lib/format/homePeriod";
-import { categoryColor, CHART_SERIES } from "@/lib/format/categoryColor";
+import { toDonutSegments, toTrendPoints, topCategoryLabel } from "@/lib/format/chartData";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getProfileHeaderInfo } from "@/lib/avatars";
@@ -41,7 +41,7 @@ import { getTransactionHistory } from "@/lib/dashboard/transactionHistory";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getBusinessSummary } from "@/lib/dashboard/business";
 import { getBudgets } from "@/lib/dashboard/budgets";
-import { getExpenseByCategory, getMonthlyTrend, type CategoryBreakdownRow, type MonthlyTrendRow } from "@/lib/dashboard/reports";
+import { getExpenseByCategory, getMonthlyTrend } from "@/lib/dashboard/reports";
 import { getFlowForPeriod, getUpcomingDebts, getReceivablesSummary, type CurrencyAmount } from "@/lib/dashboard/queries";
 import { computePortfolioTotals } from "@/lib/dashboard/investments";
 import { getBalancesCached, getHoldingsCached } from "@/lib/dashboard/homeData";
@@ -132,37 +132,6 @@ export default async function HomePage({
 
 function tryCents(list: CurrencyAmount[]) {
   return list.find((a) => a.currency === "TRY")?.cents ?? 0;
-}
-
-/** En büyük 5 kategori + kalanlar "Diğer" olarak birleştirilir (toplam aynı kalır). */
-function toDonutSegments(rows: CategoryBreakdownRow[]): DonutSegment[] {
-  const top = rows.slice(0, 5);
-  const rest = rows.slice(5).reduce((s, r) => s + r.totalCents, 0);
-  const segments: DonutSegment[] = top.map((r, i) => ({
-    key: r.categoryId ?? "__none__",
-    label: r.categoryName,
-    valueCents: r.totalCents,
-    color: r.categoryId ? categoryColor(r.categoryId) : CHART_SERIES[i % CHART_SERIES.length],
-  }));
-  if (rest > 0) segments.push({ key: "__other__", label: "Diğer", valueCents: rest, color: "var(--chart-6)" });
-  return segments;
-}
-
-function toTrendPoints(rows: MonthlyTrendRow[]): TrendPoint[] {
-  return rows.map((r) => ({
-    key: r.monthKey,
-    label: r.monthLabel.split(" ")[0],
-    fullLabel: r.monthLabel,
-    incomeCents: r.incomeCents,
-    expenseCents: r.expenseCents,
-  }));
-}
-
-function topCategoryText(rows: CategoryBreakdownRow[]): string | null {
-  const total = rows.reduce((s, r) => s + r.totalCents, 0);
-  const top = rows[0];
-  if (!top || total <= 0) return null;
-  return `En çok harcanan: ${top.categoryName} · %${Math.round((top.totalCents / total) * 100)}`;
 }
 
 type Props = { supabase: SupabaseClient; bookId: string; spaceId: string };
@@ -523,7 +492,7 @@ async function InsightsSection({
     );
 
   const rows = categories.status === "fulfilled" ? categories.value : [];
-  const top = topCategoryText(rows);
+  const top = topCategoryLabel(rows);
   const donutContent =
     categories.status !== "fulfilled" ? (
       <CardError />

@@ -30,7 +30,7 @@ export function KpiCard({
   tone: KpiTone;
   /** Ör. önceki döneme göre değişim rozeti. */
   badge?: ReactNode;
-  /** Kartın altında küçük açıklama (ör. "Gelirinin %66'sı"). */
+  /** Kartın altında küçük açıklama (ör. "Tasarruf oranı: %34"). */
   footnote?: ReactNode;
   className?: string;
   delay?: number;

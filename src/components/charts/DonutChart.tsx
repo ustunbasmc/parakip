@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCentsAsCurrency } from "@/lib/format/amount";
+import { formatCentsAsCurrency, formatShare } from "@/lib/format/amount";
 
 export interface DonutSegment {
   key: string;
@@ -76,14 +76,14 @@ export function DonutChart({
             {formatCentsAsCurrency(shownCents, currency)}
           </span>
           {active ? (
-            <span className="text-[10px] font-semibold text-text-muted">%{Math.round((active.valueCents / total) * 100)}</span>
+            <span className="text-[10px] font-semibold text-text-muted">{formatShare(active.valueCents, total)}</span>
           ) : null}
         </div>
       </div>
 
       <ul className="flex w-full min-w-0 flex-col gap-1">
         {segments.map((s) => {
-          const pct = Math.round((s.valueCents / total) * 100);
+          const pct = formatShare(s.valueCents, total);
           const isSel = selected === s.key;
           return (
             <li key={s.key}>
@@ -97,7 +97,7 @@ export function DonutChart({
               >
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-xs text-text-secondary">{s.label}</span>
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-text-muted">%{pct}</span>
+                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-text-muted">{pct}</span>
                 <span className="w-[5.5rem] shrink-0 text-right text-xs font-semibold tabular-nums text-text-primary">
                   {formatCentsAsCurrency(s.valueCents, currency)}
                 </span>

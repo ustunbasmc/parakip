@@ -52,7 +52,7 @@ export function CashFlowSummaryCard({ summary }: { summary: CashFlowSummary }) {
             <div className="h-full flex-1 bg-expense" />
           </div>
           <p className="mt-1.5 text-[11px] text-text-muted">
-            Açık kayıtların %{Math.round(receivableShare)}&apos;i alacak, %{100 - Math.round(receivableShare)}&apos;i borç.
+            Açık kayıtlar: alacak %{Math.round(receivableShare)} · borç %{100 - Math.round(receivableShare)}
           </p>
         </div>
       ) : null}

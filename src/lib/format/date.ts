@@ -99,3 +99,17 @@ export function getPeriodRange(period: DashboardPeriod, now: Date = new Date()):
 
   return getCurrentMonthRange(now);
 }
+
+/**
+ * Seçili dönemin bir önceki EŞDEĞER dönemi (dün, geçen hafta, geçen ay,
+ * geçen yıl) — yalnızca karşılaştırma göstergeleri (değişim yüzdesi) için.
+ * getPeriodRange ile aynı yerel saat konvansiyonunu kullanır.
+ */
+export function getPreviousPeriodRange(period: DashboardPeriod, now: Date = new Date()): { start: string; end: string } {
+  const ref = new Date(now);
+  if (period === "today") ref.setDate(ref.getDate() - 1);
+  else if (period === "week") ref.setDate(ref.getDate() - 7);
+  else if (period === "year") ref.setFullYear(ref.getFullYear() - 1, 0, 1);
+  else ref.setMonth(ref.getMonth() - 1, 1);
+  return getPeriodRange(period, ref);
+}

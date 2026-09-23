@@ -244,9 +244,11 @@ export async function getReportKindSummary(
   supabase: SupabaseClient,
   bookId: string,
   period: DashboardPeriod,
-  kind: Exclude<ReportKind, "all">
+  kind: Exclude<ReportKind, "all">,
+  /** Verilirse `period` yerine bu [start, end) aralığı kullanılır (ör. önceki dönem karşılaştırması). */
+  range?: { start: string; end: string }
 ): Promise<ReportKindSummary> {
-  const { start, end } = getPeriodRange(period);
+  const { start, end } = range ?? getPeriodRange(period);
 
   if (kind === "collection" || kind === "payment") {
     const direction = kind === "collection" ? "receivable" : "payable";
@@ -283,9 +285,11 @@ export async function getExpenseByCategoryForKind(
   supabase: SupabaseClient,
   bookId: string,
   period: DashboardPeriod,
-  kind: "purchase" | "expense"
+  kind: "purchase" | "expense",
+  /** Verilirse `period` yerine bu [start, end) aralığı kullanılır. */
+  range?: { start: string; end: string }
 ): Promise<CategoryBreakdownRow[]> {
-  const { start, end } = getPeriodRange(period);
+  const { start, end } = range ?? getPeriodRange(period);
 
   const { data, error } = await supabase
     .from("transaction_entries")

@@ -1,4 +1,4 @@
-import { formatCentsAsCurrency, formatPct } from "@/lib/format/amount";
+import { formatCentsAsCurrency, formatPct, formatShare } from "@/lib/format/amount";
 import { assetTypeLabel, type HoldingRow, type PortfolioTotals } from "@/lib/dashboard/investments";
 import { CHART_SERIES } from "@/lib/format/categoryColor";
 import { TrendingUpIcon } from "@/components/icons";
@@ -98,7 +98,7 @@ export function PortfolioSummaryCard({
             {allocation.map(([type, v], i) => (
               <li key={type} className="flex items-center gap-1.5 text-[11px] text-text-secondary">
                 <span className="h-2 w-2 rounded-full" style={{ background: CHART_SERIES[i % CHART_SERIES.length] }} aria-hidden="true" />
-                {assetTypeLabel(type)} <span className="font-semibold tabular-nums text-text-muted">%{Math.round((v / allocTotal) * 100)}</span>
+                {assetTypeLabel(type)} <span className="font-semibold tabular-nums text-text-muted">{formatShare(v, allocTotal)}</span>
               </li>
             ))}
           </ul>

@@ -43,20 +43,34 @@ export function AccountCard({ account, spaceParam }: { account: AccountWithBalan
   const card = (
     <Link
       href={`/accounts/${account.id}?space=${spaceParam}`}
-      className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors active:bg-surface-muted"
+      className={`surface-card animate-rise flex min-w-0 items-center gap-3 rounded-2xl p-3.5 transition-colors active:bg-surface-muted sm:p-4 ${
+        account.isArchived ? "opacity-60" : ""
+      }`}
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-muted text-text-secondary">
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+          account.isArchived ? "bg-surface-muted text-text-muted" : negative ? "bg-expense-soft text-expense" : "bg-balance-soft text-balance"
+        }`}
+      >
         <Icon size={20} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-text-primary">{account.name}</p>
-        <p className="text-xs text-text-muted">
-          {accountTypeLabel(account.type)} · {account.currency}
-        </p>
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-xs text-text-muted">
+            {accountTypeLabel(account.type)} · {account.currency}
+          </span>
+          {account.isArchived ? (
+            <span className="shrink-0 rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-text-muted">Arşiv</span>
+          ) : null}
+        </div>
       </div>
-      <p className={`shrink-0 text-sm font-bold tabular-nums ${negative ? "text-danger" : "text-text-primary"}`}>
-        {formatCentsAsCurrency(account.balanceCents, account.currency)}
-      </p>
+      <div className="shrink-0 text-right">
+        <p className={`text-sm font-bold tabular-nums sm:text-base ${negative ? "text-expense" : "text-text-primary"}`}>
+          {formatCentsAsCurrency(account.balanceCents, account.currency)}
+        </p>
+        <p className="text-[10px] text-text-muted">bakiye</p>
+      </div>
     </Link>
   );
 

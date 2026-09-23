@@ -144,3 +144,14 @@ export function formatCentsAsCurrency(cents: number, currency: string): string {
 export function formatPct(value: number): string {
   return new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.abs(value));
 }
+
+/**
+ * Bir parçanın toplam içindeki payını yüzde işaretiyle birlikte verir (ör.
+ * "%55"). Sıfırdan büyük ama %1'in altındaki paylar "<%1" yazılır — gerçek
+ * bir tutar varken "%0" gösterilmesin diye.
+ */
+export function formatShare(part: number, total: number): string {
+  if (total <= 0 || part <= 0) return "%0";
+  const pct = (part / total) * 100;
+  return pct < 1 ? "<%1" : `%${Math.round(pct)}`;
+}
