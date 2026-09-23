@@ -1,23 +1,19 @@
 import { AppShell } from "@/components/AppShell";
 
 /**
- * Detay sayfaları (hesap/borç/işlem/yatırım/bütçe/müşteri/tedarikçi)
- * için ortak yükleme iskeleti — RouteLoadingSkeleton'ın (liste sayfaları
- * için) detay-sayfası eşdeğeri. Üstte büyük bir özet kartı + altta
- * birkaç satır iskeleti gösterir, "boş beyaz ekran" olmaz.
+ * Alt sayfalar (detaylar, ayarlar, formlar) için ortak yükleme iskeleti —
+ * geri butonlu kabuk hemen çizilir, içerik yerinde ışık süpürmeli
+ * yer tutucular gösterilir; tıklama sonrası boş/donuk ekran oluşmaz.
  */
 export function DetailLoadingSkeleton({ title }: { title?: string }) {
   return (
     <AppShell variant="subpage" title={title ?? "Yükleniyor"}>
-      <div className="flex flex-col gap-4 pt-3">
-        <div className="animate-pulse rounded-2xl border border-border bg-surface p-6">
-          <div className="mx-auto mb-3 h-3 w-24 rounded bg-surface-muted" />
-          <div className="mx-auto h-9 w-40 rounded bg-surface-muted" />
-        </div>
+      <div className="flex flex-col gap-4 pt-3" role="status" aria-label="Yükleniyor">
+        <div className="skeleton h-32 rounded-3xl" />
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="animate-pulse rounded-2xl border border-border bg-surface p-4">
-            <div className="mb-2 h-3 w-20 rounded bg-surface-muted" />
-            <div className="h-5 w-32 rounded bg-surface-muted" />
+          <div key={i} className="surface-card flex flex-col gap-2.5 rounded-3xl p-4">
+            <div className="skeleton h-3 w-24 rounded" />
+            <div className="skeleton h-5 w-40 max-w-full rounded" />
           </div>
         ))}
       </div>

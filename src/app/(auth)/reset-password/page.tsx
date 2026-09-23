@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
-import { ScreenShell } from "@/components/ScreenShell";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
 
   if (sent) {
     return (
-      <ScreenShell parentHref="/sign-in">
+      <AuthShell parentHref="/sign-in">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <Logo withWordmark={false} />
           <h1 className="text-xl font-bold text-text-primary">Bağlantı gönderildi</h1>
@@ -46,12 +46,12 @@ export default function ResetPasswordPage() {
             bağlantısı gönderdik. Gelen kutunu kontrol et.
           </p>
         </div>
-      </ScreenShell>
+      </AuthShell>
     );
   }
 
   return (
-    <ScreenShell
+    <AuthShell
       parentHref="/sign-in"
       footer={
         <Button type="submit" form="reset-form" loading={loading}>
@@ -81,6 +81,6 @@ export default function ResetPasswordPage() {
           />
         </form>
       </div>
-    </ScreenShell>
+    </AuthShell>
   );
 }

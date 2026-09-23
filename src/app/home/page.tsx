@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -6,19 +7,32 @@ import { AppShell } from "@/components/AppShell";
 import { SpaceSwitcher } from "@/components/dashboard/SpaceSwitcher";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
-import { HomeSummaryCard } from "@/components/dashboard/HomeSummaryCard";
+import { BalanceHeroCard } from "@/components/dashboard/BalanceHeroCard";
+import { KpiCard } from "@/components/dashboard/KpiCard";
 import { HomePeriodPicker } from "@/components/dashboard/HomePeriodPicker";
+import { InsightsPanel } from "@/components/dashboard/InsightsPanel";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { DashboardCard, CardError, CardEmptyState, CardLink } from "@/components/dashboard/DashboardCard";
 import { DebtList } from "@/components/dashboard/DebtListCard";
 import { TransactionListItem } from "@/components/transactions/TransactionListItem";
 import { BudgetListItem } from "@/components/budgets/BudgetListItem";
 import { AiTeaserCard } from "@/components/dashboard/AiTeaserCard";
-import { FlowCompare } from "@/components/charts/FlowCompare";
+import { NotificationBell } from "@/components/dashboard/NotificationBell";
+import { BusinessSummaryGrid } from "@/components/business/BusinessSummaryGrid";
 import { DonutChart, type DonutSegment } from "@/components/charts/DonutChart";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
-import { ClockIcon, ListIcon, PieChartIcon, TrendingUpIcon, PlusIcon, TransferIcon } from "@/components/icons";
-import { resolveHomePeriod } from "@/lib/format/homePeriod";
+import { DeltaBadge } from "@/components/ui/DeltaBadge";
+import { CardSkeleton } from "@/components/ui/CardSkeleton";
+import {
+  ArrowUpRightIcon,
+  ArrowDownRightIcon,
+  ClockIcon,
+  ListIcon,
+  PieChartIcon,
+  TrendingUpIcon,
+  PlusIcon,
+} from "@/components/icons";
+import { resolveHomePeriod, type ResolvedHomePeriod } from "@/lib/format/homePeriod";
 import { categoryColor, CHART_SERIES } from "@/lib/format/categoryColor";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
@@ -26,19 +40,24 @@ import { getProfileHeaderInfo } from "@/lib/avatars";
 import { getTransactionHistory } from "@/lib/dashboard/transactionHistory";
 import { getUnreadNotificationCount } from "@/lib/dashboard/notifications";
 import { getBusinessSummary } from "@/lib/dashboard/business";
-import { BusinessSummaryGrid } from "@/components/business/BusinessSummaryGrid";
-import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { getBudgets } from "@/lib/dashboard/budgets";
 import { getExpenseByCategory, getMonthlyTrend, type CategoryBreakdownRow, type MonthlyTrendRow } from "@/lib/dashboard/reports";
-import {
-  getTotalBalanceByCurrency,
-  getFlowForPeriod,
-  getUpcomingDebts,
-  getReceivablesSummary,
-  type CurrencyAmount,
-} from "@/lib/dashboard/queries";
-import { getHoldings, computePortfolioTotals } from "@/lib/dashboard/investments";
+import { getFlowForPeriod, getUpcomingDebts, getReceivablesSummary, type CurrencyAmount } from "@/lib/dashboard/queries";
+import { computePortfolioTotals } from "@/lib/dashboard/investments";
+import { getBalancesCached, getHoldingsCached } from "@/lib/dashboard/homeData";
 
+/**
+ * Ana sayfa — düzen (önceki onaylı yerleşim korunarak):
+ *   1. Toplam varlık (en üstte, en belirgin)
+ *   2. Gelir / Gider / Net durum kartları yan yana
+ *   3. Son işlemler (geniş sütun) | Yaklaşan ödemeler, Bütçe, Yatırımlar (dar sütun)
+ *   4. Analiz: aylık trend + harcama dağılımı (mobilde sekmeli tek kart)
+ *
+ * PERFORMANS: Her bölüm kendi <Suspense> sınırında AKIŞLI yüklenir — sayfa
+ * kabuğu (başlık, dönem seçici, iskeletler) tüm sorguların bitmesini
+ * beklemeden hemen çizilir, veriler geldikçe kartlar yerleşir. Aynı veri
+ * birden fazla bölümde gerekirse istek başına bir kez çekilir (homeData.ts).
+ */
 export default async function HomePage({
   searchParams,
 }: {
@@ -53,29 +72,21 @@ export default async function HomePage({
     redirect("/welcome");
   }
 
-  const [spaces, profileHeader] = await Promise.all([
+  // Birbirinden bağımsız üç sorgu PARALEL (önceden bildirim sayısı ayrıca beklenirdi).
+  const [spaces, profileHeader, unreadCount] = await Promise.all([
     getUserSpacesBasic(supabase),
     getProfileHeaderInfo(supabase, user.id),
+    getUnreadNotificationCount(supabase).catch(() => 0),
   ]);
 
   if (spaces.length === 0) {
     redirect("/onboarding/space-type");
   }
 
-  let unreadCount = 0;
-  try {
-    unreadCount = await getUnreadNotificationCount(supabase);
-  } catch {
-    unreadCount = 0; // bildirimler yuklenemezse zil sessizce rozet gostermez
-  }
-
   const params = await searchParams;
   const activeSpace = resolveActiveSpace(spaces, params.space);
 
-  // "Yetkisiz bir space_id gönderilirse erişimi reddet ve güvenli bir
-  // alana yönlendir": params.space verilmiş ama HİÇBİR erişilebilir alanla
-  // eşleşmiyorsa (RLS zaten veriyi gizler, ama URL çubuğu hâlâ geçersiz id'yi
-  // gösteriyor olurdu) — URL'yi de doğru/güvenli alana düzeltiyoruz.
+  // Yetkisiz/geçersiz bir space_id → URL de güvenli alana düzeltilir (RLS zaten veriyi gizler).
   if (params.space && params.space !== activeSpace.id) {
     redirect(`/home?space=${activeSpace.id}`);
   }
@@ -96,25 +107,31 @@ export default async function HomePage({
         </div>
       }
     >
-      <GreetingHeader displayName={profileHeader.displayName} spaceName={activeSpace.name} spaceType={activeSpace.type} />
+      <div className="mx-auto w-full min-w-0 max-w-[80rem]">
+        <GreetingHeader displayName={profileHeader.displayName} spaceName={activeSpace.name} spaceType={activeSpace.type} />
 
-      <div className="mt-4 flex min-w-0 flex-col gap-4 pb-24 md:gap-5 md:pb-6">
-        {activeSpace.type === "home" ? (
-          <HomeDashboard
-            supabase={supabase}
-            bookId={activeSpace.bookId}
-            spaceId={activeSpace.id}
-            hasBusiness={hasBusiness}
-            rawPeriod={params.period}
-            rawFrom={params.from}
-            rawTo={params.to}
-          />
-        ) : (
-          <BusinessDashboard supabase={supabase} bookId={activeSpace.bookId} spaceId={activeSpace.id} />
-        )}
+        <div className="mt-4 flex min-w-0 flex-col gap-4 pb-24 md:gap-5 md:pb-6">
+          {activeSpace.type === "home" ? (
+            <HomeDashboard
+              supabase={supabase}
+              bookId={activeSpace.bookId}
+              spaceId={activeSpace.id}
+              hasBusiness={hasBusiness}
+              period={resolveHomePeriod(params.period, params.from, params.to)}
+            />
+          ) : (
+            <BusinessDashboard supabase={supabase} bookId={activeSpace.bookId} spaceId={activeSpace.id} />
+          )}
+        </div>
       </div>
     </AppShell>
   );
+}
+
+/* ───────────────────────── yardımcılar ───────────────────────── */
+
+function tryCents(list: CurrencyAmount[]) {
+  return list.find((a) => a.currency === "TRY")?.cents ?? 0;
 }
 
 /** En büyük 5 kategori + kalanlar "Diğer" olarak birleştirilir (toplam aynı kalır). */
@@ -141,235 +158,66 @@ function toTrendPoints(rows: MonthlyTrendRow[]): TrendPoint[] {
   }));
 }
 
-function tryCents(list: CurrencyAmount[]) {
-  return list.find((a) => a.currency === "TRY")?.cents ?? 0;
+function topCategoryText(rows: CategoryBreakdownRow[]): string | null {
+  const total = rows.reduce((s, r) => s + r.totalCents, 0);
+  const top = rows[0];
+  if (!top || total <= 0) return null;
+  return `En çok harcanan: ${top.categoryName} · %${Math.round((top.totalCents / total) * 100)}`;
 }
 
-async function HomeDashboard({
-  supabase,
-  bookId,
-  spaceId,
-  hasBusiness,
-  rawPeriod,
-  rawFrom,
-  rawTo,
-}: {
-  supabase: SupabaseClient;
-  bookId: string;
-  spaceId: string;
-  hasBusiness: boolean;
-  rawPeriod?: string;
-  rawFrom?: string;
-  rawTo?: string;
-}) {
-  const period = resolveHomePeriod(rawPeriod, rawFrom, rawTo);
+type Props = { supabase: SupabaseClient; bookId: string; spaceId: string };
 
-  const [balance, flow, prevFlow, budgets, upcoming, recent, receivables, holdings, categories, trend] = await Promise.allSettled([
-    getTotalBalanceByCurrency(supabase, bookId),
-    getFlowForPeriod(supabase, bookId, "month", period.range),
-    getFlowForPeriod(supabase, bookId, "month", period.previous),
-    getBudgets(supabase, bookId),
-    getUpcomingDebts(supabase, bookId),
-    getTransactionHistory(supabase, bookId, { limit: 5 }),
-    getReceivablesSummary(supabase, bookId),
-    getHoldings(supabase, bookId),
-    getExpenseByCategory(supabase, bookId, "month", period.range),
-    getMonthlyTrend(supabase, bookId, 6),
-  ]);
+/* ───────────────────────── Ev alanı ───────────────────────── */
 
-  // "Toplam varlık" YALNIZCA TRY cinsinden hesap/alacak/yatırımların
-  // toplamıdır — döviz cinsinden tutarlar SAHTE bir kur çevrimiyle bu
-  // toplama ASLA karıştırılmaz (ayrı satırda gösterilir). Yatırım
-  // değeri, güncel piyasa fiyatı VARSA güncel değeri, YOKSA maliyet
-  // bazını kullanır (computePortfolioTotals ile AYNI mantık —
-  // /investments sayfasındaki ile TUTARLIDIR).
-  const balances = balance.status === "fulfilled" ? balance.value : [];
-  const tryBalanceCents = tryCents(balances);
-  const receivablesCents = receivables.status === "fulfilled" ? receivables.value.totalCents : 0;
-  const holdingsList = holdings.status === "fulfilled" ? holdings.value : [];
-  const tryPortfolioTotals = computePortfolioTotals(holdingsList.filter((h) => h.currency === "TRY"));
-  const investmentsCents = tryPortfolioTotals.totalCurrentValueCents ?? tryPortfolioTotals.totalCostBasisCents;
-  const totalAssetsCents = balance.status === "fulfilled" ? tryBalanceCents + receivablesCents + investmentsCents : null;
-
-  const currentFlow =
-    flow.status === "fulfilled" ? { incomeCents: tryCents(flow.value.income), expenseCents: tryCents(flow.value.expense) } : null;
-  const previousFlow =
-    prevFlow.status === "fulfilled"
-      ? { incomeCents: tryCents(prevFlow.value.income), expenseCents: tryCents(prevFlow.value.expense) }
-      : null;
-  const otherCurrencyFlows =
-    flow.status === "fulfilled"
-      ? Array.from(new Set([...flow.value.income, ...flow.value.expense].map((a) => a.currency)))
-          .filter((c) => c !== "TRY")
-          .map((c) => ({
-            currency: c,
-            incomeCents: flow.value.income.find((a) => a.currency === c)?.cents ?? 0,
-            expenseCents: flow.value.expense.find((a) => a.currency === c)?.cents ?? 0,
-          }))
-      : [];
-
-  const categoryRows = categories.status === "fulfilled" ? categories.value : [];
-  const topCategory = categoryRows[0];
-  const categoryTotal = categoryRows.reduce((s, r) => s + r.totalCents, 0);
-  const addExpenseHref = `/add-transaction?type=expense&book_id=${bookId}&space=${spaceId}`;
-  const spaceQ = `space=${spaceId}`;
-
+function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props & { hasBusiness: boolean; period: ResolvedHomePeriod }) {
   return (
     <>
       <HomePeriodPicker active={period.period} from={period.from} to={period.to} />
 
+      <Suspense fallback={<CardSkeleton hero lines={2} className="min-h-[11rem]" />}>
+        <BalanceSection supabase={supabase} bookId={bookId} />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
+            <CardSkeleton lines={1} />
+            <CardSkeleton lines={1} />
+            <CardSkeleton lines={1} className="col-span-2 lg:col-span-1" />
+          </div>
+        }
+      >
+        <FlowKpiSection supabase={supabase} bookId={bookId} spaceId={spaceId} period={period} />
+      </Suspense>
+
       <div className="grid min-w-0 grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3 lg:items-start">
         <div className="min-w-0 lg:col-span-2">
-          <HomeSummaryCard
-            totalAssetsCents={totalAssetsCents}
-            breakdown={
-              totalAssetsCents !== null
-                ? [
-                    { label: "Hesaplar", cents: tryBalanceCents },
-                    { label: "Alacaklar", cents: receivablesCents },
-                    { label: "Yatırımlar", cents: investmentsCents },
-                  ]
-                : []
-            }
-            otherCurrencyBalances={balances.filter((a) => a.currency !== "TRY")}
-            hasAccounts={balance.status !== "fulfilled" || balances.length > 0}
-            periodLabel={period.label}
-            flow={currentFlow}
-            previousFlow={previousFlow}
-            otherCurrencyFlows={otherCurrencyFlows}
-          />
+          <Suspense fallback={<CardSkeleton lines={5} />}>
+            <RecentSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+          </Suspense>
         </div>
-
-        <DashboardCard title="Gelir – gider" subtitle={period.label} icon={<TransferIcon size={16} />} delay={60}>
-          {currentFlow === null ? (
-            <CardError />
-          ) : currentFlow.incomeCents === 0 && currentFlow.expenseCents === 0 ? (
-            <CardEmptyState
-              message="Bu dönemde hareket yok."
-              hint="Gelir veya gider eklediğinde karşılaştırma burada görünecek."
-              action={{ href: addExpenseHref, label: "İşlem ekle" }}
-            />
-          ) : (
-            <FlowCompare incomeCents={currentFlow.incomeCents} expenseCents={currentFlow.expenseCents} />
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Son işlemler"
-          icon={<ListIcon size={16} />}
-          action={<CardLink href={`/transactions?${spaceQ}`} />}
-          className="lg:col-span-2"
-          delay={90}
-        >
-          {recent.status === "fulfilled" ? (
-            recent.value.rows.length === 0 ? (
-              <CardEmptyState
-                message="Henüz işlem eklemedin."
-                hint="İlk gelir veya giderini ekleyerek başlayabilirsin."
-                action={{ href: addExpenseHref, label: "İşlem ekle" }}
-              />
-            ) : (
-              <div className="flex min-w-0 flex-col gap-2">
-                {recent.value.rows.map((row) => (
-                  <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} bookId={bookId} />
-                ))}
-              </div>
-            )
-          ) : (
-            <CardError />
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Harcama dağılımı"
-          subtitle={
-            topCategory && categoryTotal > 0
-              ? `En çok: ${topCategory.categoryName} · %${Math.round((topCategory.totalCents / categoryTotal) * 100)}`
-              : period.label
-          }
-          icon={<PieChartIcon size={16} />}
-          action={<CardLink href={`/reports?${spaceQ}`}>Raporlar</CardLink>}
-          delay={120}
-        >
-          {categories.status !== "fulfilled" ? (
-            <CardError />
-          ) : categoryRows.length === 0 ? (
-            <CardEmptyState message="Bu dönemde gider yok." hint="Giderlerin kategorilere göre burada dağılacak." icon={<PieChartIcon size={20} />} />
-          ) : (
-            <DonutChart segments={toDonutSegments(categoryRows)} centerLabel="Toplam gider" />
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Aylık trend"
-          subtitle="Son 6 ay · gelir ve gider"
-          icon={<TrendingUpIcon size={16} />}
-          className="lg:col-span-2"
-          delay={150}
-        >
-          {trend.status !== "fulfilled" ? (
-            <CardError />
-          ) : trend.value.every((r) => r.incomeCents === 0 && r.expenseCents === 0) ? (
-            <CardEmptyState message="Henüz trend oluşacak kadar veri yok." hint="Birkaç ay boyunca işlem ekledikçe aylık değişimin burada görünecek." icon={<TrendingUpIcon size={20} />} />
-          ) : (
-            <TrendChart points={toTrendPoints(trend.value)} />
-          )}
-        </DashboardCard>
 
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">
-          <DashboardCard
-            title="Bütçeler"
-            subtitle="Bu ay"
-            icon={<PieChartIcon size={16} />}
-            action={<CardLink href={`/budgets?${spaceQ}`} />}
-            delay={180}
-          >
-            {budgets.status !== "fulfilled" ? (
-              <CardError />
-            ) : budgets.value.length === 0 ? (
-              <CardEmptyState
-                message="Bu ay için bütçe yok."
-                hint="Harcama sınırı belirleyerek ne kadar harcadığını takip edebilirsin."
-                action={{ href: `/budgets/new?${spaceQ}`, label: "Bütçe oluştur" }}
-              />
-            ) : (
-              <div className="flex min-w-0 flex-col gap-3">
-                {budgets.value.slice(0, 3).map((b) => (
-                  <BudgetListItem key={b.id} budget={b} spaceParam={spaceId} compact />
-                ))}
-                {budgets.value.length > 3 ? (
-                  <Link href={`/budgets?${spaceQ}`} className="text-center text-xs font-semibold text-text-muted">
-                    +{budgets.value.length - 3} bütçe daha
-                  </Link>
-                ) : null}
-              </div>
-            )}
-          </DashboardCard>
-
-          <DashboardCard
-            title="Yaklaşan ödemeler"
-            icon={<ClockIcon size={16} />}
-            action={<CardLink href={`/debts?${spaceQ}`} />}
-            delay={210}
-          >
-            {upcoming.status === "fulfilled" ? (
-              <DebtList
-                debts={upcoming.value}
-                spaceParam={spaceId}
-                emptyMessage="Yaklaşan ödeme yok."
-                emptyHint="Vadesi gelen borç/alacak eklediğinde burada göreceksin."
-              />
-            ) : (
-              <CardError />
-            )}
-          </DashboardCard>
+          <Suspense fallback={<CardSkeleton lines={2} />}>
+            <UpcomingSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+          </Suspense>
+          <Suspense fallback={<CardSkeleton lines={3} />}>
+            <BudgetSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+          </Suspense>
+          <Suspense fallback={<CardSkeleton lines={2} />}>
+            <PortfolioSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+          </Suspense>
         </div>
       </div>
+
+      <Suspense fallback={<CardSkeleton lines={4} className="min-h-[14rem]" />}>
+        <InsightsSection supabase={supabase} bookId={bookId} spaceId={spaceId} range={period.range} rangeLabel={period.label} />
+      </Suspense>
 
       {!hasBusiness ? (
         <Link
           href="/spaces/new-business"
-          className="surface-card flex min-w-0 items-center gap-3 rounded-3xl border-dashed p-4 transition-colors active:bg-surface-muted"
+          className="surface-card flex min-w-0 items-center gap-3 rounded-3xl border-dashed p-4 transition-colors hover:bg-surface-muted active:scale-[0.99]"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-balance-soft text-balance">
             <PlusIcon size={18} />
@@ -388,147 +236,362 @@ async function HomeDashboard({
   );
 }
 
-async function BusinessDashboard({
+async function BalanceSection({ supabase, bookId }: { supabase: SupabaseClient; bookId: string }) {
+  // "Toplam varlık" YALNIZCA TRY hesap + alacak + yatırım toplamıdır.
+  // Yatırım değeri güncel fiyat VARSA güncel değer, YOKSA maliyet bazı
+  // (computePortfolioTotals ile /investments sayfasıyla AYNI mantık).
+  const [balance, receivables, holdings] = await Promise.allSettled([
+    getBalancesCached(supabase, bookId),
+    getReceivablesSummary(supabase, bookId),
+    getHoldingsCached(supabase, bookId),
+  ]);
+
+  const balances = balance.status === "fulfilled" ? balance.value : [];
+  const tryBalanceCents = tryCents(balances);
+  const receivablesCents = receivables.status === "fulfilled" ? receivables.value.totalCents : 0;
+  const tryTotals = computePortfolioTotals((holdings.status === "fulfilled" ? holdings.value : []).filter((h) => h.currency === "TRY"));
+  const investmentsCents = tryTotals.totalCurrentValueCents ?? tryTotals.totalCostBasisCents;
+  const totalAssetsCents = balance.status === "fulfilled" ? tryBalanceCents + receivablesCents + investmentsCents : null;
+
+  return (
+    <BalanceHeroCard
+      totalAssetsCents={totalAssetsCents}
+      breakdown={
+        totalAssetsCents !== null
+          ? [
+              { label: "Hesaplar", cents: tryBalanceCents },
+              { label: "Bekleyen alacaklar", cents: receivablesCents },
+              { label: "Yatırımlar", cents: investmentsCents },
+            ]
+          : []
+      }
+      otherCurrencyBalances={balances.filter((a) => a.currency !== "TRY")}
+      hasAccounts={balance.status !== "fulfilled" || balances.length > 0}
+    />
+  );
+}
+
+async function FlowKpiSection({ supabase, bookId, spaceId, period }: Props & { period: ResolvedHomePeriod }) {
+  const [flow, prevFlow] = await Promise.allSettled([
+    getFlowForPeriod(supabase, bookId, "month", period.range),
+    getFlowForPeriod(supabase, bookId, "month", period.previous),
+  ]);
+
+  if (flow.status !== "fulfilled") {
+    return (
+      <DashboardCard title={period.label}>
+        <CardError />
+      </DashboardCard>
+    );
+  }
+
+  const income = tryCents(flow.value.income);
+  const expense = tryCents(flow.value.expense);
+  const net = income - expense;
+  const prev = prevFlow.status === "fulfilled" ? { income: tryCents(prevFlow.value.income), expense: tryCents(prevFlow.value.expense) } : null;
+  const otherCurrencies = Array.from(new Set([...flow.value.income, ...flow.value.expense].map((a) => a.currency))).filter((c) => c !== "TRY");
+  const spentPct = income > 0 ? (expense / income) * 100 : null;
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{period.label}</p>
+        {income === 0 && expense === 0 ? (
+          <Link href={`/add-transaction?type=expense&book_id=${bookId}&space=${spaceId}`} className="text-xs font-bold text-accent">
+            İşlem ekle
+          </Link>
+        ) : null}
+      </div>
+      <div className="grid min-w-0 grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
+        <KpiCard
+          label="Gelir"
+          tone="income"
+          icon={<ArrowUpRightIcon size={16} />}
+          value={formatCentsAsCurrency(income, "TRY")}
+          badge={prev ? <DeltaBadge current={income} previous={prev.income} goodWhen="up" /> : null}
+          delay={40}
+        />
+        <KpiCard
+          label="Gider"
+          tone="expense"
+          icon={<ArrowDownRightIcon size={16} />}
+          value={formatCentsAsCurrency(expense, "TRY")}
+          badge={prev ? <DeltaBadge current={expense} previous={prev.expense} goodWhen="down" /> : null}
+          footnote={spentPct !== null ? `Gider / gelir: %${Math.round(spentPct)}` : null}
+          delay={80}
+        />
+        <KpiCard
+          label="Net durum"
+          tone={net > 0 ? "income" : net < 0 ? "expense" : "balance"}
+          icon={<span className="text-sm font-black leading-none">±</span>}
+          value={`${net > 0 ? "+" : net < 0 ? "−" : ""}${formatCentsAsCurrency(Math.abs(net), "TRY")}`}
+          badge={prev ? <DeltaBadge current={net} previous={prev.income - prev.expense} goodWhen="up" /> : null}
+          className="col-span-2 lg:col-span-1"
+          delay={120}
+        />
+      </div>
+      {otherCurrencies.length > 0 ? (
+        <p className="px-1 text-[11px] text-text-muted">
+          Diğer para birimleri:{" "}
+          {otherCurrencies
+            .map(
+              (c) =>
+                `${c} +${formatCentsAsCurrency(flow.value.income.find((a) => a.currency === c)?.cents ?? 0, c)} / −${formatCentsAsCurrency(flow.value.expense.find((a) => a.currency === c)?.cents ?? 0, c)}`
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+async function RecentSection({ supabase, bookId, spaceId }: Props) {
+  const recent = await getTransactionHistory(supabase, bookId, { limit: 5 }).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const })
+  );
+  return (
+    <DashboardCard title="Son işlemler" icon={<ListIcon size={16} />} action={<CardLink href={`/transactions?space=${spaceId}`} />}>
+      {!recent.ok ? (
+        <CardError />
+      ) : recent.v.rows.length === 0 ? (
+        <CardEmptyState
+          message="Henüz işlem eklemedin."
+          hint="İlk gelir veya giderini ekleyerek başlayabilirsin."
+          action={{ href: `/add-transaction?type=expense&book_id=${bookId}&space=${spaceId}`, label: "İşlem ekle" }}
+        />
+      ) : (
+        <div className="flex min-w-0 flex-col gap-2">
+          {recent.v.rows.map((row) => (
+            <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} bookId={bookId} />
+          ))}
+        </div>
+      )}
+    </DashboardCard>
+  );
+}
+
+async function UpcomingSection({
   supabase,
   bookId,
   spaceId,
-}: {
-  supabase: SupabaseClient;
-  bookId: string;
-  spaceId: string;
-}) {
-  const month = resolveHomePeriod("month");
-  const [summary, upcomingPayable, upcomingReceivable, recent, trend, categories] = await Promise.allSettled([
-    getBusinessSummary(supabase, bookId),
-    getUpcomingDebts(supabase, bookId, { direction: "payable" }),
-    getUpcomingDebts(supabase, bookId, { direction: "receivable" }),
-    getTransactionHistory(supabase, bookId, { limit: 5 }),
+  direction,
+}: Props & { direction?: "payable" | "receivable" }) {
+  const debts = await getUpcomingDebts(supabase, bookId, direction ? { direction } : {}).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const })
+  );
+  const title = direction === "receivable" ? "Yaklaşan tahsilatlar" : "Yaklaşan ödemeler";
+  return (
+    <DashboardCard
+      title={title}
+      icon={<ClockIcon size={16} />}
+      action={<CardLink href={`/debts?space=${spaceId}${direction ? `&direction=${direction}` : ""}`} />}
+    >
+      {debts.ok ? (
+        <DebtList
+          debts={debts.v}
+          spaceParam={spaceId}
+          emptyMessage={direction === "receivable" ? "Yaklaşan tahsilat yok." : "Yaklaşan ödeme yok."}
+          emptyHint={
+            direction === "receivable"
+              ? "Vadesi gelen alacakların burada listelenecek."
+              : "Vadesi gelen borç/alacak eklediğinde burada göreceksin."
+          }
+        />
+      ) : (
+        <CardError />
+      )}
+    </DashboardCard>
+  );
+}
+
+async function BudgetSection({ supabase, bookId, spaceId }: Props) {
+  const budgets = await getBudgets(supabase, bookId).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const })
+  );
+  return (
+    <DashboardCard title="Bütçe" subtitle="Bu ay" icon={<PieChartIcon size={16} />} action={<CardLink href={`/budgets?space=${spaceId}`} />}>
+      {!budgets.ok ? (
+        <CardError />
+      ) : budgets.v.length === 0 ? (
+        <CardEmptyState
+          message="Bu ay için bütçe yok."
+          hint="Harcama sınırı belirleyerek ne kadar harcadığını takip edebilirsin."
+          action={{ href: `/budgets/new?space=${spaceId}`, label: "Bütçe oluştur" }}
+        />
+      ) : (
+        <div className="flex min-w-0 flex-col gap-3">
+          {budgets.v.slice(0, 3).map((b) => (
+            <BudgetListItem key={b.id} budget={b} spaceParam={spaceId} compact />
+          ))}
+          {budgets.v.length > 3 ? (
+            <Link href={`/budgets?space=${spaceId}`} className="text-center text-xs font-semibold text-text-muted hover:text-accent">
+              +{budgets.v.length - 3} bütçe daha
+            </Link>
+          ) : null}
+        </div>
+      )}
+    </DashboardCard>
+  );
+}
+
+async function PortfolioSection({ supabase, bookId, spaceId }: Props) {
+  const holdings = await getHoldingsCached(supabase, bookId).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const })
+  );
+  if (!holdings.ok) {
+    return (
+      <DashboardCard title="Yatırımlar" icon={<TrendingUpIcon size={16} />}>
+        <CardError />
+      </DashboardCard>
+    );
+  }
+
+  // Para birimine göre ayrı özet — farklı para birimleri toplanmaz.
+  const currencies = Array.from(new Set(holdings.v.map((h) => h.currency)));
+  return (
+    <DashboardCard title="Yatırımlar" icon={<TrendingUpIcon size={16} />} action={<CardLink href={`/investments?space=${spaceId}`} />}>
+      {currencies.length === 0 ? (
+        <CardEmptyState
+          message="Henüz yatırımın yok."
+          hint="Hisse, altın, döviz veya kripto alışlarını kaydedebilirsin."
+          action={{ href: `/investments/buy?space=${spaceId}`, label: "Alış ekle" }}
+        />
+      ) : (
+        <ul className="flex min-w-0 flex-col gap-2">
+          {currencies.map((c) => {
+            const list = holdings.v.filter((h) => h.currency === c);
+            const t = computePortfolioTotals(list);
+            const value = t.totalCurrentValueCents ?? t.totalCostBasisCents;
+            const gain = t.totalUnrealizedGainCents;
+            return (
+              <li key={c} className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-surface-muted/50 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-text-primary">
+                    {t.holdingCount} varlık · {c}
+                  </p>
+                  <p className="text-[11px] text-text-muted">{t.hasAnyPrice ? "Güncel değer" : "Maliyet bazlı"}</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <p className="text-sm font-bold tabular-nums text-text-primary">{formatCentsAsCurrency(value, c)}</p>
+                  {gain !== null ? (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                        gain >= 0 ? "bg-income-soft text-income" : "bg-expense-soft text-expense"
+                      }`}
+                    >
+                      {gain >= 0 ? "+" : "−"}
+                      {formatCentsAsCurrency(Math.abs(gain), c)}
+                    </span>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </DashboardCard>
+  );
+}
+
+async function InsightsSection({
+  supabase,
+  bookId,
+  spaceId,
+  range,
+  rangeLabel,
+}: Props & { range: { start: string; end: string }; rangeLabel: string }) {
+  const [trend, categories] = await Promise.allSettled([
     getMonthlyTrend(supabase, bookId, 6),
-    getExpenseByCategory(supabase, bookId, "month", month.range),
+    getExpenseByCategory(supabase, bookId, "month", range),
   ]);
 
-  const spaceQ = `space=${spaceId}`;
-  const categoryRows = categories.status === "fulfilled" ? categories.value : [];
-  const topCategory = categoryRows[0];
-  const categoryTotal = categoryRows.reduce((s, r) => s + r.totalCents, 0);
+  const trendContent =
+    trend.status !== "fulfilled" ? (
+      <CardError />
+    ) : trend.value.every((r) => r.incomeCents === 0 && r.expenseCents === 0) ? (
+      <CardEmptyState
+        message="Henüz trend oluşacak kadar veri yok."
+        hint="Birkaç ay boyunca işlem ekledikçe aylık değişimin burada görünecek."
+        icon={<TrendingUpIcon size={20} />}
+      />
+    ) : (
+      <TrendChart points={toTrendPoints(trend.value)} />
+    );
+
+  const rows = categories.status === "fulfilled" ? categories.value : [];
+  const top = topCategoryText(rows);
+  const donutContent =
+    categories.status !== "fulfilled" ? (
+      <CardError />
+    ) : rows.length === 0 ? (
+      <CardEmptyState message="Bu dönemde gider yok." hint="Giderlerin kategorilere göre burada dağılacak." icon={<PieChartIcon size={20} />} />
+    ) : (
+      <>
+        {top ? <p className="mb-3 text-xs font-semibold text-text-secondary">{top}</p> : null}
+        <DonutChart segments={toDonutSegments(rows)} centerLabel="Toplam gider" />
+        <Link href={`/reports?space=${spaceId}`} className="mt-3 block text-center text-xs font-bold text-accent">
+          Tüm raporlar →
+        </Link>
+      </>
+    );
 
   return (
+    <InsightsPanel
+      tabs={[
+        { key: "trend", label: "Aylık trend", content: trendContent },
+        { key: "categories", label: `Harcama dağılımı · ${rangeLabel}`, content: donutContent },
+      ]}
+    />
+  );
+}
+
+/* ───────────────────────── İşletme alanı ───────────────────────── */
+
+async function BusinessSummarySection({ supabase, bookId }: { supabase: SupabaseClient; bookId: string }) {
+  const summary = await getBusinessSummary(supabase, bookId).then(
+    (v) => ({ ok: true as const, v }),
+    () => ({ ok: false as const })
+  );
+  return summary.ok ? (
+    <BusinessSummaryGrid bookId={bookId} initialSummary={summary.v} />
+  ) : (
+    <DashboardCard title="İşletme özeti">
+      <CardError />
+    </DashboardCard>
+  );
+}
+
+function BusinessDashboard({ supabase, bookId, spaceId }: Props) {
+  const month = resolveHomePeriod("month");
+  return (
     <>
+      <Suspense fallback={<CardSkeleton hero lines={4} className="min-h-[16rem]" />}>
+        <BusinessSummarySection supabase={supabase} bookId={bookId} />
+      </Suspense>
+
       <div className="grid min-w-0 grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3 lg:items-start">
-        <div className="min-w-0 lg:col-span-3">
-          {summary.status === "fulfilled" ? (
-            <BusinessSummaryGrid bookId={bookId} initialSummary={summary.value} />
-          ) : (
-            <DashboardCard title="İşletme özeti">
-              <CardError />
-            </DashboardCard>
-          )}
+        <div className="min-w-0 lg:col-span-2">
+          <Suspense fallback={<CardSkeleton lines={5} />}>
+            <RecentSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+          </Suspense>
         </div>
-
-        <DashboardCard
-          title="Son işlemler"
-          icon={<ListIcon size={16} />}
-          action={<CardLink href={`/transactions?${spaceQ}`} />}
-          className="lg:col-span-2"
-          delay={60}
-        >
-          {recent.status === "fulfilled" ? (
-            recent.value.rows.length === 0 ? (
-              <CardEmptyState
-                message="Henüz işlem eklemedin."
-                hint="İlk satış veya alışını sağ alttaki + butonundan ekleyebilirsin."
-              />
-            ) : (
-              <div className="flex min-w-0 flex-col gap-2">
-                {recent.value.rows.map((row) => (
-                  <TransactionListItem key={row.entryId} row={row} spaceParam={spaceId} bookId={bookId} />
-                ))}
-              </div>
-            )
-          ) : (
-            <CardError />
-          )}
-        </DashboardCard>
-
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">
-          <DashboardCard
-            title="Yaklaşan ödemeler"
-            icon={<ClockIcon size={16} />}
-            action={<CardLink href={`/debts?${spaceQ}&direction=payable`} />}
-            delay={90}
-          >
-            {upcomingPayable.status === "fulfilled" ? (
-              <DebtList
-                debts={upcomingPayable.value}
-                spaceParam={spaceId}
-                emptyMessage="Yaklaşan ödeme yok."
-                emptyHint="Vadesi gelen borçların burada listelenecek."
-              />
-            ) : (
-              <CardError />
-            )}
-          </DashboardCard>
-
-          <DashboardCard
-            title="Yaklaşan tahsilatlar"
-            icon={<ClockIcon size={16} />}
-            action={<CardLink href={`/debts?${spaceQ}&direction=receivable`} />}
-            delay={120}
-          >
-            {upcomingReceivable.status === "fulfilled" ? (
-              <DebtList
-                debts={upcomingReceivable.value}
-                spaceParam={spaceId}
-                emptyMessage="Yaklaşan tahsilat yok."
-                emptyHint="Vadesi gelen alacakların burada listelenecek."
-              />
-            ) : (
-              <CardError />
-            )}
-          </DashboardCard>
+          <Suspense fallback={<CardSkeleton lines={2} />}>
+            <UpcomingSection supabase={supabase} bookId={bookId} spaceId={spaceId} direction="payable" />
+          </Suspense>
+          <Suspense fallback={<CardSkeleton lines={2} />}>
+            <UpcomingSection supabase={supabase} bookId={bookId} spaceId={spaceId} direction="receivable" />
+          </Suspense>
         </div>
-
-        <DashboardCard
-          title="Aylık trend"
-          subtitle="Son 6 ay · gelir ve gider"
-          icon={<TrendingUpIcon size={16} />}
-          className="lg:col-span-2"
-          delay={150}
-        >
-          {trend.status !== "fulfilled" ? (
-            <CardError />
-          ) : trend.value.every((r) => r.incomeCents === 0 && r.expenseCents === 0) ? (
-            <CardEmptyState message="Henüz trend oluşacak kadar veri yok." hint="Satış ve giderlerin aylık değişimi burada görünecek." icon={<TrendingUpIcon size={20} />} />
-          ) : (
-            <TrendChart points={toTrendPoints(trend.value)} />
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Gider dağılımı"
-          subtitle={
-            topCategory && categoryTotal > 0
-              ? `En çok: ${topCategory.categoryName} · %${Math.round((topCategory.totalCents / categoryTotal) * 100)}`
-              : month.label
-          }
-          icon={<PieChartIcon size={16} />}
-          action={<CardLink href={`/reports?${spaceQ}`}>Raporlar</CardLink>}
-          delay={180}
-        >
-          {categories.status !== "fulfilled" ? (
-            <CardError />
-          ) : categoryRows.length === 0 ? (
-            <CardEmptyState message="Bu ay gider yok." hint="Alış ve masrafların kategorilere göre burada dağılacak." icon={<PieChartIcon size={20} />} />
-          ) : (
-            <>
-              <DonutChart segments={toDonutSegments(categoryRows)} centerLabel="Bu ay gider" />
-              <p className="mt-3 text-center text-[11px] text-text-muted">
-                Toplam {formatCentsAsCurrency(categoryTotal, "TRY")}
-              </p>
-            </>
-          )}
-        </DashboardCard>
       </div>
+
+      <Suspense fallback={<CardSkeleton lines={4} className="min-h-[14rem]" />}>
+        <InsightsSection supabase={supabase} bookId={bookId} spaceId={spaceId} range={month.range} rangeLabel={month.label} />
+      </Suspense>
 
       <AiTeaserCard />
 

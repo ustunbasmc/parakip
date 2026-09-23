@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
 import { normalizeTurkishPhone } from "@/lib/format/phone";
-import { ScreenShell } from "@/components/ScreenShell";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -106,7 +106,7 @@ export default function SignUpPage() {
 
   if (checkEmail) {
     return (
-      <ScreenShell parentHref="/welcome">
+      <AuthShell parentHref="/welcome">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <Logo withWordmark={false} />
           <h1 className="text-xl font-bold text-text-primary">E-postanı kontrol et</h1>
@@ -118,12 +118,12 @@ export default function SignUpPage() {
             Giriş ekranına dön
           </Link>
         </div>
-      </ScreenShell>
+      </AuthShell>
     );
   }
 
   return (
-    <ScreenShell
+    <AuthShell
       parentHref="/welcome"
       footer={
         <Button type="submit" form="sign-up-form" loading={loading}>
@@ -238,7 +238,7 @@ export default function SignUpPage() {
           </Link>
         </p>
       </div>
-    </ScreenShell>
+    </AuthShell>
   );
 }
 

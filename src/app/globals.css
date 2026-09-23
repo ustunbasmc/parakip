@@ -199,11 +199,15 @@ body {
    Ortak yüzey ve hareket yardımcıları
    ───────────────────────────────────────────────────────────── */
 
-/* İkincil kart yüzeyi — DashboardCard ve modül kartları kullanır. */
-.surface-card {
-  background-image: var(--gradient-card);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-card);
+/* İkincil kart yüzeyi — DashboardCard ve modül kartları kullanır.
+   components katmanında: Tailwind yardımcı sınıfları (ör. lg:border-0)
+   gerektiğinde bunu ezebilsin diye. */
+@layer components {
+  .surface-card {
+    background-image: var(--gradient-card);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+  }
 }
 
 /* Kartların yumuşak görünmesi. Gecikme style={{ animationDelay }} ile

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/supabase/errors";
-import { ScreenShell } from "@/components/ScreenShell";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -44,7 +44,7 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <ScreenShell
+    <AuthShell
       parentHref="/sign-in"
       footer={
         <Button type="submit" form="update-password-form" loading={loading}>
@@ -82,6 +82,6 @@ export default function UpdatePasswordPage() {
           />
         </form>
       </div>
-    </ScreenShell>
+    </AuthShell>
   );
 }

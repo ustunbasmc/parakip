@@ -39,9 +39,17 @@ export async function updateSession(request: NextRequest) {
   // siteyi çökertmek yerine /welcome'a yönlendirilir). Bu, gerçek bir
   // güvenlik kararı değil yalnızca kullanıcı deneyimi/dayanıklılık
   // önlemidir — asıl yetki RLS'te.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  //
+  // PERFORMANS: getUser() her istekte Supabase Auth sunucusuna ağ isteği
+  // atar; sayfa (Server Component) zaten kendi getUser() doğrulamasını
+  // yaptığından bu, her geçişte ÇİFT tur demekti. getClaims() JWT'yi
+  // asimetrik imzalama anahtarlarıyla YEREL olarak doğrular (JWKS
+  // önbelleklenir); proje hâlâ simetrik (HS256) anahtar kullanıyorsa
+  // kütüphane otomatik olarak getUser()'a düşer — yani güvenlik
+  // gevşemez, yalnızca mümkün olduğunda ağ turu kalkar. Süresi dolmuş
+  // oturum yine burada yenilenir (cookie setAll).
+  const { data } = await supabase.auth.getClaims().catch(() => ({ data: null }));
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
 
   return { response, user };
 }

@@ -44,6 +44,11 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
   }
 
   function open() {
+    // Menüdeki sayfalar buton + router.push ile açıldığından Link'in otomatik
+    // prefetch'i yok — panel açılır açılmaz arka planda önceden yüklenir,
+    // böylece dokununca iskelet/sayfa anında gelir.
+    for (const item of moreItems) router.prefetch(hrefFor(item.href));
+    for (const item of SUPPORT_NAV_ITEMS) router.prefetch(supportHref(item, pathname, currentSpace));
     setRendered(true);
     window.history.pushState({ moreMenuOpen: true }, "");
     pushedHistoryRef.current = true;
