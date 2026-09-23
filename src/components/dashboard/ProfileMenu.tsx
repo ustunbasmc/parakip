@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearOfflineSnapshots } from "@/lib/offline/snapshotStore";
 import { UserCircleIcon, LogOutIcon } from "@/components/icons";
 import { SETTINGS_LINKS, settingsHref, type SettingsLinkItem } from "@/components/settings/settingsLinks";
 import { useThemePreference } from "@/lib/theme/ThemeSync";
@@ -107,6 +108,7 @@ export function ProfileMenu({ displayName, email, avatarUrl }: ProfileMenuProps)
     setOpen(false);
     const supabase = createClient();
     await supabase.auth.signOut();
+    await clearOfflineSnapshots();
     router.push("/welcome");
     router.refresh();
   }

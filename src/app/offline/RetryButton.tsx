@@ -2,10 +2,14 @@
 
 import { useEffect } from "react";
 
-/** Elle yeniden dene; bağlantı geri gelince sayfayı kendiliğinden yeniler. */
-export function RetryButton() {
+/**
+ * Elle yeniden dene / uygulamaya dön. Bağlantı geri gelince ana sayfaya
+ * kendiliğinden geçer (çevrimdışı sayfası yalnızca bağlantı yokken
+ * gösterilir; /offline'da kalmanın anlamı yok).
+ */
+export function RetryButton({ compact = false, label = "Tekrar dene" }: { compact?: boolean; label?: string }) {
   useEffect(() => {
-    const onOnline = () => window.location.reload();
+    const onOnline = () => window.location.replace("/");
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
   }, []);
@@ -13,10 +17,10 @@ export function RetryButton() {
   return (
     <button
       type="button"
-      onClick={() => window.location.reload()}
-      className="h-11 rounded-full bg-accent px-6 text-sm font-bold text-text-on-accent"
+      onClick={() => window.location.replace("/")}
+      className={`rounded-full bg-accent font-bold text-text-on-accent ${compact ? "h-9 px-4 text-xs" : "h-11 px-6 text-sm"}`}
     >
-      Tekrar dene
+      {label}
     </button>
   );
 }

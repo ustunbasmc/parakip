@@ -1,10 +1,13 @@
 /*
- * Parakip service worker — yalnızca "uygulama kabuğu" (1. kademe).
+ * Parakip service worker — uygulama kabuğu ve çevrimdışı görünüm.
  *
  * NE SAKLANIR:
  *   - /_next/static/*  (içerik karmalı JS/CSS/yazı tipi; değişmez dosyalar)
  *   - /brand/*, ikon ve manifest dosyaları
- *   - /offline (kullanıcı verisi içermeyen statik çevrimdışı sayfası)
+ *   - /offline (kullanıcı verisi içermeyen statik çevrimdışı sayfası) ve
+ *     onun JS/CSS dosyaları — çevrimdışı görünüm internetsiz de çalışsın diye.
+ *     Finansal özet bu önbellekte DEĞİL, tarayıcının IndexedDB'sinde
+ *     (bkz. src/lib/offline/snapshotStore.ts) oturum sahibine bağlı tutulur.
  *
  * NE SAKLANMAZ (bilinçli):
  *   - Uygulama sayfalarının HTML'i ve RSC yanıtları — bunlar kullanıcının
@@ -15,19 +18,32 @@
  * (RSC) gezintilerde yeniden deneme işini Next.js'in useOffline özelliği
  * yapar; service worker bunlara karışmaz.
  */
-const VERSION = "v1";
-const STATIC_CACHE = `parakip-static-${VERSION}`;
-const SHELL_CACHE = `parakip-shell-${VERSION}`;
+// /offline sayfası değiştiğinde SHELL_VERSION artırılmalı (yeni kurulum tetiklenir).
+// Statik dosyalar içerik karmalı olduğu için onların önbellek adı sabit kalır.
+const SHELL_VERSION = "v2";
+const STATIC_CACHE = "parakip-static-v1";
+const SHELL_CACHE = `parakip-shell-${SHELL_VERSION}`;
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/brand/icon-192.png", "/brand/icon-512.png", "/favicon.ico"];
 
+/** /offline HTML'inin başvurduğu /_next/static dosyalarını da önbelleğe alır. */
+async function precacheOfflineAssets() {
+  const shell = await caches.open(SHELL_CACHE);
+  await shell.addAll(PRECACHE.map((url) => new Request(url, { cache: "reload" })));
+  const page = await shell.match(OFFLINE_URL);
+  if (!page) return;
+  const html = await page.text();
+  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)]+/g) || [])];
+  const staticCache = await caches.open(STATIC_CACHE);
+  await Promise.all(
+    assets.map((url) =>
+      staticCache.match(url).then((hit) => hit || fetch(url).then((res) => (res.ok ? staticCache.put(url, res) : undefined)))
+    )
+  ).catch(() => undefined);
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: "reload" }))))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(precacheOfflineAssets().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

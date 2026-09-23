@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearOfflineSnapshots } from "@/lib/offline/snapshotStore";
 import { translateAuthError } from "@/lib/supabase/errors";
 import { AppShell } from "@/components/AppShell";
+import { OfflineAccessToggle } from "@/components/settings/OfflineAccessToggle";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -73,6 +75,7 @@ export function SecuritySettingsView({ email, lastSignInAt }: { email: string; l
   async function handleSignOutCurrent() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    await clearOfflineSnapshots();
     router.push("/welcome");
     router.refresh();
   }
@@ -87,6 +90,7 @@ export function SecuritySettingsView({ email, lastSignInAt }: { email: string; l
       setSignOutError("İşlem gerçekleştirilemedi. Lütfen tekrar dene.");
       return;
     }
+    await clearOfflineSnapshots();
     router.push("/welcome");
     router.refresh();
   }
@@ -125,6 +129,8 @@ export function SecuritySettingsView({ email, lastSignInAt }: { email: string; l
             {lastSignInAt ? formatDate(lastSignInAt) : "Bilgi mevcut değil"}
           </p>
         </div>
+
+        <OfflineAccessToggle />
 
         <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-4">
           <p className="text-sm font-semibold text-text-secondary">Oturumlar</p>

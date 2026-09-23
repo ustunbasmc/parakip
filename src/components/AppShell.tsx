@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 import { Logo } from "./Logo";
 import { InstallAppButton } from "./InstallAppButton";
 import { HelpLink } from "./help/HelpLink";
+import { OfflineSnapshotSync } from "./offline/OfflineSnapshotSync";
 
 interface AppShellProps {
   children: ReactNode;
@@ -54,6 +55,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="flex min-h-dvh bg-bg md:items-stretch">
+      <OfflineSnapshotSync />
       <div className="contents print:hidden">
         <Suspense fallback={<div className="hidden w-64 shrink-0 md:block" />}>
           <Sidebar activeSpaceType={activeSpaceType} />

@@ -34,7 +34,11 @@ export function ConnectivityLayer() {
     >
       <p className="pointer-events-auto flex items-center gap-2 rounded-full bg-text-primary px-4 py-2 text-xs font-semibold text-bg shadow-lg">
         <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-warning" aria-hidden="true" />
-        İnternet bağlantısı yok — bağlantı gelince kaldığın yerden devam edecek
+        <span>İnternet bağlantısı yok</span>
+        {/* Tam sayfa geçiş: service worker çevrimdışı görünümü önbellekten verir. */}
+        <button type="button" onClick={() => window.location.assign("/offline")} className="font-bold text-accent underline underline-offset-2">
+          Kayıtlı verileri gör
+        </button>
       </p>
     </div>
   );
