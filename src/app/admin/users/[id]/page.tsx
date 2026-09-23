@@ -98,6 +98,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <Badge tone="danger">Silindi</Badge>
             ) : profile?.deletion_requested_at ? (
               <Badge tone="warning">Silme talebi · {fmtDate(profile?.deletion_requested_at)}</Badge>
+            ) : auth && !auth.emailConfirmedAt ? (
+              <Badge tone="warning">E-posta onaylanmadı · hiç giriş yapamadı</Badge>
             ) : auth?.bannedUntil ? (
               <Badge tone="danger">Askıda</Badge>
             ) : (

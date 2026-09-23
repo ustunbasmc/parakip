@@ -62,7 +62,11 @@ export default async function AdminDashboardPage() {
 
   // Kayıt trendi: son 30 gün + önceki 30 gün karşılaştırması.
   const authList = [...authUsers.values()];
-  const signupTs = authList.map((u) => u.createdAt).filter((t) => now - new Date(t).getTime() < 60 * DAY);
+  // "Kullanıcı" = e-postasını onaylamış hesap. Formu doldurup onaylamayan
+  // (hiç giriş yapamamış) kayıtlar ayrı sayılır.
+  const confirmed = authList.filter((u) => u.emailConfirmedAt);
+  const unconfirmedCount = authList.length - confirmed.length;
+  const signupTs = confirmed.map((u) => u.createdAt).filter((t) => now - new Date(t).getTime() < 60 * DAY);
   const latest = authList.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
   const latestNames = await resolveUserLabels(latest.map((u) => u.id));
   const signupBuckets = bucketByDay(signupTs, 30);
@@ -109,7 +113,7 @@ export default async function AdminDashboardPage() {
       : null,
   ].filter((x): x is { href: string; text: string; tone: "warning" | "neutral" | "danger" } => x !== null);
 
-  const totalUsers = authUsers.size;
+  const totalUsers = confirmed.length;
   const premiumShare = [
     { label: "Ev Premium (sahip)", value: homePremium, tone: "bg-accent" },
     { label: "Ücretsiz kullanıcı", value: Math.max(totalUsers - homePremium, 0), tone: "bg-border-strong" },
@@ -127,7 +131,7 @@ export default async function AdminDashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Kullanıcı" value={totalUsers} delta={last7 - prev7} hint={`son 7 gün: +${last7}`} href="/admin/users" icon={<UsersIcon size={15} />} />
+        <StatCard label="Kullanıcı" value={totalUsers} delta={last7 - prev7} hint={`son 7 gün: +${last7}${unconfirmedCount ? ` · ${unconfirmedCount} onay bekliyor` : ""}`} href="/admin/users" icon={<UsersIcon size={15} />} />
         <StatCard label="Aktif alan" value={spacesCount.count ?? 0} hint={`${businessCount.count ?? 0} işletme`} href="/admin/spaces" icon={<BuildingIcon size={15} />} />
         <StatCard
           label="Premium"

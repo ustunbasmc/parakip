@@ -5,7 +5,7 @@ import { Avatar, Badge, EmptyState, ErrorBox, FilterTabs, PageHeader, Pagination
 
 const PAGE_SIZE = 25;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const STATUSES = ["all", "active", "premium", "deletion", "deleted", "banned"] as const;
+const STATUSES = ["all", "active", "unconfirmed", "premium", "deletion", "deleted", "banned"] as const;
 type Status = (typeof STATUSES)[number];
 
 type ProfileRow = {
@@ -79,7 +79,9 @@ export default async function AdminUsersPage({
     .filter((u) => {
       switch (status) {
         case "active":
-          return !u.profile?.deletion_requested_at && !u.auth?.bannedUntil;
+          return Boolean(u.auth?.emailConfirmedAt) && !u.profile?.deletion_requested_at && !u.auth?.bannedUntil;
+        case "unconfirmed":
+          return Boolean(u.auth) && !u.auth?.emailConfirmedAt && !u.profile?.deletion_completed_at;
         case "premium":
           return premiumIds.has(u.id);
         case "deletion":
@@ -124,6 +126,7 @@ export default async function AdminUsersPage({
   const tabs: { value: Status; label: string }[] = [
     { value: "all", label: "Tümü" },
     { value: "active", label: "Aktif" },
+    { value: "unconfirmed", label: "E-posta onayı bekleyen" },
     { value: "premium", label: "Ev Premium" },
     { value: "deletion", label: "Silme talebi" },
     { value: "deleted", label: "Silindi" },
@@ -192,6 +195,8 @@ export default async function AdminUsersPage({
                         <Badge tone="danger">Silindi</Badge>
                       ) : p?.deletion_requested_at ? (
                         <Badge tone="warning">Silme talebi</Badge>
+                      ) : auth && !auth.emailConfirmedAt ? (
+                        <Badge tone="warning">E-posta onaylanmadı</Badge>
                       ) : auth?.bannedUntil ? (
                         <Badge tone="danger">Askıda</Badge>
                       ) : (
