@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
-import { displayNameOf, fmtDate, isSubscriptionActive } from "@/lib/admin/data";
+import { fmtDate, isSubscriptionActive, resolveUserLabels } from "@/lib/admin/data";
 import { Badge, EmptyState, ErrorBox, FilterTabs, PageHeader, Pagination, SearchForm, TableWrap, Td, Th } from "@/components/admin/ui";
 
 const PAGE_SIZE = 25;
@@ -33,16 +33,13 @@ export default async function AdminSpacesPage({ searchParams }: { searchParams: 
 
   const ids = (spaces ?? []).map((s) => s.id);
   const ownerIds = [...new Set((spaces ?? []).map((s) => s.owner_user_id))];
-  const [{ data: owners }, { data: members }, { data: subs }] = await Promise.all([
-    ownerIds.length
-      ? supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", ownerIds)
-      : Promise.resolve({ data: [] as { user_id: string; display_name: string | null; first_name: string | null; last_name: string | null }[] }),
+  const [ownerName, { data: members }, { data: subs }] = await Promise.all([
+    resolveUserLabels(ownerIds),
     ids.length ? supabase.from("space_members").select("space_id").in("space_id", ids) : Promise.resolve({ data: [] as { space_id: string }[] }),
     ids.length
       ? supabase.from("subscriptions").select("space_id, status, current_period_end").eq("plan", "business").in("space_id", ids)
       : Promise.resolve({ data: [] as { space_id: string | null; status: string; current_period_end: string | null }[] }),
   ]);
-  const ownerName = new Map((owners ?? []).map((o) => [o.user_id, displayNameOf(o) ?? "İsimsiz"]));
   const memberCount = new Map<string, number>();
   for (const m of members ?? []) memberCount.set(m.space_id, (memberCount.get(m.space_id) ?? 0) + 1);
   const premium = new Set((subs ?? []).filter(isSubscriptionActive).map((s) => s.space_id));

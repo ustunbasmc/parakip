@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import {
   bucketByDay,
-  displayNameOf,
+  getAuthUsers,
+  resolveUserLabels,
   fetchAllRows,
   fmtRelative,
   isSubscriptionActive,
@@ -26,29 +27,24 @@ function dayLabel(iso: string) {
 export default async function AdminDashboardPage() {
   const supabase = getAdminDbClient();
   const now = requestNow();
-  const since60 = new Date(now - 60 * DAY).toISOString();
   const since30 = new Date(now - 30 * DAY).toISOString();
 
   const [
-    usersCount,
+    authUsers,
     spacesCount,
     businessCount,
-    recentProfiles,
     recentTx,
     subs,
     pendingPayments,
     approved30,
     openTickets,
     deletions,
-    latestUsers,
     audit,
   ] = await Promise.all([
-    supabase.from("profiles").select("user_id", { count: "exact", head: true }),
+    // Kullanıcı sayıları giriş hesaplarından (auth) — profil satırı olmayan hesaplar da sayılır.
+    getAuthUsers(),
     supabase.from("spaces").select("id", { count: "exact", head: true }).eq("is_archived", false),
     supabase.from("spaces").select("id", { count: "exact", head: true }).eq("is_archived", false).eq("type", "business"),
-    fetchAllRows<{ created_at: string }>((a, b) =>
-      supabase.from("profiles").select("created_at").gte("created_at", since60).order("created_at").range(a, b)
-    ).catch(() => []),
     fetchAllRows<{ created_at: string }>((a, b) =>
       supabase.from("transactions").select("created_at").gte("created_at", since30).order("created_at").range(a, b)
     ).catch(() => []),
@@ -61,16 +57,14 @@ export default async function AdminDashboardPage() {
       .select("user_id, deletion_requested_at", { count: "exact" })
       .not("deletion_requested_at", "is", null)
       .is("deletion_completed_at", null),
-    supabase
-      .from("profiles")
-      .select("user_id, display_name, first_name, last_name, created_at")
-      .order("created_at", { ascending: false })
-      .limit(6),
     supabase.from("platform_admin_audit_log").select("id, action, entity_type, entity_id, created_at").order("created_at", { ascending: false }).limit(8),
   ]);
 
   // Kayıt trendi: son 30 gün + önceki 30 gün karşılaştırması.
-  const signupTs = recentProfiles.map((r) => r.created_at);
+  const authList = [...authUsers.values()];
+  const signupTs = authList.map((u) => u.createdAt).filter((t) => now - new Date(t).getTime() < 60 * DAY);
+  const latest = authList.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+  const latestNames = await resolveUserLabels(latest.map((u) => u.id));
   const signupBuckets = bucketByDay(signupTs, 30);
   const last7 = signupTs.filter((t) => now - new Date(t).getTime() < 7 * DAY).length;
   const prev7 = signupTs.filter((t) => {
@@ -115,7 +109,7 @@ export default async function AdminDashboardPage() {
       : null,
   ].filter((x): x is { href: string; text: string; tone: "warning" | "neutral" | "danger" } => x !== null);
 
-  const totalUsers = usersCount.count ?? 0;
+  const totalUsers = authUsers.size;
   const premiumShare = [
     { label: "Ev Premium (sahip)", value: homePremium, tone: "bg-accent" },
     { label: "Ücretsiz kullanıcı", value: Math.max(totalUsers - homePremium, 0), tone: "bg-border-strong" },
@@ -223,14 +217,14 @@ export default async function AdminDashboardPage() {
             }
           />
           <ul className="flex flex-col gap-1">
-            {(latestUsers.data ?? []).map((u) => {
-              const name = displayNameOf(u) ?? "İsimsiz";
+            {latest.map((u) => {
+              const name = latestNames.get(u.id) ?? "Bilinmeyen kullanıcı";
               return (
-                <li key={u.user_id}>
-                  <Link href={`/admin/users/${u.user_id}`} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-muted">
+                <li key={u.id}>
+                  <Link href={`/admin/users/${u.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-muted">
                     <Avatar name={name} size={32} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{name}</span>
-                    <span className="shrink-0 text-xs text-text-muted">{fmtRelative(u.created_at, now)}</span>
+                    <span className="shrink-0 text-xs text-text-muted">{fmtRelative(u.createdAt, now)}</span>
                   </Link>
                 </li>
               );

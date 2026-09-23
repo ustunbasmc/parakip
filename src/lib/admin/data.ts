@@ -190,3 +190,23 @@ export const ENTITY_LABELS: Record<string, string> = {
 export function requestNow(): number {
   return Date.now();
 }
+
+/**
+ * Kullanıcı kimliklerini görünen ada çevirir: önce profildeki ad soyad,
+ * yoksa auth e-postası. Profil satırı olmayan (ör. kayıt tetikleyicisinden
+ * önce açılmış) hesaplar da böylece adsız görünmez.
+ */
+export async function resolveUserLabels(ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const out = new Map<string, string>();
+  if (unique.length === 0) return out;
+  const [{ data: profiles }, authUsers] = await Promise.all([
+    getAdminDbClient().from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", unique.slice(0, 500)),
+    getAuthUsers(),
+  ]);
+  const byId = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+  for (const id of unique) {
+    out.set(id, displayNameOf(byId.get(id)) ?? authUsers.get(id)?.email ?? "Bilinmeyen kullanıcı");
+  }
+  return out;
+}

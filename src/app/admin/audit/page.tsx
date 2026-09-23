@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
-import { ACTION_LABELS, displayNameOf, ENTITY_LABELS, fmtDateTime } from "@/lib/admin/data";
+import { ACTION_LABELS, ENTITY_LABELS, fmtDateTime, resolveUserLabels } from "@/lib/admin/data";
 import { EmptyState, ErrorBox, PageHeader, Pagination, TableWrap, Td, Th } from "@/components/admin/ui";
 
 const PAGE_SIZE = 50;
@@ -53,10 +53,7 @@ export default async function AdminAuditPage({
   const { data: rows, count, error } = await query.order("created_at", { ascending: false }).range(start, start + PAGE_SIZE - 1);
 
   const adminIds = [...new Set((rows ?? []).map((r) => r.admin_user_id).filter((x): x is string => Boolean(x)))];
-  const { data: admins } = adminIds.length
-    ? await supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", adminIds)
-    : { data: [] as { user_id: string; display_name: string | null; first_name: string | null; last_name: string | null }[] };
-  const adminName = new Map((admins ?? []).map((a) => [a.user_id, displayNameOf(a) ?? "Admin"]));
+  const adminName = await resolveUserLabels(adminIds);
 
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));

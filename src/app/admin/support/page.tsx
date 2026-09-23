@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
+import { resolveUserLabels } from "@/lib/admin/data";
 import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 import {
   TICKET_PRIORITY_LABELS,
@@ -53,9 +54,7 @@ export default async function AdminSupportPage({
   const { data: tickets, error } = await query;
 
   const userIds = [...new Set((tickets ?? []).map((t) => t.user_id))];
-  const { data: profiles } =
-    userIds.length > 0 ? await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds) : { data: [] };
-  const nameByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+  const nameByUserId = await resolveUserLabels(userIds);
 
   const selectClass = "h-10 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary";
 

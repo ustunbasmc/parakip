@@ -128,7 +128,7 @@ export default async function AdminTicketDetailPage({ params }: { params: Promis
             <dt className="text-text-muted">Kullanıcı</dt>
             <dd className="min-w-0 break-words text-text-primary">
               <Link href={`/admin/users/${ticket.user_id}`} className="font-semibold text-accent">
-                {profile?.display_name || "İsimsiz"}
+                {profile?.display_name || email || "Bilinmeyen kullanıcı"}
               </Link>
               {email ? <span className="block text-text-muted">{email}</span> : null}
             </dd>

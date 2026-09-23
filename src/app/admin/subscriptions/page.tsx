@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
-import { displayNameOf, fmtDate, isSubscriptionActive, PLAN_LABELS, requestNow, SUB_STATUS_LABELS, subscriptionSource } from "@/lib/admin/data";
+import { fmtDate, resolveUserLabels, isSubscriptionActive, PLAN_LABELS, requestNow, SUB_STATUS_LABELS, subscriptionSource } from "@/lib/admin/data";
 import { Badge, EmptyState, ErrorBox, FilterTabs, PageHeader, StatCard, TableWrap, Td, Th } from "@/components/admin/ui";
 
 const FILTERS = ["active", "expiring", "expired", "all"] as const;
@@ -38,15 +38,12 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
 
   const ownerIds = [...new Set(visible.map((r) => r.owner_user_id).filter((x): x is string => Boolean(x)))];
   const spaceIds = [...new Set(visible.map((r) => r.space_id).filter((x): x is string => Boolean(x)))];
-  const [{ data: owners }, { data: spaces }] = await Promise.all([
-    ownerIds.length
-      ? supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", ownerIds.slice(0, 500))
-      : Promise.resolve({ data: [] as { user_id: string; display_name: string | null; first_name: string | null; last_name: string | null }[] }),
+  const [ownerName, { data: spaces }] = await Promise.all([
+    resolveUserLabels(ownerIds),
     spaceIds.length
       ? supabase.from("spaces").select("id, name").in("id", spaceIds.slice(0, 500))
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
-  const ownerName = new Map((owners ?? []).map((o) => [o.user_id, displayNameOf(o) ?? "İsimsiz"]));
   const spaceName = new Map((spaces ?? []).map((s) => [s.id, s.name]));
 
   const sources = new Map<string, number>();

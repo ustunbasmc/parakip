@@ -29,8 +29,8 @@ export async function updateUserProfile(targetUserId: string, formData: FormData
   const supabase = getAdminDbClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ first_name: firstName, last_name: lastName, phone, display_name: displayName })
-    .eq("user_id", targetUserId);
+    // Profil satırı olmayan hesaplarda da çalışsın diye upsert (satırı oluşturur).
+    .upsert({ user_id: targetUserId, first_name: firstName, last_name: lastName, phone, display_name: displayName }, { onConflict: "user_id" });
 
   if (error) throw new Error(error.message);
 

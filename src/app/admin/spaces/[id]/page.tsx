@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDbClient } from "@/lib/admin/auth";
 import {
-  displayNameOf,
   fmtDate,
   fmtDateTime,
   isSubscriptionActive,
+  resolveUserLabels,
   ROLE_LABELS,
   SUB_STATUS_LABELS,
   subscriptionSource,
@@ -32,9 +32,8 @@ export default async function AdminSpaceDetailPage({ params }: { params: Promise
     .maybeSingle();
   if (!space) notFound();
 
-  const [{ data: book }, { data: owner }, { data: members }, { data: sub }] = await Promise.all([
+  const [{ data: book }, { data: members }, { data: sub }] = await Promise.all([
     supabase.from("books").select("id").eq("space_id", id).maybeSingle(),
-    supabase.from("profiles").select("user_id, display_name, first_name, last_name").eq("user_id", space.owner_user_id).maybeSingle(),
     supabase.from("space_members").select("user_id, role, created_at").eq("space_id", id),
     space.type === "business"
       ? supabase.from("subscriptions").select("status, current_period_end, metadata").eq("plan", "business").eq("space_id", id).maybeSingle()
@@ -47,10 +46,7 @@ export default async function AdminSpaceDetailPage({ params }: { params: Promise
   ]);
 
   const memberIds = (members ?? []).map((m) => m.user_id);
-  const { data: memberProfiles } = memberIds.length
-    ? await supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", memberIds)
-    : { data: [] as { user_id: string; display_name: string | null; first_name: string | null; last_name: string | null }[] };
-  const nameOf = new Map((memberProfiles ?? []).map((p) => [p.user_id, displayNameOf(p) ?? "İsimsiz"]));
+  const nameOf = await resolveUserLabels([...memberIds, space.owner_user_id]);
 
   const bookId = book?.id;
   const [accounts, entries, entryCount, debts] = await Promise.all([
@@ -76,7 +72,7 @@ export default async function AdminSpaceDetailPage({ params }: { params: Promise
   const accountName = new Map((accounts.data ?? []).map((a) => [a.account_id, a.name]));
   const tryBalance = (accounts.data ?? []).filter((a) => a.currency === "TRY" && !a.is_archived).reduce((s, a) => s + a.balance_cents, 0);
   const subActive = sub ? isSubscriptionActive(sub) : false;
-  const ownerName = displayNameOf(owner) ?? "İsimsiz";
+  const ownerName = nameOf.get(space.owner_user_id) ?? "Bilinmeyen kullanıcı";
 
   return (
     <div className="flex flex-col gap-6">
@@ -213,7 +209,7 @@ export default async function AdminSpaceDetailPage({ params }: { params: Promise
               {(members ?? []).map((m) => (
                 <li key={m.user_id}>
                   <Link href={`/admin/users/${m.user_id}`} className="flex items-center justify-between gap-2 text-sm hover:opacity-80">
-                    <span className="truncate font-medium text-text-primary">{nameOf.get(m.user_id) ?? "İsimsiz"}</span>
+                    <span className="truncate font-medium text-text-primary">{nameOf.get(m.user_id) ?? "Bilinmeyen kullanıcı"}</span>
                     <Badge tone={m.role === "owner" ? "accent" : "neutral"}>{ROLE_LABELS[m.role] ?? m.role}</Badge>
                   </Link>
                 </li>

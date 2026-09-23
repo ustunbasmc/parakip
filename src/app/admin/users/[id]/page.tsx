@@ -44,7 +44,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     getAuthUser(id),
     supabase.rpc("is_platform_admin", { p_user_id: id }),
   ]);
-  if (!profile) notFound();
+  if (!profile && !auth) notFound();
 
   const [{ data: memberships }, { data: homeSub }, { data: payments }, { data: tickets }, { data: audit }] = await Promise.all([
     supabase.from("space_members").select("role, spaces(id, name, type, is_archived, owner_user_id, created_at)").eq("user_id", id),
@@ -83,9 +83,9 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     : { data: [] as { space_id: string | null; status: string; current_period_end: string | null }[] };
   const premiumSpaces = new Set((businessSubs ?? []).filter(isSubscriptionActive).map((s) => s.space_id));
 
-  const name = displayNameOf(profile) ?? "İsimsiz kullanıcı";
+  const name = displayNameOf(profile) ?? auth?.email ?? "Bilinmeyen kullanıcı";
   const homeActive = homeSub ? isSubscriptionActive(homeSub) : false;
-  const deleted = Boolean(profile.deletion_completed_at);
+  const deleted = Boolean(profile?.deletion_completed_at);
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,8 +96,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           <span className="flex flex-wrap items-center gap-2">
             {deleted ? (
               <Badge tone="danger">Silindi</Badge>
-            ) : profile.deletion_requested_at ? (
-              <Badge tone="warning">Silme talebi · {fmtDate(profile.deletion_requested_at)}</Badge>
+            ) : profile?.deletion_requested_at ? (
+              <Badge tone="warning">Silme talebi · {fmtDate(profile?.deletion_requested_at)}</Badge>
             ) : auth?.bannedUntil ? (
               <Badge tone="danger">Askıda</Badge>
             ) : (
@@ -116,16 +116,16 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <Avatar name={name} size={48} />
               <div className="min-w-0">
                 <p className="truncate font-bold text-text-primary">{auth?.email ?? "E-posta yok"}</p>
-                <p className="truncate font-mono text-[11px] text-text-muted">{profile.user_id}</p>
+                <p className="truncate font-mono text-[11px] text-text-muted">{id}</p>
               </div>
             </div>
             <KeyValue
               items={[
-                { label: "Kayıt tarihi", value: fmtDateTime(profile.created_at) },
+                { label: "Kayıt tarihi", value: fmtDateTime(auth?.createdAt ?? profile?.created_at) },
                 { label: "Son giriş", value: auth?.lastSignInAt ? `${fmtDateTime(auth.lastSignInAt)} (${fmtRelative(auth.lastSignInAt)})` : "—" },
                 { label: "E-posta doğrulama", value: auth?.emailConfirmedAt ? `Doğrulandı · ${fmtDate(auth.emailConfirmedAt)}` : "Doğrulanmadı" },
                 { label: "Giriş yöntemi", value: auth?.providers.length ? auth.providers.join(", ") : "—" },
-                { label: "Telefon", value: profile.phone || "—" },
+                { label: "Telefon", value: profile?.phone || "—" },
                 { label: "Askı", value: auth?.bannedUntil ? `Askıda (${fmtDate(auth.bannedUntil)} tarihine kadar)` : "Yok" },
               ]}
             />
@@ -221,7 +221,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             {deleted ? (
               <p className="text-xs text-text-muted">Silinmiş hesaba abonelik verilemez.</p>
             ) : (
-              <SubscriptionManager plan="home_premium" targetId={profile.user_id} active={homeActive} compact />
+              <SubscriptionManager plan="home_premium" targetId={id} active={homeActive} compact />
             )}
             <p className="mt-3 text-[11px] text-text-muted">
               İşletme Premium, ilgili işletme alanının sayfasından yönetilir.
@@ -231,14 +231,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           {!deleted ? (
             <Card>
               <CardHeader title="Profili düzenle" />
-              <AdminUserEditForm userId={profile.user_id} firstName={profile.first_name} lastName={profile.last_name} phone={profile.phone} />
+              <AdminUserEditForm userId={id} firstName={profile?.first_name ?? null} lastName={profile?.last_name ?? null} phone={profile?.phone ?? null} />
             </Card>
           ) : null}
 
           <Card>
             <CardHeader title="Hesap erişimi" subtitle="Askıya alınan kullanıcı giriş yapamaz; verileri korunur." />
             <UserBanControl
-              userId={profile.user_id}
+              userId={id}
               banned={Boolean(auth?.bannedUntil)}
               disabledReason={
                 deleted

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
-import { displayNameOf, fmtDateTime, fmtRelative, PLAN_LABELS, requestNow } from "@/lib/admin/data";
+import { fmtDateTime, resolveUserLabels, fmtRelative, PLAN_LABELS, requestNow } from "@/lib/admin/data";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { AdminPaymentActions } from "@/components/admin/AdminPaymentActions";
 import { Badge, Card, EmptyState, ErrorBox, FilterTabs, PageHeader, StatCard } from "@/components/admin/ui";
@@ -33,13 +33,10 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
 
   const userIds = [...new Set((requests ?? []).map((r) => r.user_id))];
   const spaceIds = [...new Set((requests ?? []).map((r) => r.space_id))];
-  const [{ data: profiles }, { data: spaces }] = await Promise.all([
-    userIds.length
-      ? supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", userIds)
-      : Promise.resolve({ data: [] as { user_id: string; display_name: string | null; first_name: string | null; last_name: string | null }[] }),
+  const [nameByUserId, { data: spaces }] = await Promise.all([
+    resolveUserLabels(userIds),
     spaceIds.length ? supabase.from("spaces").select("id, name").in("id", spaceIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
-  const nameByUserId = new Map((profiles ?? []).map((p) => [p.user_id, displayNameOf(p) ?? "İsimsiz"]));
   const spaceName = new Map((spaces ?? []).map((s) => [s.id, s.name]));
   const approvedSum = (approved30 ?? []).reduce((s, r) => s + r.amount_cents, 0);
 
