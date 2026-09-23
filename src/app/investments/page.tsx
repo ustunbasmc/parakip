@@ -69,12 +69,18 @@ export default async function InvestmentsPage({ searchParams }: { searchParams: 
           <p className="py-6 text-center text-sm text-danger">Yatırımlar yüklenemedi. Lütfen tekrar dene.</p>
         ) : (
           <>
-            <PortfolioSummaryCard totals={totals} currency={primaryCurrency} />
+            <PortfolioSummaryCard totals={totals} currency={primaryCurrency} holdings={holdings} />
 
             <InvestmentActionButtons bookId={activeSpace.bookId} spaceParam={activeSpace.id} holdings={holdings} />
 
             {holdings.length === 0 ? (
-              <CardEmptyState message="Henüz yatırımın yok." hint="İlk alışını yukarıdaki butondan yapabilirsin." />
+              <div className="surface-card rounded-3xl p-2">
+                <CardEmptyState
+                  message="Henüz yatırımın yok."
+                  hint="Hisse, altın, döviz veya kripto alışlarını kaydederek portföyünü takip edebilirsin."
+                  action={{ href: `/investments/buy?space=${activeSpace.id}`, label: "İlk alışı ekle" }}
+                />
+              </div>
             ) : (
               <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:grid-cols-3">
                 {holdings.map((h) => (

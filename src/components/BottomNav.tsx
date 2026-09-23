@@ -193,7 +193,8 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
 
       <nav
         aria-label="Ana navigasyon"
-        className="sticky bottom-0 z-10 flex justify-around border-t border-border bg-bg-elevated pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5"
+        className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-border pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-xl"
+        style={{ background: "color-mix(in srgb, var(--color-bg-elevated) 88%, transparent)" }}
       >
         {PRIMARY_NAV_ITEMS.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -201,13 +202,16 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
             <Link
               key={item.href}
               href={hrefFor(item.href)}
-              className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`relative flex min-w-0 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold transition-colors ${
                 active ? "text-accent" : "text-text-muted"
               }`}
               aria-current={active ? "page" : undefined}
             >
-              {item.icon(active)}
-              {item.label}
+              <NavIndicator active={active} />
+              <span className={`flex h-8 w-12 items-center justify-center rounded-full transition-colors ${active ? "bg-accent-soft" : ""}`}>
+                {item.icon(active)}
+              </span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -215,14 +219,30 @@ export function BottomNav({ activeSpaceType }: { activeSpaceType?: "home" | "bus
           onClick={open}
           aria-haspopup="dialog"
           aria-expanded={rendered}
-          className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`relative flex min-w-0 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold transition-colors ${
             isMoreActive || rendered ? "text-accent" : "text-text-muted"
           }`}
         >
-          <MoreHorizontalIcon size={22} />
-          Daha Fazla
+          <NavIndicator active={isMoreActive || rendered} />
+          <span className={`flex h-8 w-12 items-center justify-center rounded-full transition-colors ${isMoreActive || rendered ? "bg-accent-soft" : ""}`}>
+            <MoreHorizontalIcon size={22} />
+          </span>
+          <span className="max-w-full truncate">Daha Fazla</span>
         </button>
       </nav>
     </div>
+  );
+}
+
+/** Aktif sekmenin üstündeki ince turkuaz çizgi — kontrollü, hafif parlamalı. */
+function NavIndicator({ active }: { active: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute -top-1.5 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-accent transition-opacity duration-200 ${
+        active ? "opacity-100" : "opacity-0"
+      }`}
+      style={active ? { boxShadow: "var(--glow-accent)" } : undefined}
+    />
   );
 }

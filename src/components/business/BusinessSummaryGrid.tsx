@@ -54,21 +54,29 @@ export function BusinessSummaryGrid({ bookId, initialSummary }: { bookId: string
   ];
 
   const toneClass: Record<string, string> = {
-    success: "text-success",
-    danger: "text-danger",
+    success: "text-income",
+    danger: "text-expense",
     neutral: "text-text-primary",
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <section
+      aria-label="İşletme özeti"
+      className="animate-rise relative overflow-hidden rounded-3xl border p-4 sm:p-5"
+      style={{
+        backgroundImage: "var(--gradient-hero)",
+        boxShadow: "var(--shadow-hero)",
+        borderColor: "color-mix(in srgb, var(--color-accent) 28%, var(--color-border))",
+      }}
+    >
       {/* Dönem seçici — yatay kaydırılabilir pill grubu, sayfa dışına taşmaz. */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PERIODS.map((p) => (
           <button
             key={p}
             onClick={() => handlePeriodChange(p)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-              p === period ? "bg-accent text-text-on-accent" : "bg-surface-muted text-text-secondary"
+              p === period ? "bg-accent text-text-on-accent" : "bg-[var(--tile-bg)] text-text-secondary"
             }`}
           >
             {BUSINESS_PERIOD_LABELS[p]}
@@ -85,9 +93,9 @@ export function BusinessSummaryGrid({ bookId, initialSummary }: { bookId: string
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {periodItems.map((item) => (
-              <div key={item.label} className="rounded-xl bg-surface-muted p-3">
+              <div key={item.label} className="min-w-0 rounded-2xl bg-[var(--tile-bg)] p-3 backdrop-blur-sm">
                 <p className="text-xs text-text-muted">{item.label}</p>
-                <p className={`mt-1 truncate text-base font-bold tabular-nums ${toneClass[item.tone]}`}>
+                <p className={`mt-1 truncate text-base font-extrabold tabular-nums sm:text-lg ${toneClass[item.tone]}`}>
                   {formatCentsAsCurrency(item.cents, "TRY")}
                 </p>
               </div>
@@ -97,9 +105,9 @@ export function BusinessSummaryGrid({ bookId, initialSummary }: { bookId: string
           <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-text-muted">Şu an itibarıyla</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {statusItems.map((item) => (
-              <div key={item.label} className="rounded-xl bg-surface-muted p-3">
+              <div key={item.label} className="min-w-0 rounded-2xl bg-[var(--tile-bg)] p-3 backdrop-blur-sm">
                 <p className="text-xs text-text-muted">{item.label}</p>
-                <p className={`mt-1 truncate text-base font-bold tabular-nums ${toneClass[item.tone]}`}>
+                <p className={`mt-1 truncate text-base font-extrabold tabular-nums sm:text-lg ${toneClass[item.tone]}`}>
                   {formatCentsAsCurrency(item.cents, "TRY")}
                 </p>
               </div>
@@ -107,6 +115,6 @@ export function BusinessSummaryGrid({ bookId, initialSummary }: { bookId: string
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

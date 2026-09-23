@@ -84,7 +84,7 @@ export default async function SuppliersPage({
         {loadError ? (
           <p className="py-6 text-center text-sm text-danger">Tedarikçiler yüklenemedi.</p>
         ) : suppliers.length === 0 ? (
-          <CardEmptyState message={showArchived ? "Arşivlenmiş tedarikçi yok." : "Henüz tedarikçi eklenmedi."} hint={showArchived ? undefined : "Sağ üstteki + ile ekleyebilirsin."} />
+          <CardEmptyState message={showArchived ? "Arşivlenmiş tedarikçi yok." : "Henüz tedarikçi eklenmedi."} hint={showArchived ? undefined : "Tedarikçilerini ekleyerek alış ve borçlarını kişi bazında takip edebilirsin."} action={showArchived ? undefined : { href: `/suppliers/new?space=${activeSpace.id}`, label: "Tedarikçi ekle" }} />
         ) : (
           suppliers.map((s) => <PartyListItem key={s.id} party={s} href={`/suppliers/${s.id}?space=${activeSpace.id}`} type="supplier" />)
         )}

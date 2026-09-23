@@ -141,10 +141,13 @@ export default async function DebtsPage({
         {loadError ? (
           <p className="py-6 text-center text-sm text-danger">Veriler yüklenemedi. Lütfen tekrar dene.</p>
         ) : debts.length === 0 ? (
-          <CardEmptyState
-            message="Kayıt bulunamadı."
-            hint="Sağ üstteki + ile ilk borç/alacağını ekleyebilirsin."
-          />
+          <div className="surface-card rounded-3xl p-2">
+            <CardEmptyState
+              message="Henüz borç veya alacak yok."
+              hint="Birine olan borcunu ya da birinden alacağını kaydederek kalan tutarı takip edebilirsin."
+              action={{ href: `/debts/new?space=${activeSpace.id}`, label: "Borç/alacak ekle" }}
+            />
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             {debts.map((d) => (

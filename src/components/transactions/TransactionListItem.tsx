@@ -10,6 +10,7 @@ import { formatRelativeDate, formatDueDateLabel } from "@/lib/format/date";
 import { getAccountsForBook, getCategoriesForBook, type AccountOption, type CategoryOption } from "@/lib/dashboard/formData";
 import { ArrowUpRightIcon, ArrowDownRightIcon, TransferIcon, TrendingUpIcon, PencilIcon } from "@/components/icons";
 import { SwipeToAction } from "@/components/SwipeToAction";
+import { categoryColor } from "@/lib/format/categoryColor";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { IncomeExpenseForm } from "@/components/forms/IncomeExpenseForm";
@@ -22,9 +23,9 @@ const TYPE_ICON = {
 } as const;
 
 const TYPE_TINT = {
-  income: "bg-success-soft text-success",
-  expense: "bg-danger-soft text-danger",
-  transfer: "bg-accent-soft text-accent",
+  income: "bg-income-soft text-income",
+  expense: "bg-expense-soft text-expense",
+  transfer: "bg-balance-soft text-balance",
 } as const;
 
 const TYPE_LABEL = { income: "Gelir", expense: "Gider", transfer: "Transfer" } as const;
@@ -186,16 +187,24 @@ export function TransactionListItem({
   const card = (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 transition-colors active:bg-surface-muted ${
-        isCancelled ? "opacity-60" : ""
+      className={`surface-card flex min-w-0 items-center gap-2.5 rounded-2xl p-2.5 transition-colors active:bg-surface-muted sm:gap-3 sm:p-3.5 ${
+        isCancelled ? "opacity-60 grayscale-[35%]" : ""
       }`}
     >
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${TYPE_TINT[row.type]}`}>
-        <Icon size={17} />
+      <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:h-11 sm:w-11 ${isCancelled ? "bg-surface-muted text-text-muted" : TYPE_TINT[row.type]}`}>
+        <Icon size={18} />
+        {/* Kategori rengi — aynı kategori her yerde aynı renkte görünür. */}
+        {row.categoryId && !isTransfer ? (
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2"
+            style={{ background: categoryColor(row.categoryId), borderColor: "var(--color-surface)" }}
+          />
+        ) : null}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{title}</p>
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{title}</p>
           {isCreditPending ? (
             <span className="shrink-0 rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-bold text-warning">
               Veresiye
@@ -215,14 +224,14 @@ export function TransactionListItem({
         <p className="truncate text-xs text-text-muted">{subtitle}</p>
       </div>
       <p
-        className={`shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums ${
+        className={`shrink-0 whitespace-nowrap text-sm font-bold tabular-nums ${
           isCancelled
             ? "text-text-muted line-through"
             : isTransfer || isCreditPending
               ? "text-text-primary"
               : isPositive
-                ? "text-success"
-                : "text-danger"
+                ? "text-income"
+                : "text-expense"
         }`}
       >
         {isPositive ? "+" : ""}

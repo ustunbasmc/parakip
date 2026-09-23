@@ -112,7 +112,8 @@ export default async function AccountsPage({
         ) : accounts.length === 0 ? (
           <CardEmptyState
             message={showArchived ? "Arşivlenmiş hesap yok." : "Henüz hesap eklenmedi."}
-            hint={showArchived ? undefined : "Sağ üstteki + ile ilk hesabını ekleyebilirsin."}
+            hint={showArchived ? undefined : "Banka, nakit veya kart hesabını ekleyerek bakiyelerini takip etmeye başla."}
+            action={showArchived ? undefined : { href: `/accounts/new?space=${activeSpace.id}`, label: "Hesap ekle" }}
           />
         ) : (
           accounts.map((a) => <AccountCard key={a.id} account={a} spaceParam={activeSpace.id} />)

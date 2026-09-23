@@ -82,9 +82,11 @@ export async function getTotalBalanceByCurrency(
 export async function getFlowForPeriod(
   supabase: SupabaseClient,
   bookId: string,
-  period: DashboardPeriod = "month"
+  period: DashboardPeriod = "month",
+  /** Verilirse `period` yerine bu [start, end) aralığı kullanılır (ör. ana sayfadaki "Geçen ay"/"Özel"). Hesaplama kuralı aynıdır. */
+  range?: { start: string; end: string }
 ): Promise<{ income: CurrencyAmount[]; expense: CurrencyAmount[] }> {
-  const { start, end } = getPeriodRange(period);
+  const { start, end } = range ?? getPeriodRange(period);
 
   const { data, error } = await supabase
     .from("transaction_entries")

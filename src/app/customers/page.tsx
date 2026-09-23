@@ -85,7 +85,7 @@ export default async function CustomersPage({
         {loadError ? (
           <p className="py-6 text-center text-sm text-danger">Müşteriler yüklenemedi.</p>
         ) : customers.length === 0 ? (
-          <CardEmptyState message={showArchived ? "Arşivlenmiş müşteri yok." : "Henüz müşteri eklenmedi."} hint={showArchived ? undefined : "Sağ üstteki + ile ekleyebilirsin."} />
+          <CardEmptyState message={showArchived ? "Arşivlenmiş müşteri yok." : "Henüz müşteri eklenmedi."} hint={showArchived ? undefined : "Müşterilerini ekleyerek satış ve alacaklarını kişi bazında takip edebilirsin."} action={showArchived ? undefined : { href: `/customers/new?space=${activeSpace.id}`, label: "Müşteri ekle" }} />
         ) : (
           customers.map((c) => <PartyListItem key={c.id} party={c} href={`/customers/${c.id}?space=${activeSpace.id}`} type="customer" />)
         )}

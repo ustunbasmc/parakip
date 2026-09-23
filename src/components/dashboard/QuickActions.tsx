@@ -36,9 +36,9 @@ interface ActionDef {
 }
 
 const HOME_ACTIONS: ActionDef[] = [
-  { label: "Gelir ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", modalKind: "income" },
-  { label: "Gider ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "expense" },
-  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", modalKind: "transfer" },
+  { label: "Gelir ekle", Icon: ArrowUpRightIcon, tint: "bg-income-soft text-income", modalKind: "income" },
+  { label: "Gider ekle", Icon: ArrowDownRightIcon, tint: "bg-expense-soft text-expense", modalKind: "expense" },
+  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-balance-soft text-balance", modalKind: "transfer" },
 ];
 
 /**
@@ -48,10 +48,10 @@ const HOME_ACTIONS: ActionDef[] = [
  * üzerinden yapılıyor.
  */
 const BUSINESS_ACTIONS: ActionDef[] = [
-  { label: "Satış ekle", Icon: ArrowUpRightIcon, tint: "bg-success-soft text-success", modalKind: "sale" },
-  { label: "Alış ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "purchase" },
-  { label: "Masraf ekle", Icon: ArrowDownRightIcon, tint: "bg-danger-soft text-danger", modalKind: "expense", businessKind: "expense" },
-  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-accent-soft text-accent", modalKind: "transfer" },
+  { label: "Satış ekle", Icon: ArrowUpRightIcon, tint: "bg-income-soft text-income", modalKind: "sale" },
+  { label: "Alış ekle", Icon: ArrowDownRightIcon, tint: "bg-expense-soft text-expense", modalKind: "purchase" },
+  { label: "Masraf ekle", Icon: ArrowDownRightIcon, tint: "bg-warning-soft text-warning", modalKind: "expense", businessKind: "expense" },
+  { label: "Transfer yap", Icon: TransferIcon, tint: "bg-balance-soft text-balance", modalKind: "transfer" },
 ];
 
 const MODAL_TITLES: Record<ModalKind, string> = {
@@ -95,6 +95,7 @@ export function QuickActions({
   const [spaces, setSpaces] = useState<SpaceWithAccounts[]>([]);
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const isOpen = menuOpen || modalKind !== null;
 
@@ -159,8 +160,12 @@ export function QuickActions({
   }
 
   function handleSuccess() {
+    const savedLabel = title;
     resetAll();
     router.refresh();
+    // Kısa, kendiliğinden kaybolan başarı bildirimi (form modalı kapandıktan sonra).
+    setToast(`${savedLabel.replace(/ ekle$| yap$/, "")} kaydedildi`);
+    window.setTimeout(() => setToast(null), 2600);
   }
 
   const homeHref = `/home?space=${spaceParam}`;
@@ -174,34 +179,60 @@ export function QuickActions({
 
   return (
     <>
+      {/* Alt navigasyonun (~3.75rem + güvenli alan) ÜZERİNDE sabit durur;
+          masaüstünde alt navigasyon olmadığından sağ alt köşeye iner. */}
       <button
         onClick={() => setMenuOpen(true)}
         aria-label="Hızlı işlem ekle"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-text-on-accent shadow-lg transition-transform active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-text-on-accent transition-transform duration-200 active:scale-95 md:bottom-8 md:right-8"
+        style={{
+          background: "linear-gradient(145deg, var(--color-accent-hover), var(--color-accent))",
+          boxShadow: "var(--glow-accent), inset 0 1px 0 rgba(255,255,255,0.25)",
+        }}
       >
-        <PlusIcon size={24} />
+        <span className={`transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}>
+          <PlusIcon size={26} />
+        </span>
       </button>
+
+      {toast ? (
+        <div
+          role="status"
+          className="animate-toast fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border border-border bg-bg-elevated px-4 py-2.5 text-sm font-semibold text-text-primary shadow-xl md:bottom-10"
+        >
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-income-soft text-income" aria-hidden="true">
+            ✓
+          </span>
+          <span className="truncate">{toast}</span>
+        </div>
+      ) : null}
 
       <Modal open={isOpen} title={title} onClose={handleClose} confirmClose={confirmClose}>
         {menuOpen ? (
-          <div className="flex flex-col gap-1.5 pb-1">
-            {actions.map((action) => (
+          <div role="menu" className="grid grid-cols-2 gap-2 pb-1">
+            {actions.map((action, i) => (
               <button
                 key={action.label}
+                role="menuitem"
                 onClick={() => selectAction(action.modalKind, action.businessKind)}
-                className="flex min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-surface-muted"
+                className="animate-rise flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-border bg-surface p-3.5 text-left transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted active:scale-[0.98]"
+                style={{ animationDelay: `${i * 45}ms` }}
               >
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${action.tint}`}>
-                  <action.Icon size={18} />
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.tint}`}>
+                  <action.Icon size={19} />
                 </span>
-                <span className="text-sm font-semibold text-text-primary">{action.label}</span>
+                <span className="text-sm font-bold text-text-primary">{action.label}</span>
               </button>
             ))}
           </div>
         ) : loadingData || !modalKind ? (
-          <p className="py-8 text-center text-sm text-text-muted">Yükleniyor...</p>
+          <div className="flex flex-col gap-3 py-4" aria-label="Yükleniyor" role="status">
+            <div className="skeleton h-14 rounded-2xl" />
+            <div className="skeleton h-12 rounded-2xl" />
+            <div className="skeleton h-12 rounded-2xl" />
+          </div>
         ) : modalKind === "income" || modalKind === "expense" ? (
           <IncomeExpenseForm
             kind={modalKind}

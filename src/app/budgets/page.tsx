@@ -73,7 +73,13 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
         {loadError ? (
           <p className="py-6 text-center text-sm text-danger">Bütçeler yüklenemedi. Lütfen tekrar dene.</p>
         ) : budgets.length === 0 ? (
-          <CardEmptyState message="Bu ay için henüz bütçe belirlenmedi." hint="Sağ üstteki + ile ilk bütçeni oluşturabilirsin." />
+          <div className="surface-card rounded-3xl p-2">
+            <CardEmptyState
+              message="Bu ay için henüz bütçe belirlenmedi."
+              hint="Toplam veya kategori bazlı bir harcama sınırı belirleyerek ne kadar harcadığını takip edebilirsin."
+              action={{ href: `/budgets/new?space=${activeSpace.id}`, label: "Bütçe oluştur" }}
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {budgets.map((b) => (

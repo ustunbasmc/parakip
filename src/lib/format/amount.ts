@@ -139,3 +139,8 @@ export function formatCentsAsCurrency(cents: number, currency: string): string {
     maximumFractionDigits: 2,
   }).format(amount);
 }
+
+/** Yüzdeyi Türkçe ondalık biçimiyle (virgül, 1 hane) ve işaretsiz yazar — ör. 2.54 → "2,5". */
+export function formatPct(value: number): string {
+  return new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.abs(value));
+}

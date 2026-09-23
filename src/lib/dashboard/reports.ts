@@ -26,9 +26,11 @@ function one<T>(v: T | T[] | null): T | null {
 export async function getExpenseByCategory(
   supabase: SupabaseClient,
   bookId: string,
-  period: DashboardPeriod
+  period: DashboardPeriod,
+  /** Verilirse `period` yerine bu [start, end) aralığı kullanılır. Gruplama kuralı aynıdır. */
+  range?: { start: string; end: string }
 ): Promise<CategoryBreakdownRow[]> {
-  const { start, end } = getPeriodRange(period);
+  const { start, end } = range ?? getPeriodRange(period);
 
   const { data, error } = await supabase
     .from("transaction_entries")

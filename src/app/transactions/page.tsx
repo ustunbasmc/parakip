@@ -143,7 +143,12 @@ export default async function TransactionsPage({
         ) : rows.length === 0 ? (
           <CardEmptyState
             message={hasActiveFilters ? "Bu filtrelere uyan işlem bulunamadı." : "Henüz işlem eklenmedi."}
-            hint={hasActiveFilters ? "Filtreleri değiştirmeyi dene." : "İlk kaydını ana sayfadaki hızlı işlemlerden ekleyebilirsin."}
+            hint={hasActiveFilters ? "Filtreleri değiştirmeyi dene." : "İlk gelir veya giderini ekleyerek başlayabilirsin."}
+            action={
+              hasActiveFilters
+                ? { href: `/transactions?space=${activeSpace.id}`, label: "Filtreleri temizle" }
+                : { href: `/add-transaction?type=expense&book_id=${activeSpace.bookId}&space=${activeSpace.id}`, label: "İşlem ekle" }
+            }
           />
         ) : (
           <div className="flex flex-col gap-2">

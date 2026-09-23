@@ -48,6 +48,30 @@
      düz/sakin kalır. */
   --gradient-hero: linear-gradient(135deg, #e9f8f6 0%, #ffffff 55%, #ffffff 100%);
 
+  /* Finansal anlam renkleri — grafik, rozet ve tutarlarda ORTAK dil:
+     gelir turkuaz/yeşil, gider pembe/kırmızı, bakiye turkuaz/mavi,
+     uyarı amber, pasif/iptal gri. */
+  --color-income: #0d9488;
+  --color-income-soft: #e3f5f2;
+  --color-expense: #e11d48;
+  --color-expense-soft: #fde8ee;
+  --color-balance: #0284c7;
+  --color-balance-soft: #e3f1fa;
+
+  /* Kategori/grafik paleti (sıra önemli; ilk renk vurgu rengi). */
+  --chart-1: #0d9488;
+  --chart-2: #0284c7;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #e11d48;
+  --chart-6: #64748b;
+
+  /* İkincil kartlar: çok hafif dikey gradyan + ince kenar. */
+  --gradient-card: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+  --glow-accent: 0 6px 20px -6px rgba(13, 148, 136, 0.45);
+  /* Hero kart içindeki küçük kutular. */
+  --tile-bg: rgba(15, 23, 42, 0.045);
+
   color-scheme: light;
 }
 
@@ -82,7 +106,29 @@
 
   /* Gece modunda hero, marka kimliğinin en yoğun hali: koyu lacivertten
      turkuaza doğru hafif bir geçiş — "premium finans" hissi. */
-  --gradient-hero: linear-gradient(135deg, #123c38 0%, #0f1e33 55%, #0d1526 100%);
+  --gradient-hero:
+    radial-gradient(120% 90% at 100% 0%, rgba(45, 212, 191, 0.18) 0%, rgba(45, 212, 191, 0) 55%),
+    linear-gradient(145deg, #11323a 0%, #0f1e33 50%, #0c1628 100%);
+
+  --color-income: #2dd4bf;
+  --color-income-soft: #0f3431;
+  --color-expense: #fb7185;
+  --color-expense-soft: #3a1622;
+  --color-balance: #38bdf8;
+  --color-balance-soft: #0d2a3d;
+
+  --chart-1: #2dd4bf;
+  --chart-2: #38bdf8;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #fb7185;
+  --chart-6: #94a3b8;
+
+  /* Koyu lacivert kartlar — yukarıdan çok hafif aydınlanan yüzey; neon
+     yalnızca ince kenar/gölge olarak, metnin arkasında değil. */
+  --gradient-card: linear-gradient(180deg, #152039 0%, #121b31 100%);
+  --glow-accent: 0 8px 24px -8px rgba(45, 212, 191, 0.55);
+  --tile-bg: rgba(10, 17, 32, 0.42);
 
   color-scheme: dark;
 }
@@ -107,6 +153,12 @@
   --color-danger-soft: var(--color-danger-soft);
   --color-warning: var(--color-warning);
   --color-warning-soft: var(--color-warning-soft);
+  --color-income: var(--color-income);
+  --color-income-soft: var(--color-income-soft);
+  --color-expense: var(--color-expense);
+  --color-expense-soft: var(--color-expense-soft);
+  --color-balance: var(--color-balance);
+  --color-balance-soft: var(--color-balance-soft);
 
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
@@ -141,6 +193,71 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─────────────────────────────────────────────
+   Ortak yüzey ve hareket yardımcıları
+   ───────────────────────────────────────────────────────────── */
+
+/* İkincil kart yüzeyi — DashboardCard ve modül kartları kullanır. */
+.surface-card {
+  background-image: var(--gradient-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+/* Kartların yumuşak görünmesi. Gecikme style={{ animationDelay }} ile
+   verilir; prefers-reduced-motion yukarıdaki kuralla anında biter. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Grafik çubuklarının/halkalarının kısa sürede "dolması". */
+@keyframes grow-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.animate-grow-y {
+  transform-origin: bottom;
+  animation: grow-y 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-grow-x {
+  transform-origin: left;
+  animation: grow-x 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes draw-ring {
+  from { stroke-dashoffset: var(--ring-length); }
+}
+.animate-ring {
+  animation: draw-ring 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Skeleton — tek renkli nabız yerine hafif ışık süpürmesi. */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-muted) 25%, var(--color-border) 50%, var(--color-surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Kısa geri bildirim (toast) girişi. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.animate-toast {
+  animation: toast-in 220ms ease-out both;
 }
 
 /* Tema-duyarlı marka görselleri (ör. welcome hero) — next-themes'in

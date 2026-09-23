@@ -9,6 +9,7 @@ import { formatCentsAsCurrency } from "@/lib/format/amount";
 import { formatDueDateLabel } from "@/lib/format/date";
 import { SwipeToAction } from "@/components/SwipeToAction";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { DebtRow } from "@/lib/dashboard/debts";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -44,35 +45,64 @@ export function DebtListItem({ debt, spaceParam }: { debt: DebtRow; spaceParam: 
     router.refresh();
   }
 
+  // Ödenen oran — yalnızca görsel; değerler debt_balances view'ından gelir.
+  const paidPercent = debt.principalCents > 0 ? (debt.paidCents / debt.principalCents) * 100 : 0;
+  const statusTone =
+    debt.status === "paid"
+      ? "bg-income-soft text-income"
+      : debt.status === "cancelled"
+        ? "bg-surface-muted text-text-muted"
+        : isOverdue
+          ? "bg-danger-soft text-danger"
+          : debt.status === "partial"
+            ? "bg-warning-soft text-warning"
+            : "bg-balance-soft text-balance";
+
   const card = (
     <Link
       href={`/debts/${debt.id}?space=${spaceParam}`}
-      className={`flex items-center gap-3 rounded-2xl border bg-surface p-3.5 transition-colors active:bg-surface-muted ${
-        isOverdue && !isSettled ? "border-danger/40" : "border-border"
-      } ${isSettled ? "opacity-60" : ""}`}
+      className={`surface-card flex min-w-0 flex-col gap-2.5 rounded-2xl p-3.5 transition-colors active:bg-surface-muted ${
+        isSettled ? "opacity-60" : ""
+      }`}
+      style={isOverdue && !isSettled ? { borderColor: "color-mix(in srgb, var(--color-danger) 45%, var(--color-border))" } : undefined}
     >
-      <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-          isPayable ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
-        }`}
-      >
-        {isPayable ? "−" : "+"}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-text-primary">{debt.counterpartyName}</p>
-        <p className="truncate text-xs text-text-muted">
-          {STATUS_LABEL[debt.status] ?? debt.status}
-          {debt.dueDate ? ` · ${formatDueDateLabel(debt.dueDate)}` : ""}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-black ${
+            isPayable ? "bg-expense-soft text-expense" : "bg-income-soft text-income"
+          }`}
+        >
+          {isPayable ? "−" : "+"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-text-primary">{debt.counterpartyName}</p>
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1">
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${statusTone}`}>
+              {isOverdue && !isSettled ? "Vadesi geçti" : STATUS_LABEL[debt.status] ?? debt.status}
+            </span>
+            {debt.dueDate ? <span className="truncate text-[11px] text-text-muted">{formatDueDateLabel(debt.dueDate)}</span> : null}
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className={`text-sm font-bold tabular-nums ${isPayable ? "text-expense" : "text-income"}`}>
+            {formatCentsAsCurrency(debt.remainingCents, "TRY")}
+          </p>
+          <p className="text-[10px] text-text-muted">{isPayable ? "kalan borç" : "kalan alacak"}</p>
+        </div>
       </div>
-      <div className="shrink-0 text-right">
-        <p className={`text-sm font-bold tabular-nums ${isPayable ? "text-danger" : "text-success"}`}>
-          {formatCentsAsCurrency(debt.remainingCents, "TRY")}
-        </p>
-        {debt.paidCents > 0 && !isSettled ? (
-          <p className="text-[10px] text-text-muted">{formatCentsAsCurrency(debt.principalCents, "TRY")} üzerinden</p>
-        ) : null}
-      </div>
+
+      {debt.paidCents > 0 && debt.principalCents > 0 ? (
+        <div className="flex min-w-0 flex-col gap-1">
+          <ProgressBar percent={paidPercent} tone={isPayable ? "expense" : "income"} size="sm" label={isPayable ? "Ödenen oran" : "Tahsil edilen oran"} />
+          <p className="flex justify-between gap-2 text-[10px] tabular-nums text-text-muted">
+            <span className="truncate">
+              {isPayable ? "Ödenen" : "Tahsil edilen"} {formatCentsAsCurrency(debt.paidCents, "TRY")}
+            </span>
+            <span className="shrink-0">Toplam {formatCentsAsCurrency(debt.principalCents, "TRY")}</span>
+          </p>
+        </div>
+      ) : null}
     </Link>
   );
 
