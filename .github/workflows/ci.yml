@@ -1,0 +1,45 @@
+# Her push ve pull request'te: lint, tip kontrolü, birim testleri ve build.
+# Gerçek veritabanına bağlanmaz; build için sahte Supabase değerleri yeterlidir
+# (sayfalar istek anında çalışır, build sırasında veri çekilmez).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_SITE_URL: https://www.parakip.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -- --quiet
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Birim testleri
+        run: npm test
+
+      - name: Build
+        run: npm run build

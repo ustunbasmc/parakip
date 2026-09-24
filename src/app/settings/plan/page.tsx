@@ -6,7 +6,7 @@ import { BankTransferCard } from "@/components/settings/BankTransferCard";
 import { PlanComparisonTable } from "@/components/settings/PlanComparisonTable";
 import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData";
 import { getHomePlanInfo, getBusinessPlanInfo, HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
-import { FREE_EXTRA_MEMBER_LIMIT, getPlanPrices } from "@/lib/plans/pricing";
+import { FREE_EXTRA_MEMBER_LIMIT, FREE_SAVINGS_GOAL_LIMIT, getPlanPrices } from "@/lib/plans/pricing";
 import { getSpaceMemberQuota } from "@/lib/api/members-rpc";
 
 /** BankTransferCard sayısal (tam TL) tutar bekliyor — env değerleri kuruş değil TL, ondalık nokta ile. */
@@ -54,6 +54,7 @@ export default async function PlanPage({
   // Üye kotası (sahip dışı üyeler + bekleyen davetler); sınır veritabanında uygulanır (0066).
   const memberQuota = await getSpaceMemberQuota(supabase, activeSpace.id);
   const memberRow = { label: "Ekstra üye (sahip dışı)", free: `${FREE_EXTRA_MEMBER_LIMIT}`, premium: "Sınırsız" };
+  const goalRow = { label: "Birikim hedefi", free: `${FREE_SAVINGS_GOAL_LIMIT}`, premium: "Sınırsız" };
   const memberUsage = memberQuota ? (
     <div className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-center justify-between text-sm">
@@ -156,7 +157,7 @@ export default async function PlanPage({
               {!homeInfo.isPremium ? (
                 <>
                   <PlanComparisonTable
-                    rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }, memberRow]}
+                    rows={[{ label: "Hesap sayısı", free: `${HOME_FREE_ACCOUNT_LIMIT}`, premium: "Sınırsız" }, memberRow, goalRow]}
                   />
                   {ownerUserId === user.id ? (
                     <BankTransferCard
@@ -173,7 +174,7 @@ export default async function PlanPage({
                     <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
                       <p className="text-sm font-semibold text-text-primary">Ev Premium</p>
                       <p className="mt-1 text-xs text-text-muted">
-                        Sınırsız hesap ve sınırsız üye. Yalnızca bu alanın sahibi satın alabilir.
+                        Sınırsız hesap, üye ve birikim hedefi. Yalnızca bu alanın sahibi satın alabilir.
                       </p>
                     </div>
                   )}
@@ -238,6 +239,7 @@ export default async function PlanPage({
                       premium: "Sınırsız",
                     })),
                     memberRow,
+                    goalRow,
                   ]}
                 />
                 <BankTransferCard

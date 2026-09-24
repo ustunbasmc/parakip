@@ -171,6 +171,8 @@ export const ACTION_LABELS: Record<string, string> = {
   user_ban: "Kullanıcı askıya alındı",
   user_unban: "Askı kaldırıldı",
   email_test: "Test e-postası gönderildi",
+  error_resolved: "Hata çözüldü olarak işaretlendi",
+  error_reopened: "Hata yeniden açıldı",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -182,6 +184,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   help_category: "Kategori",
   user: "Kullanıcı",
   space: "Alan",
+  error: "Hata",
 };
 
 /**

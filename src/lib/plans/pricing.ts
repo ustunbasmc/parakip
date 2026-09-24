@@ -7,6 +7,7 @@
  *   - HOME_FREE_ACCOUNT_LIMIT      → enforce_account_limit (0052)
  *   - BUSINESS_FREE_LIMITS         → business_free_limits() (0054)
  *   - FREE_EXTRA_MEMBER_LIMIT      → free_extra_member_limit() (0066)
+ *   - FREE_SAVINGS_GOAL_LIMIT      → free_savings_goal_limit() (0067)
  */
 import "server-only";
 
@@ -14,6 +15,9 @@ export { HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
 
 /** Ücretsiz planda alan sahibi dışında eklenebilecek üye sayısı (bekleyen davetler dahil). */
 export const FREE_EXTRA_MEMBER_LIMIT = 1;
+
+/** Ücretsiz planda alan başına aynı anda tutulabilecek (arşivlenmemiş) birikim hedefi. */
+export const FREE_SAVINGS_GOAL_LIMIT = 1;
 
 export const BUSINESS_FREE_LIMITS = {
   accounts: 10,

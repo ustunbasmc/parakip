@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { reportClientError } from "@/lib/errors/reportClient";
 
 export default function DashboardError({
   error,
@@ -13,8 +14,8 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Beklenmeyen hatayı geliştirici konsoluna da düş (Sentry vb. ileride buraya bağlanabilir).
     console.error("Dashboard hatası:", error);
+    reportClientError(error, "home/error");
   }, [error]);
 
   return (

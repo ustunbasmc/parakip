@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { getProfileHeaderInfo } from "@/lib/avatars";
@@ -103,6 +104,16 @@ export default async function TransactionsPage({
       }
     >
       <div className="flex min-w-0 flex-col gap-4 pt-2 pb-4">
+        <Link
+          href={`/transactions/recurring?space=${activeSpace.id}`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm transition-colors hover:bg-surface-muted"
+        >
+          <span className="min-w-0">
+            <span className="block font-semibold text-text-primary">Tekrarlayan kayıtlar</span>
+            <span className="block truncate text-xs text-text-muted">Maaş, kira, abonelik gibi düzenli gelir ve giderleri otomatik ekle</span>
+          </span>
+          <span className="shrink-0 text-accent">→</span>
+        </Link>
         <TransactionFilters
           accounts={accounts}
           categories={categories}

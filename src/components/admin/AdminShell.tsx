@@ -6,6 +6,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import {
   ActivityIcon,
+  AlertIcon,
+  TrendingUpIcon,
   BuildingIcon,
   CreditCardIcon,
   GridIcon,
@@ -23,12 +25,19 @@ export interface AdminBadges {
   payments: number;
   support: number;
   deletions: number;
+  errors: number;
 }
 
 type NavItem = { href: string; label: string; icon: typeof GridIcon; badge?: keyof AdminBadges; exact?: boolean };
 
 const NAV: { title: string; items: NavItem[] }[] = [
-  { title: "Genel", items: [{ href: "/admin", label: "Genel bakış", icon: GridIcon, exact: true }] },
+  {
+    title: "Genel",
+    items: [
+      { href: "/admin", label: "Genel bakış", icon: GridIcon, exact: true },
+      { href: "/admin/analytics", label: "Kullanım", icon: TrendingUpIcon },
+    ],
+  },
   {
     title: "Müşteriler",
     items: [
@@ -53,6 +62,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
   {
     title: "Sistem",
     items: [
+      { href: "/admin/errors", label: "Hatalar", icon: AlertIcon, badge: "errors" },
       { href: "/admin/audit", label: "İşlem kaydı", icon: ListIcon },
       { href: "/admin/system", label: "Sistem durumu", icon: ActivityIcon },
     ],

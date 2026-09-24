@@ -151,8 +151,8 @@ export function RecurringRuleForm({ bookId, homeHref }: { bookId: string; homeHr
         />
 
         <div className="rounded-2xl border border-dashed border-border-strong p-3.5 text-xs text-text-muted">
-          Bu kural, vadesi geldiğinde otomatik olarak yeni bir borç/alacak kaydı oluşturur. Otomatik üretim,
-          sunucuda düzenli çalışan bir zamanlayıcı gerektirir — bu turda yalnızca alt yapı kuruldu.
+          Bu kural, vadesi geldiğinde her sabah otomatik olarak yeni bir borç/alacak kaydı oluşturur. Maaş, abonelik
+          gibi doğrudan gelir/gider kayıtları için Hareketler → Tekrarlayan bölümünü kullan.
         </div>
       </form>
 

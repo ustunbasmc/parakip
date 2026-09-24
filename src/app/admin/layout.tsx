@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Menü rozetleri — sayım hatası paneli kilitlemesin diye 0'a düşer.
   const supabase = getAdminDbClient();
-  const [payments, support, deletions] = await Promise.all([
+  const [payments, support, deletions, errors] = await Promise.all([
     supabase.from("manual_payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase
       .from("support_tickets")
@@ -36,12 +36,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       .select("user_id", { count: "exact", head: true })
       .not("deletion_requested_at", "is", null)
       .is("deletion_completed_at", null),
+    supabase.from("app_error_events").select("id", { count: "exact", head: true }).is("resolved_at", null),
   ]);
 
   return (
     <AdminShell
       adminEmail={user.email ?? null}
-      badges={{ payments: payments.count ?? 0, support: support.count ?? 0, deletions: deletions.count ?? 0 }}
+      badges={{ payments: payments.count ?? 0, support: support.count ?? 0, deletions: deletions.count ?? 0, errors: errors.count ?? 0 }}
     >
       {children}
     </AdminShell>

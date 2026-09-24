@@ -11,7 +11,7 @@ import { join } from "node:path";
  * book_id taşıdığını doğrular (bütçe "boş dönüyor" hatasının tekrarını
  * önlemek için).
  */
-const TARGET = /\/(accounts\/new|budgets\/new|debts\/new|debts\/recurring\/new|investments\/buy|investments\/sell)\?[^"'`\s)]*/g;
+const TARGET = /\/(accounts\/new|budgets\/new|goals\/new|transactions\/recurring\/new|debts\/new|debts\/recurring\/new|investments\/buy|investments\/sell)\?[^"'`\s)]*/g;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

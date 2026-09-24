@@ -106,6 +106,19 @@ export const BUDGETS_ITEM: NavItem = {
   ),
 };
 
+export const GOALS_ITEM: NavItem = {
+  href: "/goals",
+  label: "Hedefler",
+  description: "Tatil, araba, acil durum fonu gibi birikim hedefleri",
+  icon: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  ),
+};
+
 export const INVESTMENTS_ITEM: NavItem = {
   href: "/investments",
   label: "Yatırımlar",
@@ -160,7 +173,7 @@ export const SPACES_ITEM: NavItem = {
 export const PRIMARY_NAV_ITEMS: NavItem[] = [HOME_ITEM, ACCOUNTS_ITEM, TRANSACTIONS_ITEM];
 
 /** Mobilde "Daha Fazla" panelinde, masaüstünde sidebar'da doğrudan görünür — GERÇEK ekranı olanlar. */
-export const MORE_NAV_ITEMS: NavItem[] = [DEBTS_ITEM, BUDGETS_ITEM, INVESTMENTS_ITEM, REPORTS_ITEM, CUSTOMERS_ITEM, SUPPLIERS_ITEM, SPACES_ITEM];
+export const MORE_NAV_ITEMS: NavItem[] = [DEBTS_ITEM, BUDGETS_ITEM, GOALS_ITEM, INVESTMENTS_ITEM, REPORTS_ITEM, CUSTOMERS_ITEM, SUPPLIERS_ITEM, SPACES_ITEM];
 
 /**
  * Müşteriler/Tedarikçiler yalnızca space.type='business' alanlarda

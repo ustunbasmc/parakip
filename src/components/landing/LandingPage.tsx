@@ -4,6 +4,7 @@ import { InstallAppButton } from "@/components/InstallAppButton";
 import {
   BUSINESS_FREE_LIMITS,
   FREE_EXTRA_MEMBER_LIMIT,
+  FREE_SAVINGS_GOAL_LIMIT,
   HOME_FREE_ACCOUNT_LIMIT,
   getPlanPrices,
 } from "@/lib/plans/pricing";
@@ -264,6 +265,7 @@ export function LandingPage() {
                   {BUSINESS_FREE_LIMITS.debts} borç/alacak, {BUSINESS_FREE_LIMITS.customers} müşteri ve {BUSINESS_FREE_LIMITS.suppliers} tedarikçi
                 </PlanItem>
                 <PlanItem>Her alanda sen + {FREE_EXTRA_MEMBER_LIMIT} üye</PlanItem>
+                <PlanItem>{FREE_SAVINGS_GOAL_LIMIT} birikim hedefi, tekrarlayan gelir-gider kuralları</PlanItem>
               </ul>
               <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
                 Ücretsiz başla
@@ -284,6 +286,7 @@ export function LandingPage() {
                 <PlanItem>Ücretsiz plandaki her şey</PlanItem>
                 <PlanItem>Ev alanında sınırsız hesap</PlanItem>
                 <PlanItem>Sınırsız üye — ailenle birlikte kullan</PlanItem>
+                <PlanItem>Sınırsız birikim hedefi</PlanItem>
                 <PlanItem>Tüm aile üyeleri Premium&apos;dan yararlanır</PlanItem>
               </ul>
               <Link href="/sign-up" className="mt-6 block rounded-xl bg-accent py-2.5 text-center text-sm font-bold text-text-on-accent">
@@ -303,6 +306,7 @@ export function LandingPage() {
                 <PlanItem>Sınırsız hesap, işlem ve borç/alacak</PlanItem>
                 <PlanItem>Sınırsız müşteri ve tedarikçi</PlanItem>
                 <PlanItem>Sınırsız ekip üyesi, rol bazlı yetki</PlanItem>
+                <PlanItem>Sınırsız birikim hedefi</PlanItem>
               </ul>
               <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
                 Ücretsiz başla, sonra yükselt

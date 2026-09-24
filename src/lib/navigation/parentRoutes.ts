@@ -14,6 +14,8 @@
 const PARENT_RULES: [RegExp, string][] = [
   // Borçlar: tekrarlayan ödemeler kendi alt ağacıdır.
   [/^\/debts\/recurring\/.+$/, "/debts/recurring"],
+  [/^\/transactions\/recurring\/.+$/, "/transactions/recurring"],
+  [/^\/goals\/.+$/, "/goals"],
   [/^\/debts\/recurring$/, "/debts"],
 
   // Liste → detay/yeni kayıt
@@ -48,6 +50,8 @@ const SPACE_AWARE_PARENTS = new Set([
   "/debts",
   "/debts/recurring",
   "/budgets",
+  "/goals",
+  "/transactions/recurring",
   "/investments",
   "/reports",
   "/customers",
