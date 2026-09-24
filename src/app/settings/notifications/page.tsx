@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
 import { NotificationPreferencesForm, type NotificationPrefs } from "@/components/settings/NotificationPreferencesForm";
 
 /**
@@ -30,6 +31,7 @@ export default async function NotificationSettingsPage() {
   return (
     <AppShell variant="subpage" title="Bildirimler">
       <div className="flex flex-col gap-4 pt-4 pb-6">
+        <PushNotificationsCard />
         {error ? (
           <p className="rounded-2xl border border-danger bg-danger-soft p-4 text-sm text-danger">
             Tercihler yüklenemedi. Lütfen daha sonra tekrar dene.

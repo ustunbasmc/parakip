@@ -1,32 +1,27 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 /**
- * Hesap silme taleplerini GÜVENLİ şekilde tamamlar. Bu endpoint
- * `/api/cron/run-notifications` ile AYNI güvenlik desenini izler:
- * `ADMIN_SECRET` olmadan çağrılamaz (401 döner).
+ * Bekleme süresi dolan hesap silme taleplerini tamamlar (günlük Vercel
+ * Cron, bkz. vercel.json; elle çağrı için POST + ADMIN_SECRET).
  *
- * NEDEN OTOMATİK/ANINDA DEĞİL: `deletion_requested_at` dolduğu AN hesabı
- * silmek yerine, en az `ACCOUNT_DELETION_GRACE_DAYS` (varsayılan 7) gün
- * beklenir — kullanıcı fikrini değiştirip talebi iptal edebilsin diye
- * (mevcut "Talebi iptal et" akışı zaten var, bkz. AccountManagementView).
- * Bu endpoint günde bir kez (ör. aynı Vercel Cron/harici zamanlayıcı ile,
- * /api/cron/run-notifications gibi) çağrılmalıdır.
- *
- * NE YAPAR (KVKK/veri temizliği amaçlı, finansal geçmişi KORUYARAK):
- *  1. auth.users.email → anonim bir değere değiştirilir (Admin API)
- *  2. Hesap banlanır (artık giriş yapılamaz)
- *  3. profiles'daki kişisel alanlar temizlenir
- *  4. deletion_completed_at işaretlenir
- * auth.users SATIRI SİLİNMEZ, spaces/accounts/transactions/debts HİÇ
- * DOKUNULMAZ (bkz. migration 0057'deki gerekçe).
+ * NE YAPAR (migration 0069 — KVKK):
+ *  1. prepare_account_deletion(): kullanıcının TEK üyesi olduğu alanlar
+ *     tüm kayıtlarıyla kalıcı silinir; ortak alanlarda sahiplik en
+ *     kıdemli yöneticiye/üyeye devredilir; diğer üyelikleri kaldırılır.
+ *  2. Profil fotoğrafı ve destek eki dosyaları depodan silinir.
+ *  3. auth kullanıcısı Admin API ile silinir (profil, bildirim, destek
+ *     talepleri vb. zincirleme silinir; havale kayıtları kişisiz saklanır).
+ * Bir adım başarısız olursa ertesi gün yeniden denenir (1. adım tekrar
+ * çalıştırılabilir).
  */
 function bearer(request: Request): string {
   const authHeader = request.headers.get("authorization") ?? "";
   return authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 }
 
-/** Elle/harici zamanlayıcı ile çağrı — ADMIN_SECRET ister (mevcut davranış). */
+/** Elle/harici zamanlayıcı ile çağrı — ADMIN_SECRET ister. */
 export async function POST(request: Request) {
   const expected = process.env.ADMIN_SECRET;
   if (!expected) {
@@ -39,13 +34,7 @@ export async function POST(request: Request) {
   return completeDeletions();
 }
 
-/**
- * Vercel Cron çağrısı — Vercel, cron isteklerini GET ile ve
- * "Authorization: Bearer <CRON_SECRET>" başlığıyla gönderir (bkz.
- * vercel.json). Önceden yalnızca POST+ADMIN_SECRET vardı ve hiçbir yerde
- * zamanlanmamıştı; silme talepleri bekleme süresi dolsa bile hiç
- * tamamlanmıyordu.
- */
+/** Vercel Cron çağrısı — "Authorization: Bearer <CRON_SECRET>" ile GET. */
 export async function GET(request: Request) {
   const expected = process.env.CRON_SECRET;
   if (!expected) {
@@ -56,6 +45,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
   }
   return completeDeletions();
+}
+
+/** Bir klasördeki tüm dosyaları (alt klasörler dahil) siler. */
+async function removeFolder(supabase: SupabaseClient, bucket: string, prefix: string, depth = 0): Promise<number> {
+  if (depth > 3) return 0;
+  const { data, error } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+  if (error || !data) return 0;
+  const files = data.filter((o) => o.id).map((o) => `${prefix}/${o.name}`);
+  const folders = data.filter((o) => !o.id).map((o) => `${prefix}/${o.name}`);
+  let removed = 0;
+  if (files.length) {
+    const { error: rmError } = await supabase.storage.from(bucket).remove(files);
+    if (rmError) throw rmError;
+    removed += files.length;
+  }
+  for (const f of folders) removed += await removeFolder(supabase, bucket, f, depth + 1);
+  return removed;
 }
 
 async function completeDeletions() {
@@ -76,32 +82,22 @@ async function completeDeletions() {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
-  const results: { userId: string; ok: boolean; error?: string }[] = [];
+  const results: { userId: string; ok: boolean; summary?: unknown; error?: string }[] = [];
 
   for (const row of candidates ?? []) {
     const userId = row.user_id as string;
     try {
-      const anonymizedEmail = `deleted-${userId}@parakip.local`;
+      const { data: summary, error: prepError } = await supabase.rpc("prepare_account_deletion", { p_user_id: userId });
+      if (prepError) throw prepError;
 
-      const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
-        email: anonymizedEmail,
-        ban_duration: "876000h", // ~100 yıl — kalıcı olarak giriş engellenir
-      });
+      await removeFolder(supabase, "avatars", userId);
+      await removeFolder(supabase, "support-attachments", userId);
+
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
       if (authError) throw authError;
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          first_name: null,
-          last_name: null,
-          phone: null,
-          avatar_url: null,
-          deletion_completed_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
-      if (profileError) throw profileError;
-
-      results.push({ userId, ok: true });
+      await supabase.from("account_deletions").update({ completed_at: new Date().toISOString() }).eq("user_id", userId);
+      results.push({ userId, ok: true, summary });
     } catch (err) {
       results.push({ userId, ok: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" });
     }

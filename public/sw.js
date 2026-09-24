@@ -102,3 +102,40 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// ───────── Anlık bildirimler (web push) ─────────
+// Yük: { title, body, url, tag } — sunucu kullanıcı "ayrıntıları gizle"
+// dediyse tutar içermeyen genel bir metin gönderir (bkz. src/lib/push/send.ts).
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "Parakip";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      tag: data.tag,
+      icon: "/brand/icon-192.png",
+      badge: "/brand/icon-192.png",
+      data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/notifications" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/notifications", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (new URL(client.url).origin === self.location.origin && "focus" in client) {
+          return client.focus().then((c) => (c && "navigate" in c ? c.navigate(target) : undefined));
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});

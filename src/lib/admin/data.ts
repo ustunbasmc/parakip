@@ -173,6 +173,7 @@ export const ACTION_LABELS: Record<string, string> = {
   email_test: "Test e-postası gönderildi",
   error_resolved: "Hata çözüldü olarak işaretlendi",
   error_reopened: "Hata yeniden açıldı",
+  send_broadcast: "Duyuru bildirimi gönderildi",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -185,6 +186,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   user: "Kullanıcı",
   space: "Alan",
   error: "Hata",
+  broadcast: "Duyuru",
 };
 
 /**

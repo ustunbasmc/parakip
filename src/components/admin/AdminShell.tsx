@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import {
   ActivityIcon,
   AlertIcon,
+  BellIcon,
   TrendingUpIcon,
   BuildingIcon,
   CreditCardIcon,
@@ -43,6 +44,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/users", label: "Kullanıcılar", icon: UsersIcon, badge: "deletions" },
       { href: "/admin/spaces", label: "Alanlar", icon: BuildingIcon },
+      { href: "/admin/notifications", label: "Bildirim gönder", icon: BellIcon },
     ],
   },
   {
