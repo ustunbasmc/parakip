@@ -589,24 +589,31 @@ function BusinessDashboard({ supabase, bookId, spaceId }: Props) {
 /** İlk kurulum adımları — gerçek kayıtlara göre işaretlenir; hepsi bitince kart gösterilmez. */
 async function GettingStartedSection({ supabase, bookId, spaceId, variant }: Props & { variant: "home" | "business" }) {
   const head = { count: "exact" as const, head: true };
-  const [accounts, entries, budgets, goals, rules, members] = await Promise.all([
+  const [accounts, entries, budgets, goals, rules, members, devices] = await Promise.all([
     supabase.from("accounts").select("id", head).eq("book_id", bookId),
     supabase.from("transaction_entries").select("id", head).eq("book_id", bookId),
     supabase.from("budgets").select("id", head).eq("book_id", bookId),
     supabase.from("savings_goals").select("id", head).eq("book_id", bookId),
     supabase.from("recurring_transaction_rules").select("id", head).eq("book_id", bookId),
     supabase.from("space_members").select("user_id", head).eq("space_id", spaceId),
+    // RLS: yalnızca kullanıcının kendi cihazları sayılır.
+    supabase.from("push_subscriptions").select("id", head),
   ]);
   // Sayım okunamadıysa (ör. ağ hatası) kart gösterilmez — yanlış "yapılmadı" gösterme.
-  if ([accounts, entries, budgets, goals, rules, members].some((r) => r.error)) return null;
+  if ([accounts, entries, budgets, goals, rules, members, devices].some((r) => r.error)) return null;
   const q = `space=${spaceId}`;
   const has = (r: { count: number | null }) => (r.count ?? 0) > 0;
+  // Anlık bildirim anahtarları tanımlı değilse adım gösterilmez (yapılamayacak bir iş istenmesin).
+  const pushStep: GettingStartedStep[] = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    ? [{ key: "push", label: "Telefon bildirimlerini aç", hint: "Borç vadesi ve bütçe aşımını kaçırma", href: "/settings/notifications", done: has(devices) }]
+    : [];
 
   const steps: GettingStartedStep[] =
     variant === "home"
       ? [
           { key: "account", label: "Hesabını ekle", hint: "Banka, nakit veya kredi kartı", href: `/accounts/new?book_id=${bookId}&${q}`, done: has(accounts) },
           { key: "tx", label: "İlk gelir veya giderini kaydet", hint: "Bugünkü bir harcamayla başla", href: `/add-transaction?type=expense&book_id=${bookId}&${q}`, done: has(entries) },
+          ...pushStep,
           { key: "recurring", label: "Maaşını veya aboneliklerini otomatiğe bağla", hint: "Her ay elle girmekten kurtul", href: `/transactions/recurring/new?book_id=${bookId}&${q}`, done: has(rules) },
           { key: "budget", label: "Bu ay için bütçe belirle", hint: "Harcama sınırını aşınca uyaralım", href: `/budgets/new?book_id=${bookId}&${q}`, done: has(budgets) },
           { key: "goal", label: "Bir birikim hedefi koy", hint: "Tatil, acil durum fonu…", href: `/goals/new?book_id=${bookId}&${q}`, done: has(goals) },
@@ -614,6 +621,7 @@ async function GettingStartedSection({ supabase, bookId, spaceId, variant }: Pro
       : [
           { key: "account", label: "Kasa veya banka hesabını ekle", hint: "İşletmenin para tuttuğu hesaplar", href: `/accounts/new?book_id=${bookId}&${q}`, done: has(accounts) },
           { key: "tx", label: "İlk satış veya giderini kaydet", hint: "Bugünkü bir işlemle başla", href: `/add-transaction?type=income&book_id=${bookId}&${q}`, done: has(entries) },
+          ...pushStep,
           { key: "recurring", label: "Kira, maaş gibi düzenli giderleri otomatiğe bağla", hint: "Her ay elle girmekten kurtul", href: `/transactions/recurring/new?book_id=${bookId}&${q}`, done: has(rules) },
           { key: "members", label: "Ekip arkadaşını davet et", hint: "Muhasebecin veya ortağın", href: `/settings/spaces/${spaceId}/members`, done: (members.count ?? 0) > 1 },
         ];
