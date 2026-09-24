@@ -28,6 +28,7 @@ export async function notifySupportTeamNewTicket(ticket: {
     button: { label: "Admin panelinde aç", url: `${siteUrl()}/admin/support/${ticket.id}` },
   });
   return sendEmail({
+    category: "support_team",
     to,
     subject: `[Parakip Destek] ${formatTicketNumber(ticket.ticketNumber)} ${TICKET_TYPE_LABELS[ticket.type]}: ${ticket.subject}`,
     ...mail,
@@ -45,6 +46,7 @@ export async function notifySupportTeamUserReply(ticket: { id: string; ticketNum
     button: { label: "Admin panelinde aç", url: `${siteUrl()}/admin/support/${ticket.id}` },
   });
   return sendEmail({
+    category: "support_team",
     to,
     subject: `[Parakip Destek] ${formatTicketNumber(ticket.ticketNumber)} yeni kullanıcı mesajı`,
     ...mail,
@@ -72,6 +74,7 @@ export async function notifyUserAdminReplied(params: {
     button: { label: "Yanıtı oku", url: `${siteUrl()}/support/tickets/${params.ticketId}` },
   });
   return sendEmail({
+    category: "support_user_reply",
     to: params.to,
     replyTo: process.env.SUPPORT_EMAIL || undefined,
     subject: `Destek talebin yanıtlandı (${formatTicketNumber(params.ticketNumber)})`,

@@ -17,7 +17,7 @@ export async function notifyPaymentApproved(params: { to: string; plan: string; 
     ],
     button: { label: "Planımı görüntüle", url: `${siteUrl()}/settings/plan?space=${params.spaceId}` },
   });
-  return sendEmail({ to: params.to, replyTo: process.env.SUPPORT_EMAIL || undefined, subject: `${plan} aboneliğin aktif`, ...mail });
+  return sendEmail({ category: "billing", to: params.to, replyTo: process.env.SUPPORT_EMAIL || undefined, subject: `${plan} aboneliğin aktif`, ...mail });
 }
 
 /** Havale reddedildiğinde kullanıcıya bilgi (varsa admin notuyla). */
@@ -33,5 +33,5 @@ export async function notifyPaymentRejected(params: { to: string; plan: string; 
     ],
     button: { label: "Destek talebi oluştur", url: `${siteUrl()}/support/new` },
   });
-  return sendEmail({ to: params.to, replyTo: process.env.SUPPORT_EMAIL || undefined, subject: "Ödeme bildirimin onaylanamadı", ...mail });
+  return sendEmail({ category: "billing", to: params.to, replyTo: process.env.SUPPORT_EMAIL || undefined, subject: "Ödeme bildirimin onaylanamadı", ...mail });
 }

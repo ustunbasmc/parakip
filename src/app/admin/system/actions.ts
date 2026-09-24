@@ -29,7 +29,7 @@ export async function sendTestEmail(): Promise<{ ok: boolean; message: string }>
     ],
     button: { label: "Parakip'i aç", url: siteUrl() },
   });
-  const result = await sendEmail({ to: user.email, subject: "Parakip test e-postası", ...mail });
+  const result = await sendEmail({ category: "admin_test", to: user.email, subject: "Parakip test e-postası", ...mail });
 
   await logAdminAction({
     adminUserId: user.id,

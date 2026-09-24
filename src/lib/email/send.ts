@@ -1,4 +1,5 @@
 import "server-only";
+import { EMAIL_CATEGORY_ENABLED, type EmailCategory } from "@/lib/email/policy";
 
 /**
  * İşlemsel e-posta gönderimi. Projede Supabase Auth'un kendi e-postaları
@@ -12,6 +13,8 @@ import "server-only";
  * etkilememelidir.
  */
 export async function sendEmail(params: {
+  /** Türü kapalıysa (bkz. lib/email/policy.ts) hiç gönderilmez — kota korunur. */
+  category: EmailCategory;
   to: string;
   subject: string;
   text: string;
@@ -22,6 +25,7 @@ export async function sendEmail(params: {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.SUPPORT_EMAIL_FROM;
 
+  if (!EMAIL_CATEGORY_ENABLED[params.category]) return { sent: false, reason: "category_disabled" };
   if (!apiKey || !from) return { sent: false, reason: "not_configured" };
   if (!params.to) return { sent: false, reason: "no_recipient" };
 

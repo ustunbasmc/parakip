@@ -2,6 +2,7 @@ import { getAdminDbClient } from "@/lib/admin/auth";
 import { fmtDateTime, fmtRelative, requestNow } from "@/lib/admin/data";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/admin/ui";
 import { TestEmailButton } from "@/components/admin/TestEmailButton";
+import { EMAIL_CATEGORY_ENABLED, EMAIL_CATEGORY_LABELS, type EmailCategory } from "@/lib/email/policy";
 
 const HOUR = 3_600_000;
 
@@ -183,6 +184,19 @@ export default async function AdminSystemPage() {
               subtitle="Resend ayarlarını doğrular. Kayıt onayı ve şifre sıfırlama e-postaları ayrıca Supabase SMTP ayarına bağlıdır."
             />
             <TestEmailButton />
+            <p className="mt-4 mb-2 text-[11px] font-bold uppercase tracking-wide text-text-muted">Uygulama e-postaları</p>
+            <ul className="flex flex-col gap-1.5">
+              {(Object.keys(EMAIL_CATEGORY_LABELS) as EmailCategory[]).map((c) => (
+                <li key={c} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-text-secondary">{EMAIL_CATEGORY_LABELS[c]}</span>
+                  {EMAIL_CATEGORY_ENABLED[c] ? <Badge tone="success">Açık</Badge> : <Badge>Kapalı</Badge>}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-text-muted">
+              Kota için kapalı türler uygulama içi bildirimle iletilir. Açıp kapatmak: src/lib/email/policy.ts. Kayıt onayı ve şifre
+              sıfırlama Supabase üzerinden her zaman gönderilir.
+            </p>
           </Card>
           <Card>
             <CardHeader title="Dağıtım" />

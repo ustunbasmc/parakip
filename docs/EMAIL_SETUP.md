@@ -7,6 +7,8 @@ Parakip iki tür e-posta gönderir:
 | **Uygulama e-postaları** | Destek yanıtı, alan daveti, ödeme onayı/reddi, ekip bildirimi | Uygulama → Resend API (`RESEND_API_KEY`) |
 | **Hesap e-postaları** | Kayıt onayı, şifre sıfırlama, e-posta değişikliği | Supabase Auth → SMTP (Resend) |
 
+> **Kota:** Uygulama e-postalarından yalnızca uygulama içinde karşılığı olmayan kritik olanlar açıktır (havale onay/red, admin testi). Davet, destek yanıtı ve ekip bildirimleri kapalıdır; bunlar uygulama içi bildirim/rozetle iletilir. Açıp kapatmak için: `src/lib/email/policy.ts`. Durumu Admin → Sistem durumu'nda görebilirsin.
+
 > Supabase'in yerleşik e-posta servisi yalnızca proje ekibinin adreslerine ve saatte birkaç e-posta gönderir; **gerçek kullanıcıların kayıt onayı e-postası almaması için tipik neden budur.** Aşağıdaki 4. adım bunu çözer.
 
 Tüm adımlar yaklaşık 20–30 dakika sürer. DNS kayıtlarının yayılması birkaç dakikadan birkaç saate kadar sürebilir.

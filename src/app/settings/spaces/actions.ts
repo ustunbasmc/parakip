@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
 import { renderEmail } from "@/lib/email/layout";
+import { EMAIL_CATEGORY_ENABLED } from "@/lib/email/policy";
 import { ROLE_LABELS, type MemberRole } from "@/lib/api/members-rpc";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,6 +26,8 @@ async function siteOrigin() {
  */
 export async function sendSpaceInvitationEmail(invitationId: string): Promise<{ sent: boolean }> {
   if (!UUID_RE.test(invitationId)) return { sent: false };
+  // Davet e-postası kapalıysa (kota) hiç sorgu yapılmaz; bağlantı paylaşımı ve zil bildirimi yeterli.
+  if (!EMAIL_CATEGORY_ENABLED.space_invitation) return { sent: false };
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,6 +59,7 @@ export async function sendSpaceInvitationEmail(invitationId: string): Promise<{ 
     note: "Bu davet 7 gün geçerlidir. Beklemediğin bir davetse bu e-postayı yok sayabilirsin.",
   });
   const result = await sendEmail({
+    category: "space_invitation",
     to: inv.email,
     subject: `${inviter} seni Parakip'te "${spaceName}" alanına davet etti`,
     ...mail,
