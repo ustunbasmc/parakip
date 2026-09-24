@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { onboardingEntryPath, parsePlanKey, parseSpaceType } from "@/lib/plans/planParam";
 
 const PUBLIC_PATHS = [
   "/welcome",
@@ -29,6 +30,11 @@ const PUBLIC_PATHS = [
 // vb.) hem oturum AÇIK hem oturum KAPALI kullanıcılar için erişilebilir
 // olmalıdır — ne "oturum yoksa /welcome'a at" ne "oturum varsa /'e at"
 // kuralına tabidir.
+// Tanıtım/iniş sayfaları, rehberler, bütçe şablonu ve yardım merkezi:
+// herkese açıktır (arama motorları ve reklam trafiği); oturum açık
+// kullanıcılar da görebilir. /help sayfası oturuma göre uygulama veya
+// tanıtım çerçevesiyle açılır. Paylaşım görselleri (opengraph-image)
+// sosyal ağ tarayıcıları tarafından oturumsuz indirilir.
 // /offline ve /sw.js: service worker kurulumda çevrimdışı sayfasını ve
 // kendi dosyasını OTURUMDAN BAĞIMSIZ indirir; yönlendirme alırsa
 // çevrimdışı kabuğu hiç çalışmaz. /offline hiçbir kullanıcı verisi içermez.
@@ -41,6 +47,12 @@ const AUTH_REDIRECT_EXEMPT = [
   "/legal",
   "/offline",
   "/sw.js",
+  "/ev-butcesi",
+  "/esnaf-gelir-gider",
+  "/rehber",
+  "/butce-sablonu",
+  "/help",
+  "/opengraph-image",
 ];
 
 /**
@@ -79,7 +91,19 @@ export async function proxy(request: NextRequest) {
   if (user && isPublicPath && pathname !== "/auth/callback") {
     const url = request.nextUrl.clone();
     const next = request.nextUrl.searchParams.get("next");
+    // Tanıtım sayfasından plan seçerek gelen, zaten giriş yapmış kullanıcı
+    // doğrudan o planın ödeme ekranına (onboarding üzerinden) gider.
+    const planEntry = onboardingEntryPath({
+      plan: parsePlanKey(request.nextUrl.searchParams.get("plan")),
+      type: parseSpaceType(request.nextUrl.searchParams.get("type")),
+    });
     url.search = "";
+    if (planEntry && !next) {
+      const [path, query] = planEntry.split("?");
+      url.pathname = path;
+      url.search = query ? `?${query}` : "";
+      return NextResponse.redirect(url);
+    }
     url.pathname = next && next.startsWith("/invite/") ? next : "/";
     return NextResponse.redirect(url);
   }

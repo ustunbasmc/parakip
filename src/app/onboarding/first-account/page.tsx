@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import { parsePlanKey } from "@/lib/plans/planParam";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { amountInputToCents } from "@/lib/format/amount";
@@ -21,6 +22,7 @@ function FirstAccountForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookId = searchParams.get("book_id");
+  const plan = parsePlanKey(searchParams.get("plan"));
 
   const [name, setName] = useState("");
   const [type, setType] = useState("bank");
@@ -69,11 +71,12 @@ function FirstAccountForm() {
       return;
     }
 
-    router.push(`/onboarding/first-transaction?book_id=${bookId}&account_id=${data.id}`);
+    router.push(`/onboarding/first-transaction?book_id=${bookId}&account_id=${data.id}${plan ? `&plan=${plan}` : ""}`);
   }
 
   function handleSkip() {
-    router.push("/home");
+    // Plan seçilerek gelindiyse kurulum sonunda o planın ödeme ekranı açılır.
+    router.push(plan ? `/settings/plan?plan=${plan}` : "/home");
   }
 
   return (

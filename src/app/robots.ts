@@ -1,23 +1,46 @@
 import type { MetadataRoute } from "next";
+import { absoluteUrl } from "@/lib/site";
 
 /**
- * Uygulamanın neredeyse tamamı oturum gerektirdiği için (bkz. proxy.ts),
- * yalnızca GERÇEKTEN herkese açık olan `/` (tanıtım sayfası) taranabilir
- * olarak işaretlenir — geri kalan her şey (dashboard, ayarlar, API
- * rotaları) açıkça DISALLOW edilir. Sahte/var olmayan bir sayfa için
- * "allow" verilmez.
+ * Herkese açık sayfalar (tanıtım, iniş sayfaları, rehber, bütçe şablonu,
+ * yardım merkezi, yasal metinler) taranabilir; oturum gerektiren uygulama
+ * ekranları, API ve admin açıkça DISALLOW edilir.
  */
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/home", "/accounts", "/transactions", "/debts", "/budgets", "/investments", "/reports", "/settings", "/api", "/customers", "/suppliers", "/sales", "/purchases", "/notifications", "/onboarding", "/spaces", "/help", "/support", "/admin"],
+        disallow: [
+          "/home",
+          "/accounts",
+          "/transactions",
+          "/debts",
+          "/budgets",
+          "/goals",
+          "/investments",
+          "/net-worth",
+          "/reports",
+          "/settings",
+          "/api",
+          "/customers",
+          "/suppliers",
+          "/sales",
+          "/purchases",
+          "/notifications",
+          "/onboarding",
+          "/spaces",
+          "/support",
+          "/admin",
+          "/add-transaction",
+          "/invitations",
+          "/invite",
+          "/offline",
+        ],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: absoluteUrl("/sitemap.xml"),
+    host: absoluteUrl("/").replace(/\/$/, ""),
   };
 }

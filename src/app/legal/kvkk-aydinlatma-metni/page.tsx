@@ -70,9 +70,10 @@ export default function KvkkPage() {
       <section>
         <h2 className="text-lg font-bold text-text-primary">6. Saklama Süresi</h2>
         <p>
-          Kişisel verileriniz, hesabınız aktif olduğu sürece ve ilgili mevzuatın öngördüğü zamanaşımı
-          süreleri boyunca saklanır. Finansal kayıtlarınız, muhasebe/vergi mevzuatı gereği hesap silinse
-          dahi belirli bir süre arşivde tutulabilir (bkz. Kullanım Koşulları).
+          Kişisel verileriniz, hesabınız aktif olduğu sürece saklanır. Hesabınızı sildiğinizde, 7 günlük bekleme
+          süresinin ardından kişisel verileriniz ve yalnızca sizin kullandığınız alanlardaki finansal kayıtlar kalıcı
+          olarak silinir; başka üyelerin de bulunduğu ortak alanlardaki kayıtlar o üyelerin kullanımı için korunur.
+          Ödeme kayıtları, ilgili mevzuatın öngördüğü süreler boyunca sizinle bağlantısı kaldırılarak saklanabilir.
         </p>
       </section>
 

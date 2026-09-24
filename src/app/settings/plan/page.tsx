@@ -8,13 +8,15 @@ import { getUserSpacesBasic, resolveActiveSpace } from "@/lib/dashboard/formData
 import { getHomePlanInfo, getBusinessPlanInfo, HOME_FREE_ACCOUNT_LIMIT } from "@/lib/dashboard/plans";
 import { FREE_EXTRA_MEMBER_LIMIT, FREE_SAVINGS_GOAL_LIMIT, getPlanPrices } from "@/lib/plans/pricing";
 import { getSpaceMemberQuota } from "@/lib/api/members-rpc";
+import Link from "next/link";
+import { parsePlanKey, planPeriod, planSpaceType } from "@/lib/plans/planParam";
 
 /** BankTransferCard sayısal (tam TL) tutar bekliyor — env değerleri kuruş değil TL, ondalık nokta ile. */
 
 export default async function PlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ space?: string; shopier_result?: string }>;
+  searchParams: Promise<{ space?: string; shopier_result?: string; plan?: string }>;
 }) {
   const supabase = await createClient();
   const user = await getSessionUser(supabase);
@@ -24,10 +26,20 @@ export default async function PlanPage({
   if (spaces.length === 0) redirect("/onboarding/space-type");
 
   const params = await searchParams;
+  // Tanıtım sayfasında seçilen plan (?plan=): alan verilmediyse o türdeki
+  // ilk alan seçilir; plan önceden seçili gelir.
+  const requestedPlan = parsePlanKey(params.plan);
+  const planQuery = requestedPlan ? `&plan=${requestedPlan}` : "";
+  if (requestedPlan && !params.space) {
+    const match = spaces.find((s) => s.type === planSpaceType(requestedPlan));
+    if (match) redirect(`/settings/plan?space=${match.id}${planQuery}`);
+  }
   const activeSpace = resolveActiveSpace(spaces, params.space);
   if (params.space && params.space !== activeSpace.id) {
-    redirect(`/settings/plan?space=${activeSpace.id}`);
+    redirect(`/settings/plan?space=${activeSpace.id}${planQuery}`);
   }
+  const selectedPlan = requestedPlan && planSpaceType(requestedPlan) === activeSpace.type ? requestedPlan : null;
+  const initialPeriod = selectedPlan ? planPeriod(selectedPlan) : undefined;
 
   const shopierResult = params.shopier_result;
 
@@ -104,6 +116,18 @@ export default async function PlanPage({
           </div>
         ) : null}
 
+        {selectedPlan && !(homeInfo?.isPremium || businessInfo?.hasActiveSubscription) ? (
+          <div className="rounded-2xl border border-accent/40 bg-accent-soft p-4">
+            <p className="text-sm font-semibold text-text-primary">
+              Seçtiğin plan: {isHome ? "Ev Premium" : "İşletme Premium"} · {initialPeriod === "yearly" ? "Yıllık" : "Aylık"}
+            </p>
+            <p className="mt-1 text-xs text-text-secondary">Ödemeyi aşağıdan tamamlayabilirsin. Otomatik yenileme yoktur.</p>
+            <Link href={`/home?space=${activeSpace.id}`} className="mt-2 inline-block text-xs font-bold text-accent">
+              Şimdilik ücretsiz devam et →
+            </Link>
+          </div>
+        ) : null}
+
         <div className="rounded-2xl border border-border bg-surface p-4">
           <p className="text-xs text-text-muted">Aktif alan</p>
           <p className="text-sm font-semibold text-text-primary">{activeSpace.name}</p>
@@ -169,6 +193,7 @@ export default async function PlanPage({
                       bankAccountHolder={bankAccountHolder}
                       bankIban={bankIban}
                       bankName={bankName}
+                      initialPeriod={initialPeriod}
                     />
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border-strong p-4 text-center">
@@ -251,6 +276,7 @@ export default async function PlanPage({
                   bankAccountHolder={bankAccountHolder}
                   bankIban={bankIban}
                   bankName={bankName}
+                  initialPeriod={initialPeriod}
                 />
               </>
             ) : null}

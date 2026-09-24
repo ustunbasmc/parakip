@@ -18,6 +18,8 @@ export interface AuthUserInfo {
   emailConfirmedAt: string | null;
   bannedUntil: string | null;
   providers: string[];
+  /** Kayıt kaynağı (tanıtım sayfası / kampanya), bkz. lib/marketing/attribution.ts. */
+  signupSource: { page?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
 }
 
 function toInfo(u: User): AuthUserInfo {
@@ -30,6 +32,7 @@ function toInfo(u: User): AuthUserInfo {
     emailConfirmedAt: u.email_confirmed_at ?? null,
     bannedUntil: banned && new Date(banned).getTime() > Date.now() ? banned : null,
     providers: ((u.app_metadata?.providers as string[] | undefined) ?? [u.app_metadata?.provider as string]).filter(Boolean),
+    signupSource: (u.user_metadata?.signup_source as AuthUserInfo["signupSource"]) ?? null,
   };
 }
 

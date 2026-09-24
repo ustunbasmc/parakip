@@ -10,6 +10,7 @@ import {
 } from "@/lib/payments/manualBankTransfer";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { freeMonths } from "@/lib/plans/planParam";
 import { CopyIcon, CheckCircleIcon } from "@/components/icons";
 
 /**
@@ -38,6 +39,7 @@ export function BankTransferCard({
   bankAccountHolder,
   bankIban,
   bankName,
+  initialPeriod = "monthly",
 }: {
   userId: string;
   spaceId: string;
@@ -48,8 +50,11 @@ export function BankTransferCard({
   bankAccountHolder: string;
   bankIban: string;
   bankName: string;
+  /** Tanıtım sayfasında seçilen dönem (?plan=…_yearly) ile önceden seçili gelir. */
+  initialPeriod?: BillingPeriod;
 }) {
-  const [period, setPeriod] = useState<BillingPeriod>("monthly");
+  const [period, setPeriod] = useState<BillingPeriod>(initialPeriod);
+  const bonusMonths = freeMonths(monthlyPrice, yearlyPrice);
   const [step, setStep] = useState<"select" | "show" | "submitted">("select");
   const [referenceCode, setReferenceCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -189,7 +194,7 @@ export function BankTransferCard({
           onClick={() => setPeriod("yearly")}
           className={`flex-1 rounded-full py-2 text-sm font-semibold ${period === "yearly" ? "bg-accent text-text-on-accent" : "text-text-secondary"}`}
         >
-          Yıllık
+          Yıllık{bonusMonths > 0 ? <span className="ml-1.5 text-[11px] font-extrabold opacity-90">· {bonusMonths} ay bedava</span> : null}
         </button>
       </div>
 

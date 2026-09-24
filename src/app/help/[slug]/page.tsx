@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
-import { AppShell } from "@/components/AppShell";
+import { HelpFrame, HelpSignInPrompt } from "@/components/help/HelpFrame";
+import { JsonLd, breadcrumbJsonLd } from "@/components/marketing/JsonLd";
 import { ArticleFeedback } from "@/components/help/ArticleFeedback";
 import { ArticleListItem } from "@/components/help/ArticleListItem";
 import {
@@ -11,17 +13,22 @@ import {
   safeInternalPath,
 } from "@/lib/help/queries";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
   const article = /^[a-z0-9-]{1,120}$/.test(slug) ? await getHelpArticle(supabase, slug) : null;
-  return { title: `${article?.title ?? "Yardım"} | Parakip` };
+  if (!article) return { title: "Yardım | Parakip" };
+  return {
+    title: `${article.title} | Parakip Yardım`,
+    description: article.summary,
+    alternates: { canonical: `/help/${article.slug}` },
+    openGraph: { title: article.title, description: article.summary, url: `/help/${article.slug}`, siteName: "Parakip", locale: "tr_TR", type: "article" },
+  };
 }
 
 export default async function HelpArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient();
   const user = await getSessionUser(supabase);
-  if (!user) redirect("/welcome");
 
   const { slug } = await params;
   if (!/^[a-z0-9-]{1,120}$/.test(slug)) notFound();
@@ -32,7 +39,7 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
   const [related, myFeedback] = await Promise.all([
     getRelatedArticles(supabase, article.categoryId, article.id),
-    getMyArticleFeedback(supabase, article.id, user.id),
+    user ? getMyArticleFeedback(supabase, article.id, user.id) : Promise.resolve(null),
   ]);
 
   const relatedPath = safeInternalPath(article.relatedPath);
@@ -42,7 +49,7 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
     .filter(Boolean);
 
   return (
-    <AppShell variant="subpage" title="Yardım" parentHref="/help">
+    <HelpFrame signedIn={Boolean(user)} title="Yardım" parentHref="/help" showTitle={false}>
       <article className="flex min-w-0 flex-col gap-5 pb-4 pt-3">
         <header>
           {article.categorySlug ? (
@@ -84,14 +91,14 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
         {relatedPath ? (
           <Link
-            href={relatedPath}
+            href={user ? relatedPath : `/sign-in?next=${encodeURIComponent(relatedPath)}`}
             className="flex h-12 items-center justify-center rounded-2xl bg-accent px-5 text-sm font-bold text-text-on-accent"
           >
             {article.relatedLabel || "İlgili ekrana git"}
           </Link>
         ) : null}
 
-        <ArticleFeedback articleId={article.id} articleSlug={article.slug} initial={myFeedback} />
+        {user ? <ArticleFeedback articleId={article.id} articleSlug={article.slug} initial={myFeedback} /> : null}
 
         {related.length > 0 ? (
           <section aria-labelledby="related-title" className="flex flex-col gap-2">
@@ -104,13 +111,24 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
           </section>
         ) : null}
 
-        <p className="text-center text-xs text-text-muted">
-          Aradığını bulamadın mı?{" "}
-          <Link href={`/support/new?article=${article.slug}`} className="font-semibold text-accent">
-            Bize yaz
-          </Link>
-        </p>
+        {user ? (
+          <p className="text-center text-xs text-text-muted">
+            Aradığını bulamadın mı?{" "}
+            <Link href={`/support/new?article=${article.slug}`} className="font-semibold text-accent">
+              Bize yaz
+            </Link>
+          </p>
+        ) : (
+          <HelpSignInPrompt next={`/support/new?article=${article.slug}`} />
+        )}
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: "Yardım merkezi", path: "/help" },
+            ...(article.categorySlug ? [{ name: article.categoryTitle ?? "Kategori", path: `/help?category=${article.categorySlug}` }] : []),
+            { name: article.title, path: `/help/${article.slug}` },
+          ])}
+        />
       </article>
-    </AppShell>
+    </HelpFrame>
   );
 }

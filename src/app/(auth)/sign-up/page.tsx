@@ -13,6 +13,8 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Logo } from "@/components/Logo";
 import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
 import { safeNext } from "@/lib/auth/safeNext";
+import { onboardingEntryPath, parsePlanKey, parseSpaceType, planPeriod, planSpaceType } from "@/lib/plans/planParam";
+import { parseSignupSource, sourceQuery } from "@/lib/marketing/attribution";
 
 // useSearchParams (?next=) statik ön-render'da Suspense sınırı gerektirir.
 export default function SignUpPage() {
@@ -25,9 +27,18 @@ export default function SignUpPage() {
 
 function SignUpPageInner() {
   const router = useRouter();
-  // Davetle gelindiyse onay/girişten sonra davete dönülür.
-  const next = safeNext(useSearchParams().get("next"));
+  const searchParams = useSearchParams();
+  // Davetle gelindiyse onay/girişten sonra davete dönülür. Tanıtım
+  // sayfasından plan (?plan=) veya alan türü (?type=) seçilerek gelindiyse
+  // onboarding bunları taşır ve sonunda o planın ödeme ekranına gelinir.
+  const plan = parsePlanKey(searchParams.get("plan"));
+  const explicitNext = safeNext(searchParams.get("next"));
+  const next = explicitNext !== "/" ? explicitNext : (onboardingEntryPath({ plan, type: parseSpaceType(searchParams.get("type")) }) ?? "/");
   const nextQuery = next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
+  // Hangi sayfadan/kampanyadan gelindiği (çerez yok; adreste taşınır).
+  const signupSource = parseSignupSource(searchParams);
+  const srcQuery = sourceQuery(signupSource);
+  const oauthCallbackQuery = [nextQuery.slice(1), srcQuery].filter(Boolean).join("&");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,6 +94,7 @@ function SignUpPageInner() {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           phone: normalizedPhone,
+          ...(signupSource ? { signup_source: signupSource } : {}),
         },
       },
     });
@@ -108,7 +120,7 @@ function SignUpPageInner() {
     const supabase = createClient();
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback${nextQuery}` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${oauthCallbackQuery ? `?${oauthCallbackQuery}` : ""}` },
     });
     if (oauthError) {
       setGoogleLoading(false);
@@ -152,6 +164,15 @@ function SignUpPageInner() {
           <p className="mt-1 text-text-secondary">
             Bilgilerini gir, hemen kullanmaya başla.
           </p>
+          {plan ? (
+            <p className="mt-3 rounded-2xl bg-accent-soft px-4 py-3 text-sm text-text-secondary">
+              Seçtiğin plan:{" "}
+              <strong className="text-text-primary">
+                {planSpaceType(plan) === "home" ? "Ev Premium" : "İşletme Premium"} · {planPeriod(plan) === "yearly" ? "Yıllık" : "Aylık"}
+              </strong>
+              . Önce ücretsiz hesabını oluştur; kurulumdan sonra ödeme adımına geçeceksin.
+            </p>
+          ) : null}
         </div>
 
         {error ? <ErrorBanner message={error} /> : null}

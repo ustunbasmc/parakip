@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Paylaşım görselleri (src/lib/og.tsx) yazı tipini ve logoyu dosyadan okur;
+  // canlıdaki sunucu fonksiyonuna bu dosyaların dahil edildiğinden emin ol.
+  outputFileTracingIncludes: {
+    "/**/opengraph-image*": ["./assets/fonts/*.woff", "./public/brand/icon-192.png"],
+  },
   experimental: {
     // Bağlantı koptuğunda gezinti, prefetch ve Server Action istekleri hata
     // vermek yerine bekletilir ve bağlantı gelince bir kez yeniden denenir;

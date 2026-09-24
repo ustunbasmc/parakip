@@ -1,355 +1,217 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
-import { InstallAppButton } from "@/components/InstallAppButton";
+import { getPlanPrices } from "@/lib/plans/pricing";
+import { signupHref, type SignupSource } from "@/lib/marketing/attribution";
+import { MarketingShell, SectionHeading } from "@/components/marketing/MarketingShell";
+import { PhoneMockup } from "@/components/marketing/PhoneMockup";
+import { Pricing } from "@/components/marketing/Pricing";
+import { Faq } from "@/components/marketing/Faq";
+import { JsonLd, organizationJsonLd, softwareJsonLd, type FaqItem } from "@/components/marketing/JsonLd";
+import { BenefitGrid, CtaBand, HeroCtas, StepsSection, TrustList, type Benefit } from "@/components/marketing/sections";
 import {
-  BUSINESS_FREE_LIMITS,
-  FREE_EXTRA_MEMBER_LIMIT,
-  FREE_SAVINGS_GOAL_LIMIT,
-  HOME_FREE_ACCOUNT_LIMIT,
-  getPlanPrices,
-} from "@/lib/plans/pricing";
-import {
-  WalletIcon,
-  ArrowUpRightIcon,
   ArrowDownRightIcon,
+  BellIcon,
+  BuildingIcon,
   ClockIcon,
   PieChartIcon,
-  TrendingUpIcon,
-  SparkleIcon,
   ShieldIcon,
-  BuildingIcon,
-  CheckIcon,
+  SparkleIcon,
+  TrendingUpIcon,
+  WalletIcon,
 } from "@/components/icons";
 
-const FEATURES: { icon: typeof WalletIcon; title: string; description: string; comingSoon?: boolean }[] = [
-  { icon: ArrowUpRightIcon, title: "Gelir-gider", description: "Her hesaptaki hareketi kategorilere ayırarak anlık izle." },
-  { icon: WalletIcon, title: "Hesaplar", description: "Nakit, banka, kredi kartı ve yatırım hesaplarını tek yerde topla." },
-  { icon: ArrowDownRightIcon, title: "Borçlar ve tahsilatlar", description: "Kime borçlusun, kimden alacaklısın — vade takibiyle birlikte." },
-  { icon: ClockIcon, title: "Planlı ödemeler", description: "Kira, fatura gibi tekrarlayan ödemeler için otomatik kural tanımla." },
-  { icon: PieChartIcon, title: "Bütçeler", description: "Aylık bütçe belirle, harcamanın yüzde kaçını kullandığını her an gör." },
-  { icon: TrendingUpIcon, title: "Yatırım portföyü", description: "Alım-satım hareketlerini ve maliyet bazlı getirini takip et." },
-  { icon: BuildingIcon, title: "Raporlar", description: "Kategori, hesap ve aylık karşılaştırmalı finansal analizler." },
-  { icon: SparkleIcon, title: "Yapay zekâ içgörüleri", description: "Harcama alışkanlıklarına dair akıllı öneriler.", comingSoon: true },
+const BENEFITS: Benefit[] = [
+  { icon: PieChartIcon, title: "Paranın nereye gittiğini gör", text: "Her harcama kendi kategorisinde toplanır. Ay sonunda en çok neye harcadığını tek bakışta görürsün." },
+  { icon: ClockIcon, title: "Maaş, kira, abonelik kendiliğinden işlensin", text: "Bir kez tanımla; her ay otomatik kaydedilsin. Elle girmeyi unutma derdi biter." },
+  { icon: ArrowDownRightIcon, title: "Borcunu, alacağını unutma", text: "Kime ne kadar borçlu, kimden ne kadar alacaklı olduğunu bil. Vadesi yaklaşınca haber verelim." },
+  { icon: WalletIcon, title: "Bütçeni aşmadan uyaralım", text: "Market, eğlence, faturalar için sınır koy. %80'e geldiğinde ve aştığında bildirim gelsin." },
+  { icon: TrendingUpIcon, title: "Ne kadar varlığın olduğunu bil", text: "Hesaplar, yatırımlar ve alacaklar eksi borçlar: net değerin ve aylar içindeki değişimi tek ekranda." },
+  { icon: SparkleIcon, title: "Her ay kısa bir özet", text: "\"Geçen aya göre %12 daha az harcadın, en çok market\" gibi kısa ve net cümlelerle ayını anla." },
+  { icon: BellIcon, title: "Telefonuna bildirim gelsin", text: "Parakip'i ana ekranına ekle, uygulama gibi kullan. Vade ve bütçe uyarıları kilit ekranına düşsün." },
+  { icon: BuildingIcon, title: "Evin ve işin karışmasın", text: "Ev ve işletme için ayrı alanlar. Aynı hesapla ikisini de yönet, rakamlar birbirine karışmasın." },
 ];
 
-const NAV_LINKS = [
-  { href: "#ozellikler", label: "Özellikler" },
-  { href: "#ev-icin", label: "Ev için" },
-  { href: "#isletmeler-icin", label: "İşletmeler için" },
-  { href: "#fiyatlandirma", label: "Fiyatlandırma" },
+const FAQ: FaqItem[] = [
+  {
+    q: "Parakip gerçekten ücretsiz mi?",
+    a: "Evet. Ücretsiz planın süre sınırı yok ve kredi kartı istemiyoruz. Gelir-gider, borç-alacak, bütçe, yatırım takibi ve raporlar ücretsiz planda var. Daha fazla hesap, üye veya birikim hedefi gerekirse isteğe bağlı olarak Premium'a geçebilirsin.",
+  },
+  {
+    q: "Banka hesabıma bağlanıyor musunuz?",
+    a: "Hayır. Parakip banka şifreni istemez ve bankana bağlanmaz. Kayıtlarını sen girersin; maaş, kira ve abonelik gibi düzenli kayıtları bir kez tanımlarsan her ay otomatik oluşturulur.",
+  },
+  {
+    q: "Verilerim güvende mi?",
+    a: "Veriler şifreli bağlantı üzerinden taşınır ve Avrupa'daki (Frankfurt) sunucularda saklanır. Her alanın kayıtlarını yalnızca o alanın sahibi ve davet ettiği kişiler görebilir; kimin neyi görüp düzenleyebileceğini sen belirlersin.",
+  },
+  {
+    q: "Ailemle veya ortağımla birlikte kullanabilir miyim?",
+    a: "Evet. Alanına kişi davet edebilir, her birine yönetici, düzenleyici veya yalnızca görüntüleyici yetkisi verebilirsin. Ücretsiz planda sana ek olarak 1 kişi, Premium'da sınırsız kişi ekleyebilirsin.",
+  },
+  {
+    q: "Evimin ve işletmemin hesaplarını ayrı tutabilir miyim?",
+    a: "Evet. Ev ve işletme için ayrı alanlar oluşturursun; rakamlar birbirine karışmaz. Aynı hesapla iki alan arasında tek dokunuşla geçersin.",
+  },
+  {
+    q: "Premium'u nasıl öderim, otomatik yenilenir mi?",
+    a: "Kredi/banka kartıyla (Shopier) veya havale/EFT ile ödeyebilirsin. Otomatik yenileme yoktur. Süre bitince ücretsiz plana dönersin; kayıtların silinmez.",
+  },
+  {
+    q: "Telefonuma uygulama olarak yükleyebilir miyim?",
+    a: "Evet. Uygulama mağazasına gerek yok: Android'de tarayıcıdan \"Uygulamayı yükle\", iPhone'da Safari'de Paylaş → \"Ana Ekrana Ekle\" demen yeterli. Ardından telefon bildirimlerini açabilirsin.",
+  },
+  {
+    q: "Döviz ve yatırımlarımı takip edebilir miyim?",
+    a: "Evet. Döviz hesapların güncel TCMB kuruyla TL'ye çevrilerek net değerine katılır; yatırım alım-satımlarını ve maliyetini takip edebilirsin. Parakip yatırım tavsiyesi vermez.",
+  },
+  {
+    q: "e-Fatura kesebilir miyim?",
+    a: "Hayır. Parakip bir ön muhasebe ve para takip uygulamasıdır; resmi defter veya e-Fatura yerine geçmez. Kayıtlarını dışa aktarıp muhasebecinle paylaşabilir ya da onu alanına görüntüleyici olarak ekleyebilirsin.",
+  },
+  {
+    q: "Verilerimi indirebilir veya hesabımı silebilir miyim?",
+    a: "Evet. Tüm kayıtlarını tek dosyada indirebilir, hareketlerini Excel'de açılan CSV olarak alabilirsin. Hesabını sildiğinde 7 günlük bekleme süresinden sonra hesabın ve verilerin kalıcı olarak silinir.",
+  },
 ];
 
 /**
- * Oturum açmamış ziyaretçiler için SEO'ya uygun, profesyonel tanıtım
- * sayfası. Sunucu bileşenidir (etkileşim gerektirmez, arama motorları
- * tam içeriği görebilir; anchor linkler dışında JS gerekmez). Yalnızca
- * GERÇEKTEN VAR OLAN özellikler anlatılır — "Yapay zekâ" açıkça "yakında"
- * olarak işaretlenir. Fiyatlar ve ücretsiz plan limitleri, uygulamanın
- * plan ekranıyla AYNI kaynaktan (lib/plans/pricing.ts) okunur. Renkler tamamen mevcut CSS token sisteminden
- * (globals.css) gelir — Gece Modu zaten "koyu gece mavisi + turkuaz"
- * marka kimliğidir, buraya özel yeni bir renk EKLENMEDİ.
+ * Oturum açmamış ziyaretçiler için tanıtım sayfası (sunucu bileşeni; arama
+ * motorları tam içeriği görür). Yalnızca GERÇEKTEN var olan özellikler
+ * anlatılır; teknik terimler yerine kullanıcının göreceği fayda yazılır.
+ * Fiyatlar ve limitler uygulamanın plan ekranıyla aynı kaynaktan gelir.
  */
-const tl = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 });
-
-function PlanItem({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
-  return (
-    <li className="flex items-start gap-2">
-      <CheckIcon size={15} className={`mt-0.5 shrink-0 ${muted ? "text-text-muted" : "text-accent"}`} />
-      <span>{children}</span>
-    </li>
-  );
-}
-
-export function LandingPage() {
+export function LandingPage({ utm }: { utm: SignupSource | null }) {
+  const cta = signupHref({ page: "/", utm });
   const prices = getPlanPrices();
+
   return (
-    <div className="min-h-dvh bg-bg">
-      <header className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5">
-          <Logo />
-          <nav className="hidden items-center gap-7 lg:flex" aria-label="Sayfa içi bölümler">
-            {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="text-sm font-medium text-text-secondary hover:text-text-primary">
-                {l.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <InstallAppButton variant="compact" />
-            <Link href="/sign-in" className="rounded-full px-4 py-2 text-sm font-semibold text-text-secondary hover:text-text-primary">
-              Giriş yap
-            </Link>
-            <Link href="/sign-up" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-text-on-accent">
-              Ücretsiz başla
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main>
-        {/* HERO */}
-        <section className="mx-auto grid max-w-6xl gap-10 px-6 pb-16 pt-14 sm:pt-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pb-24 lg:pt-28">
-          <div className="flex flex-col items-start gap-5 text-left">
-            <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-bold text-accent">
-              Ev ve İşletme finansı, tek yerde
-            </span>
-            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
-              Paran kontrolünde.
+    <MarketingShell signupHref={cta}>
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full opacity-25 blur-3xl"
+          style={{ background: "var(--color-accent)" }}
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pb-24 lg:pt-20">
+          <div className="flex flex-col items-start gap-5">
+            <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-bold text-accent">Ev ve işletme için ücretsiz para takibi</span>
+            <h1 className="text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
+              Paranın nereye gittiğini <span className="text-accent">ilk ay</span> gör.
             </h1>
-            <p className="max-w-lg text-lg text-text-secondary">
-              Parakip; kişisel bütçeni ve işletmeni birbirine karıştırmadan, gelir-gider, borç-alacak, bütçe ve
-              yatırım takibini tek bir güvenli hesaptan yönetmeni sağlar.
+            <p className="max-w-xl text-lg text-text-secondary">
+              Gelirini, giderini, borcunu ve birikimini tek ekranda topla. Her ay neye ne kadar harcadığını sade bir
+              dille gör, nerede tasarruf edebileceğini bil.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/sign-up" className="rounded-2xl bg-accent px-6 py-3.5 text-center text-base font-bold text-text-on-accent">
-                Ücretsiz başla
-              </Link>
-              <a href="#ozellikler" className="rounded-2xl border border-border px-6 py-3.5 text-center text-base font-semibold text-text-primary">
-                Nasıl çalışır?
-              </a>
-            </div>
-            <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-muted">
-              <li className="flex items-center gap-1.5"><CheckIcon size={15} className="text-accent" /> Kredi kartı gerekmez</li>
-              <li className="flex items-center gap-1.5"><CheckIcon size={15} className="text-accent" /> Satır düzeyinde veri izolasyonu</li>
-              <li className="flex items-center gap-1.5"><CheckIcon size={15} className="text-accent" /> Türkçe arayüz</li>
-            </ul>
+            <HeroCtas primaryHref={cta} secondaryHref="#nasil" secondaryLabel="Nasıl çalışır?" />
+            <TrustList items={["Kart gerekmez", "Banka şifreni istemez", "Telefona uygulama gibi yüklenir"]} />
           </div>
+          <PhoneMockup variant="home" />
+        </div>
+      </section>
 
-          {/* Gerçek uygulamanın görsel diliyle (aynı token/bileşen tarzı) hazırlanmış
-              ÖRNEK/İLLÜSTRATİF bir dashboard temsili — gerçek kullanıcı verisi
-              içermez, ürünün ekran DÜZENİNİ dürüstçe göstermek içindir. */}
-          <div aria-hidden="true" className="hidden lg:block">
-            <div className="rounded-3xl border border-border bg-surface p-5 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="h-2.5 w-16 rounded-full bg-surface-muted" />
-                <span className="h-7 w-7 rounded-full bg-accent-soft" />
-              </div>
-              <div
-                className="rounded-2xl border border-border p-5"
-                style={{ backgroundImage: "var(--gradient-hero)", boxShadow: "var(--shadow-hero)" }}
-              >
-                <p className="text-xs text-text-secondary">Toplam bakiye</p>
-                <p className="mt-1 text-3xl font-extrabold text-text-primary">₺48.320,00</p>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-surface-muted p-3">
-                  <p className="text-[10px] text-text-muted">Gelir</p>
-                  <p className="text-sm font-bold text-success">+₺12.400</p>
-                </div>
-                <div className="rounded-xl bg-surface-muted p-3">
-                  <p className="text-[10px] text-text-muted">Gider</p>
-                  <p className="text-sm font-bold text-danger">-₺6.150</p>
-                </div>
-                <div className="rounded-xl bg-surface-muted p-3">
-                  <p className="text-[10px] text-text-muted">Net</p>
-                  <p className="text-sm font-bold text-text-primary">+₺6.250</p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col gap-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl border border-border p-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="h-7 w-7 rounded-full bg-surface-muted" />
-                      <span className="h-2 w-20 rounded-full bg-surface-muted" />
-                    </div>
-                    <span className="h-2 w-10 rounded-full bg-surface-muted" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* FAYDALAR */}
+      <section className="border-y border-border bg-surface/40 px-4 py-16 sm:px-6" id="ozellikler" aria-labelledby="fayda-baslik">
+        <div className="mx-auto max-w-6xl">
+          <SectionHeading
+            id="fayda-baslik"
+            eyebrow="Neler yapabilirsin"
+            title="Excel tablosu değil, cebindeki muhasebeci"
+            description="Karmaşık finans terimleri yok. Sadece bilmen gerekenler, ihtiyacın olduğu anda."
+          />
+          <BenefitGrid items={BENEFITS} />
+        </div>
+      </section>
 
-        {/* EV VS İŞLETME */}
-        <section className="border-y border-border bg-surface/40 px-6 py-16" id="ev-icin">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="mb-10 text-center text-2xl font-bold text-text-primary sm:text-3xl">
-              İster evin için, ister işletmen için
+      {/* EV / İŞLETME */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="kimler-baslik">
+        <SectionHeading id="kimler-baslik" title="İster evin için, ister işin için" />
+        <div className="grid gap-5 md:grid-cols-2">
+          <Link href="/ev-butcesi" className="group flex flex-col gap-3 rounded-3xl border border-border bg-surface p-7 transition-colors hover:border-accent">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <WalletIcon size={20} />
+            </span>
+            <h3 className="text-lg font-bold text-text-primary">Aile bütçesi</h3>
+            <p className="text-sm text-text-secondary">
+              Eşinle birlikte kullan, market ve faturaları takip et, ay sonunu rahat getir, tatil için birikim yap.
+            </p>
+            <span className="mt-auto text-sm font-bold text-accent">Ev bütçesi için Parakip →</span>
+          </Link>
+          <Link href="/esnaf-gelir-gider" className="group flex flex-col gap-3 rounded-3xl border border-border bg-surface p-7 transition-colors hover:border-accent">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <BuildingIcon size={20} />
+            </span>
+            <h3 className="text-lg font-bold text-text-primary">Esnaf ve küçük işletme</h3>
+            <p className="text-sm text-text-secondary">
+              Kasa ve bankayı, veresiyeyi, tedarikçi borcunu tek yerde tut. Muhasebecine yalnızca görme yetkisi ver.
+            </p>
+            <span className="mt-auto text-sm font-bold text-accent">İşletmen için Parakip →</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* 3 ADIM */}
+      <StepsSection
+        id="nasil"
+        steps={[
+          { title: "Ücretsiz hesap aç", text: "E-posta veya Google ile 30 saniyede. Kart bilgisi istemiyoruz." },
+          { title: "Hesaplarını ekle", text: "Banka, nakit ve kredi kartlarını bakiyeleriyle ekle; maaş ve kira gibi düzenli kayıtları bir kez tanımla." },
+          { title: "Harcamanı gir, gerisini bırak", text: "Her harcama saniyeler sürer. Ay sonunda paranın nereye gittiğini ve ne kadar biriktirdiğini gör." },
+        ]}
+        ctaHref={cta}
+      />
+
+      {/* GÜVEN */}
+      <section className="border-y border-border bg-surface/40 px-4 py-16 sm:px-6" aria-labelledby="guven-baslik">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
+          <div>
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <ShieldIcon size={20} />
+            </span>
+            <h2 id="guven-baslik" className="mb-3 text-2xl font-extrabold tracking-tight text-text-primary sm:text-3xl">
+              Paran senin, verin de
             </h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div id="ev-icin" className="rounded-2xl border border-border bg-surface p-7">
-                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
-                  <WalletIcon size={20} />
-                </span>
-                <h3 className="mb-2 text-lg font-bold text-text-primary">Ev için</h3>
-                <p className="text-sm text-text-secondary">
-                  Kişisel ve ailevi bütçeni tek yerden yönet: gelir-gider takibi, borç-alacak, bütçe hedefleri ve
-                  birikimlerin.
-                </p>
-              </div>
-              <div id="isletmeler-icin" className="rounded-2xl border border-border bg-surface p-7">
-                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
-                  <BuildingIcon size={20} />
-                </span>
-                <h3 className="mb-2 text-lg font-bold text-text-primary">İşletmeler için</h3>
-                <p className="text-sm text-text-secondary">
-                  Kişisel finansından tamamen ayrı bir işletme alanı oluştur; ekip üyelerini rolleriyle (yönetici,
-                  düzenleyici, izleyici) davet et, birlikte yönetin.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ÖZELLİKLER */}
-        <section className="mx-auto max-w-6xl px-6 py-16" aria-labelledby="ozellikler-baslik" id="ozellikler">
-          <h2 id="ozellikler-baslik" className="mb-3 text-center text-2xl font-bold text-text-primary sm:text-3xl">
-            Tek uygulamada her şey
-          </h2>
-          <p className="mx-auto mb-10 max-w-xl text-center text-text-secondary">
-            Farklı hesap tablolarına, uygulamalara dağılmış finansını tek bir yerde topla.
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map(({ icon: Icon, title, description, comingSoon }) => (
-              <div key={title} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-accent">
-                  <Icon size={20} />
-                </span>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-text-primary">{title}</h3>
-                  {comingSoon ? (
-                    <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-bold text-text-muted">
-                      Yakında
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-sm text-text-secondary">{description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* GÜVENLİK */}
-        <section className="border-y border-border bg-surface/40 px-6 py-16">
-          <div className="mx-auto grid max-w-5xl items-center gap-8 md:grid-cols-2">
-            <div>
-              <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
-                <ShieldIcon size={20} />
-              </span>
-              <h2 className="mb-3 text-2xl font-bold text-text-primary sm:text-3xl">Güvenlik ve veri gizliliği</h2>
-              <p className="text-text-secondary">
-                Her alanın (Ev veya İşletme) verisi, veritabanı düzeyinde satır bazlı erişim kurallarıyla izole
-                edilir. Bir alandaki kullanıcı, yetkili olmadığı hiçbir hesabın, işlemin ya da borcun detayını
-                göremez — ekip halinde çalışırken bile.
-              </p>
-            </div>
-            <ul className="flex flex-col gap-3 text-sm text-text-secondary">
-              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Satır düzeyinde erişim kontrolü (RLS)</li>
-              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Finansal kayıtlar asla fiziksel olarak silinmez — yalnızca iptal edilir</li>
-              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Rol bazlı yetkilendirme (sahip / yönetici / düzenleyici / izleyici)</li>
-              <li className="flex items-start gap-2"><CheckIcon size={16} className="mt-0.5 shrink-0 text-accent" /> Her önemli işlem denetim kaydına yazılır</li>
-            </ul>
-          </div>
-        </section>
-
-        {/* FİYATLANDIRMA */}
-        <section className="mx-auto max-w-6xl px-6 py-16" id="fiyatlandirma">
-          <div className="text-center">
-            <h2 className="mb-3 text-2xl font-bold text-text-primary sm:text-3xl">Fiyatlandırma</h2>
-            <p className="mx-auto mb-10 max-w-xl text-text-secondary">
-              Ücretsiz başla, ihtiyacın büyüdüğünde alan bazında Premium&apos;a geç. Otomatik yenileme yoktur; kartla
-              (Shopier) veya havale/EFT ile ödeyebilirsin.
+            <p className="text-text-secondary">
+              Parakip bankana bağlanmaz, şifreni istemez. Kayıtlarını kimin görebileceğine sen karar verirsin; istediğin an
+              hepsini indirip hesabını silebilirsin.
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="flex flex-col rounded-2xl border border-border bg-surface p-7">
-              <p className="text-sm font-bold text-text-secondary">Ücretsiz</p>
-              <p className="mt-1 text-3xl font-extrabold text-text-primary">₺0</p>
-              <p className="mt-1 text-xs text-text-muted">Süre sınırı yok</p>
-              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
-                <PlanItem>Gelir-gider, borç-alacak, bütçe ve yatırım takibi</PlanItem>
-                <PlanItem>Raporlar, CSV ve PDF dışa aktarma</PlanItem>
-                <PlanItem>Ev alanında {HOME_FREE_ACCOUNT_LIMIT} hesap</PlanItem>
-                <PlanItem>
-                  İşletme alanında {BUSINESS_FREE_LIMITS.accounts} hesap, ayda {BUSINESS_FREE_LIMITS.monthlyTransactions} işlem,{" "}
-                  {BUSINESS_FREE_LIMITS.debts} borç/alacak, {BUSINESS_FREE_LIMITS.customers} müşteri ve {BUSINESS_FREE_LIMITS.suppliers} tedarikçi
-                </PlanItem>
-                <PlanItem>Her alanda sen + {FREE_EXTRA_MEMBER_LIMIT} üye</PlanItem>
-                <PlanItem>{FREE_SAVINGS_GOAL_LIMIT} birikim hedefi, tekrarlayan gelir-gider kuralları</PlanItem>
-              </ul>
-              <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
-                Ücretsiz başla
-              </Link>
-            </div>
+          <TrustList
+            vertical
+            items={[
+              "Verini yalnızca sen ve davet ettiğin kişiler görür",
+              "Muhasebecine veya eşine yalnızca görme yetkisi verebilirsin",
+              "Sunucular Avrupa'da (Frankfurt), bağlantı şifreli",
+              "Tüm kayıtlarını tek dosyada indir, dilediğinde hesabını sil",
+            ]}
+          />
+        </div>
+      </section>
 
-            <div className="relative flex flex-col rounded-2xl border-2 border-accent bg-surface p-7">
-              <span className="absolute -top-3 left-7 rounded-full bg-accent px-3 py-0.5 text-[11px] font-bold text-text-on-accent">
-                Aileler için
-              </span>
-              <p className="text-sm font-bold text-accent">Ev Premium</p>
-              <p className="mt-1 text-3xl font-extrabold text-text-primary">
-                {tl.format(prices.homeMonthly)}
-                <span className="text-base font-semibold text-text-muted">/ay</span>
-              </p>
-              <p className="mt-1 text-xs text-text-muted">veya yıllık {tl.format(prices.homeYearly)}</p>
-              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
-                <PlanItem>Ücretsiz plandaki her şey</PlanItem>
-                <PlanItem>Ev alanında sınırsız hesap</PlanItem>
-                <PlanItem>Sınırsız üye — ailenle birlikte kullan</PlanItem>
-                <PlanItem>Sınırsız birikim hedefi</PlanItem>
-                <PlanItem>Tüm aile üyeleri Premium&apos;dan yararlanır</PlanItem>
-              </ul>
-              <Link href="/sign-up" className="mt-6 block rounded-xl bg-accent py-2.5 text-center text-sm font-bold text-text-on-accent">
-                Ücretsiz başla, sonra yükselt
-              </Link>
-            </div>
+      <Pricing page="/" utm={utm} />
 
-            <div className="flex flex-col rounded-2xl border border-border bg-surface p-7">
-              <p className="text-sm font-bold text-text-secondary">İşletme Premium</p>
-              <p className="mt-1 text-3xl font-extrabold text-text-primary">
-                {tl.format(prices.businessMonthly)}
-                <span className="text-base font-semibold text-text-muted">/ay</span>
-              </p>
-              <p className="mt-1 text-xs text-text-muted">veya yıllık {tl.format(prices.businessYearly)} · işletme alanı başına</p>
-              <ul className="mt-5 flex flex-1 flex-col gap-2.5 text-sm text-text-secondary">
-                <PlanItem>Ücretsiz plandaki her şey</PlanItem>
-                <PlanItem>Sınırsız hesap, işlem ve borç/alacak</PlanItem>
-                <PlanItem>Sınırsız müşteri ve tedarikçi</PlanItem>
-                <PlanItem>Sınırsız ekip üyesi, rol bazlı yetki</PlanItem>
-                <PlanItem>Sınırsız birikim hedefi</PlanItem>
-              </ul>
-              <Link href="/sign-up" className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-bold text-text-primary hover:bg-surface-muted">
-                Ücretsiz başla, sonra yükselt
-              </Link>
-            </div>
-          </div>
-        </section>
+      {/* KAYNAKLAR */}
+      <section className="mx-auto max-w-6xl px-4 pb-4 sm:px-6" aria-label="Ücretsiz kaynaklar">
+        <div className="grid gap-5 md:grid-cols-2">
+          <Link href="/butce-sablonu" className="flex flex-col gap-2 rounded-3xl border border-border bg-surface p-7 hover:border-accent">
+            <span className="text-xs font-bold uppercase tracking-wide text-accent">Ücretsiz</span>
+            <h3 className="text-lg font-bold text-text-primary">Aylık bütçe şablonu</h3>
+            <p className="text-sm text-text-secondary">Tarayıcıda doldur ya da Excel olarak indir. Kayıt gerekmez.</p>
+            <span className="mt-2 text-sm font-bold text-accent">Şablonu aç →</span>
+          </Link>
+          <Link href="/rehber" className="flex flex-col gap-2 rounded-3xl border border-border bg-surface p-7 hover:border-accent">
+            <span className="text-xs font-bold uppercase tracking-wide text-accent">Rehber</span>
+            <h3 className="text-lg font-bold text-text-primary">Bütçe, borç ve birikim rehberleri</h3>
+            <p className="text-sm text-text-secondary">Aile bütçesinden esnaf defterine, kredi kartı borcundan acil durum fonuna.</p>
+            <span className="mt-2 text-sm font-bold text-accent">Rehberleri oku →</span>
+          </Link>
+        </div>
+      </section>
 
-        {/* SON CTA */}
-        <section className="mx-auto max-w-2xl px-6 pb-20 text-center">
-          <h2 className="mb-3 text-2xl font-bold text-text-primary sm:text-3xl">Hemen ücretsiz başla</h2>
-          <p className="mb-6 text-text-secondary">
-            Birkaç dakikada ilk alanını oluştur, finansını kontrol altına al.
-          </p>
-          <Link href="/sign-up" className="inline-block rounded-2xl bg-accent px-8 py-3.5 text-base font-bold text-text-on-accent">
-            Ücretsiz hesap oluştur
-          </Link>
-        </section>
-      </main>
+      <Faq items={FAQ} />
 
-      <footer className="border-t border-border px-6 py-10 text-center text-xs text-text-muted">
-        <nav className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          <Link href="/legal/gizlilik-politikasi" className="hover:text-text-secondary">
-            Gizlilik Politikası
-          </Link>
-          <Link href="/legal/kvkk-aydinlatma-metni" className="hover:text-text-secondary">
-            KVKK Aydınlatma Metni
-          </Link>
-          <Link href="/legal/kullanim-kosullari" className="hover:text-text-secondary">
-            Kullanım Koşulları
-          </Link>
-          <Link href="/legal/cerez-politikasi" className="hover:text-text-secondary">
-            Çerez Politikası
-          </Link>
-          <Link href="/legal/mesafeli-satis-sozlesmesi" className="hover:text-text-secondary">
-            Mesafeli Satış Sözleşmesi
-          </Link>
-          <Link href="/legal/iptal-iade-politikasi" className="hover:text-text-secondary">
-            İptal ve İade Politikası
-          </Link>
-        </nav>
-        <p className="mt-5">© {new Date().getFullYear()} Parakip</p>
-      </footer>
-    </div>
+      <CtaBand href={cta} title="Bu ay farkı gör" text="İlk ayın sonunda paranın nereye gittiğini bileceksin. Ücretsiz, kart gerekmez." />
+
+      <JsonLd data={[organizationJsonLd(), softwareJsonLd(prices)]} />
+    </MarketingShell>
   );
 }

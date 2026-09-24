@@ -58,9 +58,13 @@ export default function PrivacyPolicyPage() {
 
       <section>
         <h2 className="text-lg font-bold text-text-primary">6. Hesap ve Veri Silme</h2>
-        <p>Hesabınızı silme talebinde bulunabilirsiniz (Ayarlar → Hesap yönetimi). Kişisel bilgileriniz
-          (ad, telefon, e-posta) belirli bir süre sonunda kalıcı olarak anonimleştirilir; finansal kayıtlarınız
-          ise muhasebe/vergi mevzuatı gereği fiziksel olarak silinmez, arşivlenmiş olarak tutulur.</p>
+        <p>Hesabınızı Ayarlar → Hesap yönetimi ekranından silebilirsiniz. Talebinizden sonraki 7 günlük bekleme
+          süresi boyunca talebi iptal edebilirsiniz. Süre dolduğunda hesabınız, profil bilgileriniz, bildirimleriniz ve
+          yalnızca sizin kullandığınız alanlardaki tüm finansal kayıtlar kalıcı olarak silinir. Başka üyelerin de
+          bulunduğu ortak alanlar silinmez; alanın sahipliği o alandaki bir yöneticiye veya üyeye devredilir ve sizin
+          üyeliğiniz kaldırılır. Ödeme kayıtları (ör. havale bildirimleri) yasal yükümlülükler nedeniyle, sizinle
+          bağlantısı kaldırılarak saklanır. Silmeden önce tüm verilerinizi aynı ekrandan tek dosya olarak
+          indirebilirsiniz.</p>
       </section>
 
       <section>

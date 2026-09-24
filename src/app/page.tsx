@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { parseSignupSource } from "@/lib/marketing/attribution";
 
 /**
  * Oturum açmamış ziyaretçiler için SEO'ya uygun tanıtım sayfası (bkz.
@@ -11,14 +12,13 @@ import { LandingPage } from "@/components/landing/LandingPage";
  *   alan var  -> /home
  */
 export const metadata: Metadata = {
-  title: "Parakip — Ev ve İşletme Finansını Tek Yerden Yönet",
+  title: "Parakip — Paranın nereye gittiğini ilk ay gör",
   description:
-    "Parakip ile Ev ve İşletme finansını tek yerden yönet: gelir-gider takibi, borç ve alacaklar, tekrarlayan ödemeler, bütçe yönetimi ve yatırım portföyü. Ücretsiz başla.",
+    "Ücretsiz gelir-gider, bütçe, borç-alacak ve birikim takibi. Ev bütçeni ve işletmeni tek yerden yönet, her ay sade bir özet al. Kart gerekmez.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Parakip — Paran kontrolünde.",
-    description:
-      "Ev ve İşletme finansını tek yerden yönet: gelir-gider, borç-alacak, bütçe ve yatırım takibi.",
+    title: "Parakip — Paranın nereye gittiğini ilk ay gör",
+    description: "Ücretsiz gelir-gider, bütçe, borç-alacak ve birikim takibi. Ev ve işletme için tek uygulama.",
     url: "/",
     siteName: "Parakip",
     locale: "tr_TR",
@@ -26,12 +26,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootPage() {
+export default async function RootPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createClient();
   const user = await getSessionUser(supabase);
 
   if (!user) {
-    return <LandingPage />;
+    return <LandingPage utm={parseSignupSource(await searchParams)} />;
   }
 
   const { count } = await supabase

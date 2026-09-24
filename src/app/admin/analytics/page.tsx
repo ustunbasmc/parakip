@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminDbClient } from "@/lib/admin/auth";
-import { BarSeries, Card, CardHeader, ErrorBox, PageHeader, StatCard } from "@/components/admin/ui";
+import { BarSeries, Card, CardHeader, ErrorBox, PageHeader, ShareBars, StatCard } from "@/components/admin/ui";
+import { getAuthUsers, requestNow } from "@/lib/admin/data";
 
 type Stats = {
   days: number;
@@ -33,8 +34,36 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 export default async function AdminAnalyticsPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
   const params = await searchParams;
   const days = (PERIODS as readonly number[]).includes(Number(params.days)) ? Number(params.days) : 30;
-  const { data, error } = await getAdminDbClient().rpc("admin_usage_stats", { p_days: days });
+  const [{ data, error }, authUsers] = await Promise.all([
+    getAdminDbClient().rpc("admin_usage_stats", { p_days: days }),
+    getAuthUsers(),
+  ]);
   const s = data as Stats | null;
+
+  // Kayıt kaynakları: dönem içinde kayıt olanların geldiği sayfa ve kampanya
+  // (tanıtım sayfalarındaki bağlantılardan; çerez kullanılmaz).
+  const since = requestNow() - days * 86_400_000;
+  const recent = [...authUsers.values()].filter((u) => new Date(u.createdAt).getTime() >= since);
+  const countBy = (key: (u: (typeof recent)[number]) => string) => {
+    const m = new Map<string, number>();
+    for (const u of recent) m.set(key(u), (m.get(key(u)) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
+  };
+  const PAGE_LABELS: Record<string, string> = {
+    "/": "Ana sayfa",
+    "/ev-butcesi": "Ev bütçesi sayfası",
+    "/esnaf-gelir-gider": "Esnaf sayfası",
+    "/butce-sablonu": "Bütçe şablonu",
+    "/rehber": "Rehber",
+  };
+  const bySourcePage = countBy((u) => {
+    const p = u.signupSource?.page;
+    if (!p) return "Bilinmiyor / doğrudan kayıt";
+    return PAGE_LABELS[p] ?? (p.startsWith("/rehber/") ? "Rehber makalesi" : p);
+  });
+  const byCampaign = countBy((u) =>
+    u.signupSource?.utm_source ? `${u.signupSource.utm_source}${u.signupSource.utm_campaign ? ` · ${u.signupSource.utm_campaign}` : ""}` : "Kampanyasız"
+  );
 
   const steps = s
     ? [
@@ -155,6 +184,27 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
                   </ul>
                 </>
               )}
+            </Card>
+
+            <Card>
+              <CardHeader title="Kayıt kaynakları" subtitle={`Son ${days} günde kayıt olan ${recent.length} kişi`} />
+              {recent.length === 0 ? (
+                <p className="text-sm text-text-muted">Bu dönemde kayıt yok.</p>
+              ) : (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className="mb-2 text-xs font-bold text-text-muted">Geldiği sayfa</p>
+                    <ShareBars rows={bySourcePage} />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-bold text-text-muted">Kampanya (utm_source · utm_campaign)</p>
+                    <ShareBars rows={byCampaign} />
+                  </div>
+                </div>
+              )}
+              <p className="mt-3 text-xs text-text-muted">
+                Reklam bağlantılarına ?utm_source=…&amp;utm_campaign=… eklersen kampanyalar burada ayrı görünür.
+              </p>
             </Card>
 
             <Card>

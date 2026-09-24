@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
-import { AppShell } from "@/components/AppShell";
+import { HelpFrame, HelpSignInPrompt } from "@/components/help/HelpFrame";
 import { HelpSearchBox } from "@/components/help/HelpSearchBox";
 import { ArticleListItem, ChevronRightIcon } from "@/components/help/ArticleListItem";
 import { AlertIcon, InboxIcon, SparkleIcon, HelpCircleIcon } from "@/components/icons";
@@ -14,7 +14,17 @@ import {
   type HelpCategory,
 } from "@/lib/help/queries";
 
-export const metadata = { title: "Yardım Merkezi | Parakip" };
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ q?: string; category?: string }> }): Promise<Metadata> {
+  const params = await searchParams;
+  const category = params.category && /^[a-z0-9-]{1,80}$/.test(params.category) ? params.category : null;
+  return {
+    title: "Yardım Merkezi | Parakip",
+    description: "Parakip nasıl kullanılır? Hesap, gelir-gider, bütçe, borç-alacak, abonelik ve güvenlik hakkında adım adım yardım makaleleri.",
+    alternates: { canonical: category ? `/help?category=${category}` : "/help" },
+    // Arama sonuç sayfaları dizine eklenmez.
+    ...(params.q ? { robots: { index: false, follow: true } } : {}),
+  };
+}
 
 const SHORTCUTS = [
   { href: "/support/new", label: "Sorunumu çözemiyorum", Icon: HelpCircleIcon, tint: "bg-accent-soft text-accent" },
@@ -29,8 +39,10 @@ export default async function HelpCenterPage({
   searchParams: Promise<{ q?: string; category?: string }>;
 }) {
   const supabase = await createClient();
+  // Yardım merkezi herkese açıktır (migration 0070): oturumsuz ziyaretçi yalnızca
+  // yayındaki makaleleri görür; destek talebi için giriş yapması istenir.
   const user = await getSessionUser(supabase);
-  if (!user) redirect("/welcome");
+  const signedIn = Boolean(user);
 
   const params = await searchParams;
   const query = (params.q ?? "").trim().slice(0, 100);
@@ -57,14 +69,14 @@ export default async function HelpCenterPage({
   const title = categoryView ? categoryView.category.title : "Yardım Merkezi";
 
   return (
-    <AppShell variant="subpage" title={title} parentHref={categoryView ? "/help" : "/home"}>
+    <HelpFrame signedIn={signedIn} title={title} parentHref={categoryView ? "/help" : "/home"}>
       <div className="flex min-w-0 flex-col gap-5 pb-4 pt-3">
         <HelpSearchBox key={query} initialQuery={query} />
 
         {loadError ? (
           <div role="alert" className="rounded-2xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
             Yardım içerikleri şu an yüklenemedi. Lütfen sayfayı yenile.
-            <Link href="/support/new" className="mt-2 block font-bold">
+            <Link href={signedIn ? "/support/new" : "/sign-in?next=/support/new"} className="mt-2 block font-bold">
               Yine de destek talebi oluştur →
             </Link>
           </div>
@@ -80,7 +92,7 @@ export default async function HelpCenterPage({
                   Farklı kelimelerle aramayı deneyebilir ya da doğrudan bize yazabilirsin.
                 </p>
                 <Link
-                  href={`/support/new?subject=${encodeURIComponent(query)}`}
+                  href={signedIn ? `/support/new?subject=${encodeURIComponent(query)}` : "/sign-in?next=/support/new"}
                   className="mt-3 inline-block rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-text-on-accent"
                 >
                   Destek talebi oluştur
@@ -114,6 +126,8 @@ export default async function HelpCenterPage({
           )
         ) : (
           <>
+            {!signedIn ? <HelpSignInPrompt /> : null}
+            {signedIn ? (
             <nav aria-label="Destek kısayolları" className="grid grid-cols-2 gap-2">
               {SHORTCUTS.map(({ href, label, Icon, tint }) => (
                 <Link
@@ -128,6 +142,7 @@ export default async function HelpCenterPage({
                 </Link>
               ))}
             </nav>
+            ) : null}
 
             {faqs.length > 0 ? (
               <section aria-labelledby="faq-title" className="flex flex-col gap-2">
@@ -172,6 +187,6 @@ export default async function HelpCenterPage({
           </>
         )}
       </div>
-    </AppShell>
+    </HelpFrame>
   );
 }

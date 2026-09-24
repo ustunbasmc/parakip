@@ -8,6 +8,7 @@ import { ScreenShell } from "@/components/ScreenShell";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { parsePlanKey } from "@/lib/plans/planParam";
 
 const DEFAULT_NAMES: Record<string, string> = {
   home: "Ev",
@@ -24,6 +25,9 @@ function CreateSpaceForm() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type") === "business" ? "business" : "home";
   const then = searchParams.get("then");
+  // Tanıtım sayfasında seçilen plan onboarding boyunca taşınır.
+  const plan = parsePlanKey(searchParams.get("plan"));
+  const planQuery = plan ? `&plan=${plan}` : "";
 
   const [name, setName] = useState(DEFAULT_NAMES[type]);
   const [loading, setLoading] = useState(false);
@@ -56,11 +60,11 @@ function CreateSpaceForm() {
     }
 
     if (then === "business" || then === "home") {
-      router.push(`/onboarding/create-space?type=${then}`);
+      router.push(`/onboarding/create-space?type=${then}${planQuery}`);
       return;
     }
 
-    router.push(`/onboarding/first-account?book_id=${data.book_id}`);
+    router.push(`/onboarding/first-account?book_id=${data.book_id}${planQuery}`);
   }
 
   return (

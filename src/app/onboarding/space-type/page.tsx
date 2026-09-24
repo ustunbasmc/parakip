@@ -1,59 +1,30 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { getUserSpacesBasic } from "@/lib/dashboard/formData";
+import { parsePlanKey, parseSpaceType, planSpaceType } from "@/lib/plans/planParam";
+import { SpaceTypeChooser } from "@/components/onboarding/SpaceTypeChooser";
 
-import { useRouter } from "next/navigation";
-import { ScreenShell } from "@/components/ScreenShell";
-import { PendingInvitesNotice } from "@/components/spaces/PendingInvitesNotice";
+/**
+ * "Nasıl kullanacaksın?" Tanıtım sayfasından plan (?plan=) veya alan türü
+ * (?type=) seçilerek gelindiyse soru atlanır:
+ *   - O türde alanı zaten varsa: plan seçildiyse ödeme ekranına, yoksa alana.
+ *   - Yoksa: o türde alan kurulumuna (plan adreste taşınır).
+ */
+export default async function SpaceTypePage({ searchParams }: { searchParams: Promise<{ plan?: string; type?: string }> }) {
+  const params = await searchParams;
+  const plan = parsePlanKey(params.plan);
+  const type = plan ? planSpaceType(plan) : parseSpaceType(params.type);
 
-const OPTIONS = [
-  {
-    type: "home" as const,
-    title: "Ev",
-    description: "Kişisel ve aile finansını takip et.",
-    href: "/onboarding/create-space?type=home",
-  },
-  {
-    type: "business" as const,
-    title: "İşletme",
-    description: "Küçük işletmenin gelir-giderini yönet.",
-    href: "/onboarding/create-space?type=business",
-  },
-  {
-    type: "both" as const,
-    title: "İkisini de kullanacağım",
-    description: "Önce Ev, sonra İşletme alanını birlikte kuralım.",
-    href: "/onboarding/create-space?type=home&then=business",
-  },
-];
+  if (type) {
+    const supabase = await createClient();
+    const user = await getSessionUser(supabase);
+    if (!user) redirect("/welcome");
+    const existing = (await getUserSpacesBasic(supabase)).find((s) => s.type === type);
+    if (existing) {
+      redirect(plan ? `/settings/plan?space=${existing.id}&plan=${plan}` : `/home?space=${existing.id}`);
+    }
+    redirect(`/onboarding/create-space?type=${type}${plan ? `&plan=${plan}` : ""}`);
+  }
 
-export default function SpaceTypePage() {
-  const router = useRouter();
-
-  return (
-    <ScreenShell parentHref="/">
-      <div className="flex flex-1 flex-col gap-6 pt-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Nasıl kullanacaksın?</h1>
-          <p className="mt-1 text-text-secondary">
-            İstediğin zaman diğerini de ekleyebilirsin.
-          </p>
-        </div>
-
-        <PendingInvitesNotice />
-
-        <div className="flex flex-col gap-3">
-          {OPTIONS.map((option) => (
-            <button
-              key={option.type}
-              type="button"
-              onClick={() => router.push(option.href)}
-              className="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-5 text-left transition-colors active:bg-surface-muted"
-            >
-              <span className="text-lg font-semibold text-text-primary">{option.title}</span>
-              <span className="text-sm text-text-secondary">{option.description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </ScreenShell>
-  );
+  return <SpaceTypeChooser />;
 }
