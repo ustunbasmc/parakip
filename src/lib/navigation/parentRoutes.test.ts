@@ -34,4 +34,5 @@ test("withSpaceParam: yalnızca alan bazlı ebeveynlerde space taşınır", () =
   assert.equal(withSpaceParam("/accounts", "?space=s1&x=1"), "/accounts?space=s1");
   assert.equal(withSpaceParam("/help", "?space=s1"), "/help");
   assert.equal(withSpaceParam("/accounts", ""), "/accounts");
+  assert.equal(withSpaceParam("/net-worth", "?space=s1"), "/net-worth?space=s1");
 });

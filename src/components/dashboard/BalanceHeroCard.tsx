@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { WalletIcon } from "@/components/icons";
 import { formatCentsAsCurrency } from "@/lib/format/amount";
 import type { CurrencyAmount } from "@/lib/dashboard/queries";
@@ -20,12 +21,15 @@ export function BalanceHeroCard({
   breakdown,
   otherCurrencyBalances,
   hasAccounts,
+  netWorth = null,
 }: {
   /** null = hesaplanamadı (bir alt sorgu başarısız). */
   totalAssetsCents: number | null;
   breakdown: AssetBreakdownItem[];
   otherCurrencyBalances: CurrencyAmount[];
   hasAccounts: boolean;
+  /** Borçlar düşülmüş net değer (dövizler kurla çevrilmiş); null = gösterme. */
+  netWorth?: { netCents: number; payablesCents: number; href: string } | null;
 }) {
   return (
     <section
@@ -68,6 +72,19 @@ export function BalanceHeroCard({
             <p className="mt-2 text-xs text-text-muted">
               Toplama dahil olmayan: {otherCurrencyBalances.map((a) => formatCentsAsCurrency(a.cents, a.currency)).join(" · ")}
             </p>
+          ) : null}
+
+          {hasAccounts && netWorth ? (
+            <Link
+              href={netWorth.href}
+              className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full bg-[var(--tile-bg)] px-3 py-1.5 text-xs font-semibold text-text-secondary backdrop-blur-sm hover:text-text-primary"
+            >
+              <span className="truncate">
+                Net değer:{" "}
+                <span className="font-bold tabular-nums text-text-primary">{formatCentsAsCurrency(netWorth.netCents, "TRY")}</span>
+              </span>
+              <span aria-hidden="true" className="text-accent">→</span>
+            </Link>
           ) : null}
         </div>
 

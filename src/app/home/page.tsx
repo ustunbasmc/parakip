@@ -44,6 +44,10 @@ import { getExpenseByCategory, getMonthlyTrend } from "@/lib/dashboard/reports";
 import { getFlowForPeriod, getUpcomingDebts, getReceivablesSummary, type CurrencyAmount } from "@/lib/dashboard/queries";
 import { computePortfolioTotals } from "@/lib/dashboard/investments";
 import { getBalancesCached, getHoldingsCached } from "@/lib/dashboard/homeData";
+import { getMonthSummary } from "@/lib/dashboard/monthSummary";
+import { getNetWorth } from "@/lib/dashboard/netWorth";
+import { MonthSummaryCard } from "@/components/dashboard/MonthSummaryCard";
+import { GettingStartedCard, type GettingStartedStep } from "@/components/dashboard/GettingStartedCard";
 
 /**
  * Ana sayfa — düzen (önceki onaylı yerleşim korunarak):
@@ -141,7 +145,11 @@ function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props
       <HomePeriodPicker active={period.period} from={period.from} to={period.to} />
 
       <Suspense fallback={<CardSkeleton hero lines={2} className="min-h-[11rem]" />}>
-        <BalanceSection supabase={supabase} bookId={bookId} />
+        <BalanceSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <GettingStartedSection supabase={supabase} bookId={bookId} spaceId={spaceId} variant="home" />
       </Suspense>
 
       <Suspense
@@ -154,6 +162,10 @@ function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props
         }
       >
         <FlowKpiSection supabase={supabase} bookId={bookId} spaceId={spaceId} period={period} />
+      </Suspense>
+
+      <Suspense fallback={<CardSkeleton lines={3} />}>
+        <MonthSummarySection supabase={supabase} bookId={bookId} spaceId={spaceId} />
       </Suspense>
 
       <div className="grid min-w-0 grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3 lg:items-start">
@@ -200,14 +212,15 @@ function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props
   );
 }
 
-async function BalanceSection({ supabase, bookId }: { supabase: SupabaseClient; bookId: string }) {
+async function BalanceSection({ supabase, bookId, spaceId }: { supabase: SupabaseClient; bookId: string; spaceId: string }) {
   // "Toplam varlık" YALNIZCA TRY hesap + alacak + yatırım toplamıdır.
   // Yatırım değeri güncel fiyat VARSA güncel değer, YOKSA maliyet bazı
   // (computePortfolioTotals ile /investments sayfasıyla AYNI mantık).
-  const [balance, receivables, holdings] = await Promise.allSettled([
+  const [balance, receivables, holdings, netWorth] = await Promise.allSettled([
     getBalancesCached(supabase, bookId),
     getReceivablesSummary(supabase, bookId),
     getHoldingsCached(supabase, bookId),
+    getNetWorth(supabase, bookId),
   ]);
 
   const balances = balance.status === "fulfilled" ? balance.value : [];
@@ -231,6 +244,11 @@ async function BalanceSection({ supabase, bookId }: { supabase: SupabaseClient; 
       }
       otherCurrencyBalances={balances.filter((a) => a.currency !== "TRY")}
       hasAccounts={balance.status !== "fulfilled" || balances.length > 0}
+      netWorth={
+        netWorth.status === "fulfilled"
+          ? { netCents: netWorth.value.netCents, payablesCents: netWorth.value.payablesCents, href: `/net-worth?space=${spaceId}` }
+          : null
+      }
     />
   );
 }
@@ -537,6 +555,10 @@ function BusinessDashboard({ supabase, bookId, spaceId }: Props) {
         <BusinessSummarySection supabase={supabase} bookId={bookId} />
       </Suspense>
 
+      <Suspense fallback={null}>
+        <GettingStartedSection supabase={supabase} bookId={bookId} spaceId={spaceId} variant="business" />
+      </Suspense>
+
       <div className="grid min-w-0 grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3 lg:items-start">
         <div className="min-w-0 lg:col-span-2">
           <Suspense fallback={<CardSkeleton lines={5} />}>
@@ -560,4 +582,56 @@ function BusinessDashboard({ supabase, bookId, spaceId }: Props) {
       <QuickActions bookId={bookId} spaceParam={spaceId} variant="business" />
     </>
   );
+}
+
+/* ───────────────────────── başlangıç ve özet ───────────────────────── */
+
+/** İlk kurulum adımları — gerçek kayıtlara göre işaretlenir; hepsi bitince kart gösterilmez. */
+async function GettingStartedSection({ supabase, bookId, spaceId, variant }: Props & { variant: "home" | "business" }) {
+  const head = { count: "exact" as const, head: true };
+  const [accounts, entries, budgets, goals, rules, members] = await Promise.all([
+    supabase.from("accounts").select("id", head).eq("book_id", bookId),
+    supabase.from("transaction_entries").select("id", head).eq("book_id", bookId),
+    supabase.from("budgets").select("id", head).eq("book_id", bookId),
+    supabase.from("savings_goals").select("id", head).eq("book_id", bookId),
+    supabase.from("recurring_transaction_rules").select("id", head).eq("book_id", bookId),
+    supabase.from("space_members").select("user_id", head).eq("space_id", spaceId),
+  ]);
+  // Sayım okunamadıysa (ör. ağ hatası) kart gösterilmez — yanlış "yapılmadı" gösterme.
+  if ([accounts, entries, budgets, goals, rules, members].some((r) => r.error)) return null;
+  const q = `space=${spaceId}`;
+  const has = (r: { count: number | null }) => (r.count ?? 0) > 0;
+
+  const steps: GettingStartedStep[] =
+    variant === "home"
+      ? [
+          { key: "account", label: "Hesabını ekle", hint: "Banka, nakit veya kredi kartı", href: `/accounts/new?book_id=${bookId}&${q}`, done: has(accounts) },
+          { key: "tx", label: "İlk gelir veya giderini kaydet", hint: "Bugünkü bir harcamayla başla", href: `/add-transaction?type=expense&book_id=${bookId}&${q}`, done: has(entries) },
+          { key: "recurring", label: "Maaşını veya aboneliklerini otomatiğe bağla", hint: "Her ay elle girmekten kurtul", href: `/transactions/recurring/new?book_id=${bookId}&${q}`, done: has(rules) },
+          { key: "budget", label: "Bu ay için bütçe belirle", hint: "Harcama sınırını aşınca uyaralım", href: `/budgets/new?book_id=${bookId}&${q}`, done: has(budgets) },
+          { key: "goal", label: "Bir birikim hedefi koy", hint: "Tatil, acil durum fonu…", href: `/goals/new?book_id=${bookId}&${q}`, done: has(goals) },
+        ]
+      : [
+          { key: "account", label: "Kasa veya banka hesabını ekle", hint: "İşletmenin para tuttuğu hesaplar", href: `/accounts/new?book_id=${bookId}&${q}`, done: has(accounts) },
+          { key: "tx", label: "İlk satış veya giderini kaydet", hint: "Bugünkü bir işlemle başla", href: `/add-transaction?type=income&book_id=${bookId}&${q}`, done: has(entries) },
+          { key: "recurring", label: "Kira, maaş gibi düzenli giderleri otomatiğe bağla", hint: "Her ay elle girmekten kurtul", href: `/transactions/recurring/new?book_id=${bookId}&${q}`, done: has(rules) },
+          { key: "members", label: "Ekip arkadaşını davet et", hint: "Muhasebecin veya ortağın", href: `/settings/spaces/${spaceId}/members`, done: (members.count ?? 0) > 1 },
+        ];
+
+  return <GettingStartedCard spaceId={spaceId} steps={steps} />;
+}
+
+/** İstek anı (render dışında). */
+function requestNow() {
+  return new Date();
+}
+
+const monthNameFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", timeZone: "Europe/Istanbul" });
+
+async function MonthSummarySection({ supabase, bookId, spaceId }: Props) {
+  const now = requestNow();
+  const summary = await getMonthSummary(supabase, bookId, now).catch(() => null);
+  if (!summary) return null;
+  const label = monthNameFmt.format(now);
+  return <MonthSummaryCard summary={summary} monthLabel={label.charAt(0).toLocaleUpperCase("tr-TR") + label.slice(1)} spaceId={spaceId} />;
 }

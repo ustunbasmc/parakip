@@ -119,6 +119,17 @@ export const GOALS_ITEM: NavItem = {
   ),
 };
 
+export const NET_WORTH_ITEM: NavItem = {
+  href: "/net-worth",
+  label: "Net Değer",
+  description: "Varlıkların eksi borçların ve zaman içindeki değişimi",
+  icon: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" />
+    </svg>
+  ),
+};
+
 export const INVESTMENTS_ITEM: NavItem = {
   href: "/investments",
   label: "Yatırımlar",
@@ -173,7 +184,7 @@ export const SPACES_ITEM: NavItem = {
 export const PRIMARY_NAV_ITEMS: NavItem[] = [HOME_ITEM, ACCOUNTS_ITEM, TRANSACTIONS_ITEM];
 
 /** Mobilde "Daha Fazla" panelinde, masaüstünde sidebar'da doğrudan görünür — GERÇEK ekranı olanlar. */
-export const MORE_NAV_ITEMS: NavItem[] = [DEBTS_ITEM, BUDGETS_ITEM, GOALS_ITEM, INVESTMENTS_ITEM, REPORTS_ITEM, CUSTOMERS_ITEM, SUPPLIERS_ITEM, SPACES_ITEM];
+export const MORE_NAV_ITEMS: NavItem[] = [DEBTS_ITEM, BUDGETS_ITEM, GOALS_ITEM, NET_WORTH_ITEM, INVESTMENTS_ITEM, REPORTS_ITEM, CUSTOMERS_ITEM, SUPPLIERS_ITEM, SPACES_ITEM];
 
 /**
  * Müşteriler/Tedarikçiler yalnızca space.type='business' alanlarda

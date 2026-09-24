@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { markNotificationRead } from "@/lib/api/notifications-rpc";
 import { formatRelativeDate } from "@/lib/format/date";
-import { ClockIcon, PieChartIcon, TransferIcon, BuildingIcon, MessageIcon, StarIcon } from "@/components/icons";
+import { ClockIcon, PieChartIcon, TransferIcon, BuildingIcon, MessageIcon, StarIcon, SparkleIcon } from "@/components/icons";
 import { notificationHref, type NotificationRow } from "@/lib/dashboard/notifications";
 
 const TYPE_ICON = {
@@ -16,6 +16,7 @@ const TYPE_ICON = {
   space_invite: BuildingIcon,
   support_reply: MessageIcon,
   subscription_expiring: StarIcon,
+  monthly_summary: SparkleIcon,
 } as const;
 
 const TYPE_TINT = {
@@ -26,6 +27,7 @@ const TYPE_TINT = {
   space_invite: "bg-accent-soft text-accent",
   support_reply: "bg-accent-soft text-accent",
   subscription_expiring: "bg-warning-soft text-warning",
+  monthly_summary: "bg-accent-soft text-accent",
 } as const;
 
 /**

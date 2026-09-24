@@ -51,6 +51,7 @@ const SPACE_AWARE_PARENTS = new Set([
   "/debts/recurring",
   "/budgets",
   "/goals",
+  "/net-worth",
   "/transactions/recurring",
   "/investments",
   "/reports",
