@@ -1,5 +1,6 @@
 import type { Instrumentation } from "next";
 import { errorFingerprint, sanitizePath } from "@/lib/errors/fingerprint";
+import { isClientDisconnect, shouldRecordErrors } from "@/lib/errors/policy";
 
 /**
  * Sunucu hatalarını (sayfa render, route handler, server action, proxy)
@@ -12,12 +13,14 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key || process.env.NODE_ENV !== "production") return;
+    if (!url || !key || !shouldRecordErrors()) return;
 
     const error = err instanceof Error ? err : new Error(String(err));
     const digest = typeof err === "object" && err !== null && "digest" in err ? String((err as { digest: unknown }).digest) : null;
     // Yönlendirme ve 404 gibi kontrollü akışlar hata değildir.
     if (digest && /^NEXT_(REDIRECT|HTTP_ERROR_FALLBACK|NOT_FOUND)/.test(digest)) return;
+    // Ziyaretçinin sayfa yüklenirken ayrılması (bağlantı kopması) hata değildir.
+    if (isClientDisconnect(error as Error & { code?: unknown })) return;
 
     const path = sanitizePath(request.path);
     const route = context.routePath || path;

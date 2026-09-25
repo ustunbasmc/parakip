@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { sanitizePath } from "@/lib/errors/fingerprint";
+import { shouldRecordErrors } from "@/lib/errors/policy";
 
 /**
  * Tarayıcı hata bildirimi (bkz. lib/errors/reportClient.ts). Oturum
@@ -29,6 +30,8 @@ function limited(ip: string): boolean {
 const str = (v: unknown, max: number) => (typeof v === "string" && v.length > 0 ? v.slice(0, max) : null);
 
 export async function POST(request: Request) {
+  // Yerel testlerdeki tarayıcı hataları canlı hata listesine yazılmaz.
+  if (!shouldRecordErrors()) return new NextResponse(null, { status: 204 });
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (limited(ip)) return new NextResponse(null, { status: 204 });
 
