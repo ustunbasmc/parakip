@@ -73,6 +73,21 @@ test("resolveHomePeriod: geçersiz aralık Bu ay'a düşer", () => {
   assert.equal(resolveHomePeriod("xyz", undefined, undefined, OCT_1_0030_IST).period, "month");
 });
 
+test("resolveHomePeriod: bugün, dün ve bu hafta (İstanbul, Pazartesi başlangıç)", () => {
+  // 1 Ekim 2026 Perşembe, 00:30 İstanbul.
+  const today = resolveHomePeriod("today", undefined, undefined, OCT_1_0030_IST);
+  assert.equal(today.range.start, "2026-09-30T21:00:00.000Z");
+  assert.equal(today.range.end, "2026-10-01T21:00:00.000Z");
+  assert.equal(today.previous.start, "2026-09-29T21:00:00.000Z");
+  const yesterday = resolveHomePeriod("yesterday", undefined, undefined, OCT_1_0030_IST);
+  assert.equal(yesterday.range.start, "2026-09-29T21:00:00.000Z");
+  assert.match(yesterday.label, /30 Eyl/);
+  const week = resolveHomePeriod("week", undefined, undefined, OCT_1_0030_IST);
+  assert.equal(week.range.start, "2026-09-27T21:00:00.000Z"); // Pazartesi 28 Eylül
+  assert.equal(week.range.end, "2026-10-04T21:00:00.000Z");
+  assert.equal(week.previous.start, "2026-09-20T21:00:00.000Z");
+});
+
 test("resolveHomePeriod: geçen ay etiketi", () => {
   const r = resolveHomePeriod("last_month", undefined, undefined, OCT_1_0030_IST);
   assert.equal(r.range.start, "2026-08-31T21:00:00.000Z");

@@ -142,8 +142,6 @@ type Props = { supabase: SupabaseClient; bookId: string; spaceId: string };
 function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props & { hasBusiness: boolean; period: ResolvedHomePeriod }) {
   return (
     <>
-      <HomePeriodPicker active={period.period} from={period.from} to={period.to} />
-
       <Suspense fallback={<CardSkeleton hero lines={2} className="min-h-[11rem]" />}>
         <BalanceSection supabase={supabase} bookId={bookId} spaceId={spaceId} />
       </Suspense>
@@ -152,17 +150,28 @@ function HomeDashboard({ supabase, bookId, spaceId, hasBusiness, period }: Props
         <GettingStartedSection supabase={supabase} bookId={bookId} spaceId={spaceId} variant="home" />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
-            <CardSkeleton lines={1} />
-            <CardSkeleton lines={1} />
-            <CardSkeleton lines={1} className="col-span-2 lg:col-span-1" />
-          </div>
-        }
-      >
-        <FlowKpiSection supabase={supabase} bookId={bookId} spaceId={spaceId} period={period} />
-      </Suspense>
+      {/* Dönem sekmeleri gelir/gider/net bölümünün başlığında: masaüstünde sağ üstte,
+          dar ekranda başlığın altında. Sekmeler Suspense dışında; veri yüklenirken de görünür. */}
+      <section aria-labelledby="donem-baslik" className="flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+          <h2 id="donem-baslik" className="px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-text-muted lg:pt-2.5">
+            {period.label}
+          </h2>
+          <HomePeriodPicker active={period.period} from={period.from} to={period.to} />
+        </div>
+        <Suspense
+          key={`${period.range.start}-${period.range.end}`}
+          fallback={
+            <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
+              <CardSkeleton lines={1} />
+              <CardSkeleton lines={1} />
+              <CardSkeleton lines={1} className="col-span-2 lg:col-span-1" />
+            </div>
+          }
+        >
+          <FlowKpiSection supabase={supabase} bookId={bookId} spaceId={spaceId} period={period} />
+        </Suspense>
+      </section>
 
       <Suspense fallback={<CardSkeleton lines={3} />}>
         <MonthSummarySection supabase={supabase} bookId={bookId} spaceId={spaceId} />
@@ -276,14 +285,6 @@ async function FlowKpiSection({ supabase, bookId, spaceId, period }: Props & { p
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex min-w-0 items-center justify-between gap-2 px-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{period.label}</p>
-        {income === 0 && expense === 0 ? (
-          <Link href={`/add-transaction?type=expense&book_id=${bookId}&space=${spaceId}`} className="text-xs font-bold text-accent">
-            İşlem ekle
-          </Link>
-        ) : null}
-      </div>
       <div className="grid min-w-0 grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
         <KpiCard
           label="Gelir"
@@ -321,6 +322,14 @@ async function FlowKpiSection({ supabase, bookId, spaceId, period }: Props & { p
                 `${c} +${formatCentsAsCurrency(flow.value.income.find((a) => a.currency === c)?.cents ?? 0, c)} / −${formatCentsAsCurrency(flow.value.expense.find((a) => a.currency === c)?.cents ?? 0, c)}`
             )
             .join(" · ")}
+        </p>
+      ) : null}
+      {income === 0 && expense === 0 ? (
+        <p className="px-1 text-xs text-text-muted">
+          Bu dönemde kayıt yok.{" "}
+          <Link href={`/add-transaction?type=expense&book_id=${bookId}&space=${spaceId}`} className="font-bold text-accent">
+            İşlem ekle
+          </Link>
         </p>
       ) : null}
     </div>

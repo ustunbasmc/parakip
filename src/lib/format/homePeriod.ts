@@ -1,5 +1,6 @@
 /**
- * Ana sayfa dönem seçicisi: Bu ay, Geçen ay, Bu yıl, Özel tarih.
+ * Ana sayfa dönem seçicisi: Bugün, Dün, Bu hafta, Bu ay, Geçen ay, Bu yıl,
+ * Özel tarih. Hafta Pazartesi başlar.
  * Raporlar ekranının DashboardPeriod tipinden bilinçli olarak AYRIDIR
  * (o ekranın davranışı değişmesin diye). Aralıklar [start, end) biçiminde
  * ISO döner; gün/ay sınırları uygulama saat dilimine (Europe/Istanbul)
@@ -8,15 +9,18 @@
  */
 import { zonedDate, zonedMidnight } from "./tz";
 
-export type HomePeriod = "month" | "last_month" | "year" | "custom";
+export type HomePeriod = "today" | "yesterday" | "week" | "month" | "last_month" | "year" | "custom";
 
-export const HOME_PERIODS: HomePeriod[] = ["month", "last_month", "year", "custom"];
+export const HOME_PERIODS: HomePeriod[] = ["today", "yesterday", "week", "month", "last_month", "year", "custom"];
 
 export const HOME_PERIOD_LABELS: Record<HomePeriod, string> = {
+  today: "Bugün",
+  yesterday: "Dün",
+  week: "Bu hafta",
   month: "Bu ay",
   last_month: "Geçen ay",
   year: "Bu yıl",
-  custom: "Özel",
+  custom: "Özel tarih",
 };
 
 export interface DateRange {
@@ -99,6 +103,34 @@ export function resolveHomePeriod(
   }
 
   const z = zonedDate(now);
+
+  // Gün bazlı dönemler: önceki dönem bir önceki gün / bir önceki haftadır.
+  if (period === "today" || period === "yesterday") {
+    const day = z.day - (period === "yesterday" ? 1 : 0);
+    const start = zonedMidnight(z.year, z.month, day);
+    const d = new Date(Date.UTC(z.year, z.month - 1, day));
+    return {
+      period,
+      range: { start: iso(start), end: iso(zonedMidnight(z.year, z.month, day + 1)) },
+      previous: { start: iso(zonedMidnight(z.year, z.month, day - 1)), end: iso(start) },
+      label: `${HOME_PERIOD_LABELS[period]} · ${shortDay({ y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() })}`,
+    };
+  }
+  if (period === "week") {
+    const mondayDay = z.day - (z.isoWeekday - 1);
+    const start = zonedMidnight(z.year, z.month, mondayDay);
+    const toDate = (offset: number) => {
+      const d = new Date(Date.UTC(z.year, z.month - 1, mondayDay + offset));
+      return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+    };
+    return {
+      period,
+      range: { start: iso(start), end: iso(zonedMidnight(z.year, z.month, mondayDay + 7)) },
+      previous: { start: iso(zonedMidnight(z.year, z.month, mondayDay - 7)), end: iso(start) },
+      label: `Bu hafta · ${shortDay(toDate(0))} – ${shortDay(toDate(6))}`,
+    };
+  }
+
   if (period === "year") {
     const start = zonedMidnight(z.year, 1, 1);
     return {

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HOME_PERIODS, HOME_PERIOD_LABELS, type HomePeriod } from "@/lib/format/homePeriod";
 
 /**
- * Ana sayfa dönem seçici — tek satır segment kontrol (4 eşit sütun,
- * hiçbir genişlikte taşmaz). "Özel" seçilince altında iki tarih alanı
- * açılır; seçim URL'ye yazılır (?period=custom&from=&to=), böylece sayfa
- * yenilense de korunur. Diğer sorgu parametreleri (space) korunur.
+ * Ana sayfa dönem sekmeleri (Bugün … Özel tarih). Gelir/gider/net
+ * bölümünün başlığında durur: masaüstünde sağ üstte, dar ekranda başlığın
+ * altında yana kaydırılabilir tek satır (hiçbir genişlikte taşmaz). Seçim
+ * URL'ye yazılır (?period=…, özel için &from=&to=), sayfa yenilense de
+ * korunur; diğer sorgu parametreleri (space) korunur.
  */
 export function HomePeriodPicker({
   active,
@@ -27,9 +28,23 @@ export function HomePeriodPicker({
   const [fromValue, setFromValue] = useState(from ?? "");
   const [toValue, setToValue] = useState(to ?? "");
   const [error, setError] = useState<string | null>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const highlighted = customOpen ? "custom" : active;
+
+  // Dar ekranda seçili sekme görünür alanda olsun (ör. "Bu yıl" sağda kalmasın).
+  // Yalnızca sekme satırı yatay kaydırılır; sayfanın dikey konumu değişmez.
+  useEffect(() => {
+    const list = listRef.current;
+    const tab = activeRef.current;
+    if (!list || !tab || list.scrollWidth <= list.clientWidth) return;
+    list.scrollLeft = tab.offsetLeft - (list.clientWidth - tab.clientWidth) / 2;
+  }, [highlighted]);
 
   function push(next: URLSearchParams) {
-    startTransition(() => router.push(`${pathname}?${next.toString()}`, { scroll: false }));
+    const q = next.toString();
+    startTransition(() => router.push(q ? `${pathname}?${q}` : pathname, { scroll: false }));
   }
 
   function select(period: HomePeriod) {
@@ -58,25 +73,27 @@ export function HomePeriodPicker({
     push(next);
   }
 
-  const highlighted = customOpen ? "custom" : active;
-
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2 lg:items-end">
       <div
+        ref={listRef}
         role="tablist"
         aria-label="Dönem"
-        className={`grid grid-cols-4 gap-1 rounded-2xl border border-border bg-surface p-1 transition-opacity ${pending ? "opacity-70" : ""}`}
+        className={`relative flex min-w-0 max-w-full gap-1 overflow-x-auto rounded-2xl border border-border bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          pending ? "opacity-70" : ""
+        }`}
       >
         {HOME_PERIODS.map((p) => {
           const isActive = p === highlighted;
           return (
             <button
               key={p}
+              ref={isActive ? activeRef : undefined}
               type="button"
               role="tab"
               aria-selected={isActive}
               onClick={() => select(p)}
-              className={`min-w-0 truncate rounded-xl px-1 py-2 text-[13px] font-semibold transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-semibold transition-colors ${
                 isActive ? "bg-accent text-text-on-accent" : "text-text-secondary hover:bg-surface-muted"
               }`}
               style={isActive ? { boxShadow: "var(--glow-accent)" } : undefined}
@@ -88,7 +105,7 @@ export function HomePeriodPicker({
       </div>
 
       {customOpen ? (
-        <form onSubmit={applyCustom} className="animate-rise flex min-w-0 flex-col gap-2 rounded-2xl border border-border bg-surface p-3">
+        <form onSubmit={applyCustom} className="animate-rise flex w-full min-w-0 flex-col gap-2 rounded-2xl border border-border bg-surface p-3 lg:max-w-md">
           <div className="grid min-w-0 grid-cols-2 gap-2">
             <label className="flex min-w-0 flex-col gap-1 text-[11px] font-semibold text-text-muted">
               Başlangıç
